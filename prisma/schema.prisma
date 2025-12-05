@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizations Organization[]
+  plans         Plan[]
+
+  @@map("users")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plans Plan[]
+
+  @@map("organizations")
+}
+
+model Plan {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId         String
+  organizationId String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  revenueStreams RevenueStream[]
+  expenses       Expense[]
+  people         Person[]
+  metrics        Metric[]
+
+  @@map("plans")
+}
+
+model RevenueStream {
+  id        String   @id @default(cuid())
+  name      String
+  amount    Float
+  frequency String   // "monthly", "quarterly", "annually"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("revenue_streams")
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  name      String
+  amount    Float
+  category  String   // "salaries", "office", "marketing", "software", etc.
+  frequency String   // "monthly", "quarterly", "annually"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+model Person {
+  id        String   @id @default(cuid())
+  name      String
+  role      String
+  salary    Float
+  startDate DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("people")
+}
+
+model Metric {
+  id        String   @id @default(cuid())
+  name      String
+  value     Float
+  date      DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("metrics")
+}
+
