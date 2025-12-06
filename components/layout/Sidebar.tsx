@@ -5,22 +5,20 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard,
-  FileText,
   BarChart3,
-  Layers,
-  Settings2,
   Menu,
   X,
   ChevronRight,
   DollarSign,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 
 const navItems = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/app/plan", label: "Basic Plan", icon: FileText },
   { href: "/app/metrics", label: "Metrics", icon: BarChart3 },
-  { href: "/app/scenarios", label: "Scenarios", icon: Layers },
-  { href: "/app/assumptions", label: "Assumptions", icon: Settings2 },
+  { href: "/app/revenue", label: "Revenue", icon: TrendingUp },
+  { href: "/app/expenses", label: "Expenses", icon: TrendingDown },
   { href: "/pricing", label: "Pricing", icon: DollarSign },
 ];
 

@@ -5,12 +5,10 @@ import { usePathname } from "next/navigation";
 
 const navLinks = [
   { href: "/app", label: "Dashboard" },
-  { href: "/app/wizard", label: "Wizard" },
-  { href: "/app/plan", label: "Plan" },
-  { href: "/app/metrics", label: "SaaS Metrics" },
+  { href: "/app/metrics", label: "Metrics" },
   { href: "/app/revenue", label: "Revenue" },
   { href: "/app/expenses", label: "Expenses" },
-  { href: "/app/people", label: "People" },
+  { href: "/pricing", label: "Pricing" },
 ];
 
 export default function AppLayout({
