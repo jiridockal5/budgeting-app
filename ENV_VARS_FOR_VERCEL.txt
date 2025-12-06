@@ -1,0 +1,24 @@
+==========================================
+COPY THESE EXACT VALUES TO VERCEL
+==========================================
+
+1. NEXT_PUBLIC_SUPABASE_URL
+   https://puiswljpjrodpnflopdp.supabase.co
+
+2. NEXT_PUBLIC_SUPABASE_ANON_KEY
+   [Get from Supabase Dashboard → Settings → API → anon/public key]
+   [Should start with: eyJ...]
+
+3. DATABASE_URL
+   postgresql://postgres.puiswljpjrodpnflopdp:CT5ya4CB3dSB%24X%21@aws-0-eu-north-1.pooler.supabase.com:6543/postgres?sslmode=require
+
+==========================================
+IMPORTANT NOTES:
+==========================================
+
+- Password is URL-encoded: $ = %24, ! = %21
+- Use Session Pooler (port 6543) for Vercel compatibility
+- After setting variables, REDEPLOY your Vercel app
+- Verify at: /verify page after deployment
+
+==========================================
