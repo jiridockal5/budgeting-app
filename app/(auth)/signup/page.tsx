@@ -31,7 +31,11 @@ export default function SignupPage() {
       });
 
       if (error) {
-        setError(error.message);
+        let errorMessage = error.message;
+        if (error.message === "Failed to fetch") {
+          errorMessage = "Unable to connect to authentication service. Please check your internet connection and try again.";
+        }
+        setError(errorMessage);
         setLoading(false);
         return;
       }
@@ -49,7 +53,11 @@ export default function SignupPage() {
 
       router.push("/app");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      let errorMessage = err instanceof Error ? err.message : "An error occurred";
+      if (err instanceof Error && err.message.includes("fetch")) {
+        errorMessage = "Network error: Unable to connect to authentication service. Please check your Supabase configuration.";
+      }
+      setError(errorMessage);
       setLoading(false);
     }
   };
