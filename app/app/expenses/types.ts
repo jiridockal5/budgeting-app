@@ -1,4 +1,4 @@
-import { ExpenseFrequency } from "@prisma/client";
+export type ExpenseFrequency = "MONTHLY" | "ONE_TIME" | "YEARLY";
 
 export type PlanSummary = {
   id: string;

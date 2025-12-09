@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ExpenseFrequency, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+
+const frequencyEnum = z.enum(["MONTHLY", "ONE_TIME", "YEARLY"]);
 
 const expenseInputSchema = z.object({
   planId: z.string().min(1),
@@ -16,7 +18,7 @@ const expenseInputSchema = z.object({
       }
       return value;
     }, z.number().finite()),
-  frequency: z.nativeEnum(ExpenseFrequency),
+  frequency: frequencyEnum,
   startMonth: z.string().min(1),
   endMonth: z.string().optional().nullable(),
 });

@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExpenseFrequency } from "@prisma/client";
-import { ExpenseView, PlanSummary } from "./types";
+import { ExpenseFrequency, ExpenseView, PlanSummary } from "./types";
 
 type ExpenseFormState = {
   name: string;
@@ -19,9 +18,9 @@ type Props = {
 };
 
 const FREQUENCY_OPTIONS: { label: string; value: ExpenseFrequency }[] = [
-  { label: "Monthly", value: ExpenseFrequency.MONTHLY },
-  { label: "One-time", value: ExpenseFrequency.ONE_TIME },
-  { label: "Yearly", value: ExpenseFrequency.YEARLY },
+  { label: "Monthly", value: "MONTHLY" },
+  { label: "One-time", value: "ONE_TIME" },
+  { label: "Yearly", value: "YEARLY" },
 ];
 
 function monthInputValue(dateIso?: string | null) {
@@ -57,7 +56,7 @@ const createEmptyForm = (startMonth?: string): ExpenseFormState => ({
   name: "",
   category: "",
   amount: "",
-  frequency: ExpenseFrequency.MONTHLY,
+  frequency: "MONTHLY",
   startMonth: startMonth ?? monthInputValue(new Date().toISOString()),
   endMonth: "",
 });
@@ -363,10 +362,7 @@ export default function ExpensesClient({ plan, initialExpenses }: Props) {
               <select
                 value={form.frequency}
                 onChange={(e) =>
-                  handleInputChange(
-                    "frequency",
-                    e.target.value as ExpenseFrequency
-                  )
+                  handleInputChange("frequency", e.target.value as ExpenseFrequency)
                 }
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
               >
