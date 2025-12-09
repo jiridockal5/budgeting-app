@@ -43,10 +43,6 @@ function normalizeMonth(value: string): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
 }
 
-function toDecimal(amount: number) {
-  return new Prisma.Decimal(amount.toFixed(2));
-}
-
 type RouteParams = {
   params: Promise<{ id: string }>;
 };
@@ -94,7 +90,7 @@ export async function PUT(request: NextRequest, context: RouteParams) {
       data: {
         name: input.name,
         category: input.category,
-        amount: toDecimal(input.amount),
+        amount: input.amount,
         frequency: input.frequency,
         startMonth: normalizeMonth(input.startMonth),
         endMonth: input.endMonth ? normalizeMonth(input.endMonth) : null,
