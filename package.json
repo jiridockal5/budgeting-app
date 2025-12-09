@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "migrate:forecast": "prisma migrate dev --name add_revenue_forecast_models",
     "migrate:status": "prisma migrate status",
     "db:generate": "prisma generate"
