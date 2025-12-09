@@ -1,72 +1,68 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
+import { NextResponse, type NextRequest } from "next/server";
 
-/**
- * Middleware for route protection
- * - Protects all /app/* routes (requires authentication)
- * - Allows public access to auth routes (/login, /signup, /verify)
- * - Allows public access to /pricing and static assets
- */
-export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  const res = NextResponse.next();
+import { createServerClient } from "@supabase/ssr";
 
-  // Public routes that don't require authentication
-  const publicRoutes = [
-    "/login",
-    "/signup",
-    "/verify",
-    "/pricing",
-    "/api/test-forecast", // Test endpoint (consider protecting in production)
-  ];
+const PUBLIC_ROUTES = ["/login", "/signup", "/pricing", "/auth", "/api"];
 
-  // Check if route is public
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+const PROTECTED_PREFIX = "/app";
 
-  // Allow public routes and static assets
-  if (isPublicRoute || pathname.startsWith("/_next") || pathname.startsWith("/api/auth")) {
-    return res;
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Allow static & public assets
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon.ico") ||
+    pathname.match(/\.(png|jpg|jpeg|gif|svg|webp|ico)$/)
+  ) {
+    return NextResponse.next();
   }
 
-  // Protect /app/* routes
-  if (pathname.startsWith("/app")) {
-    try {
-      const supabase = createMiddlewareClient({ req, res });
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+  const isPublicRoute =
+    pathname === "/" ||
+    PUBLIC_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-      if (!session) {
-        // Redirect to login if not authenticated
-        const loginUrl = new URL("/login", req.url);
-        loginUrl.searchParams.set("redirect", pathname);
-        return NextResponse.redirect(loginUrl);
-      }
+  let response = NextResponse.next();
 
-      // User is authenticated, allow access
-      return res;
-    } catch (error) {
-      console.error("Middleware auth error:", error);
-      // On error, redirect to login
-      const loginUrl = new URL("/login", req.url);
-      return NextResponse.redirect(loginUrl);
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
     }
+  );
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // Unauthenticated user trying to access /app/*
+  if (!session && pathname.startsWith(PROTECTED_PREFIX)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("redirectTo", pathname);
+    return NextResponse.redirect(redirectUrl);
   }
 
-  // Allow all other routes (homepage, etc.)
-  return res;
+  // Authenticated user going to / or /login → redirect to /app
+  if (session && (pathname === "/" || pathname === "/login" || pathname === "/signup")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/app";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  return response;
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

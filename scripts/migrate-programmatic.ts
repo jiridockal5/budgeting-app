@@ -77,7 +77,7 @@ async function main() {
           stdio: "inherit",
           cwd: process.cwd(),
           env: { ...process.env, FORCE_COLOR: "1" },
-          shell: true,
+          shell: process.platform === "win32" ? process.env.ComSpec || "cmd.exe" : "/bin/sh",
         }
       );
       console.log("\n✅ Migration file created!\n");
@@ -95,7 +95,7 @@ async function main() {
           stdio: "inherit",
           cwd: process.cwd(),
           env: { ...process.env, FORCE_COLOR: "1" },
-          shell: true,
+          shell: process.platform === "win32" ? process.env.ComSpec || "cmd.exe" : "/bin/sh",
         }
       );
       console.log("\n✅ Migration applied!\n");
@@ -109,7 +109,7 @@ async function main() {
             stdio: "inherit",
             cwd: process.cwd(),
             env: { ...process.env, FORCE_COLOR: "1" },
-            shell: true,
+            shell: process.platform === "win32" ? process.env.ComSpec || "cmd.exe" : "/bin/sh",
           }
         );
         console.log("\n✅ Migration applied!\n");
@@ -127,7 +127,7 @@ async function main() {
       stdio: "inherit",
       cwd: process.cwd(),
       env: { ...process.env, FORCE_COLOR: "1" },
-      shell: true,
+      shell: process.platform === "win32" ? process.env.ComSpec || "cmd.exe" : "/bin/sh",
     });
     console.log("\n✅ Prisma client generated!\n");
   } catch (error) {
