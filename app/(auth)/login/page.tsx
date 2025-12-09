@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
   AuthCard,
@@ -10,7 +10,7 @@ import {
   AuthButton,
 } from "@/components/auth";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,15 +22,19 @@ export default function LoginPage() {
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "/app";
 
   // Check Supabase configuration on mount
   useEffect(() => {
     const checkConfig = () => {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
+
       if (!url || !key) {
-        setError("Supabase configuration is missing. Please check your environment variables.");
+        setError(
+          "Supabase configuration is missing. Please check your environment variables.",
+        );
         console.error("Supabase Config Check:", {
           url: url || "NOT SET",
           key: key ? "SET" : "NOT SET",
@@ -42,74 +46,86 @@ export default function LoginPage() {
         });
       }
     };
-    
+
     checkConfig();
   }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
+    console.log("HANDLE_SIGN_IN_CALLED");
     e.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
-
+  
     try {
       // Validate inputs
       if (!email || !password) {
         setError("Please enter both email and password");
-        setLoading(false);
         return;
       }
-
+  
       console.log("Attempting to sign in...", {
         email,
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + "...",
+        supabaseUrl:
+          process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + "...",
       });
-
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+  
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+  
       if (signInError) {
         console.error("SIGNIN_ERROR:", {
           message: signInError.message,
           status: signInError.status,
           name: signInError.name,
         });
-        
-        // Provide more helpful error messages
+  
         let errorMessage = signInError.message;
         if (signInError.message === "Failed to fetch") {
-          errorMessage = "Unable to connect to authentication service. Please check your internet connection and try again. If the problem persists, verify your Supabase configuration.";
+          errorMessage =
+            "Unable to connect to authentication service. Please check your internet connection and try again. If the problem persists, verify your Supabase configuration.";
         }
-        
+  
         setError(errorMessage);
-        setLoading(false);
         return;
       }
-
+  
       if (data.session) {
-        console.log("Sign in successful, redirecting...");
-        router.push("/app");
-      } else {
-        setError("Sign in failed. Please try again.");
-        setLoading(false);
+        console.log("Sign in successful, redirecting to:", redirectTo);
+  
+        // 🔁 Refresh, aby se props/state dorovnaly
+        router.refresh();
+  
+        // 🔒 Tvrdý redirect MIMO Suspense
+        setTimeout(() => {
+          window.location.assign(redirectTo);
+        }, 10);
+  
+        return;
       }
+  
+      setError("Sign in failed. Please try again.");
     } catch (err) {
       console.error("SIGNIN_EXCEPTION:", err);
-      
+  
       let errorMessage = "An unexpected error occurred";
       if (err instanceof Error) {
         errorMessage = err.message;
         if (err.message.includes("fetch")) {
-          errorMessage = "Network error: Unable to connect to authentication service. Please check your Supabase URL and network connection.";
+          errorMessage =
+            "Network error: Unable to connect to authentication service. Please check your Supabase URL and network connection.";
         }
       }
-      
+  
       setError(errorMessage);
+    } finally {
       setLoading(false);
     }
   };
+  
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,21 +135,23 @@ export default function LoginPage() {
 
     try {
       // Use dynamic origin for redirect URL (works in both localhost and production)
-      const redirectUrl = typeof window !== "undefined" 
-        ? `${window.location.origin}/login`
-        : "/login";
-      
+      const redirectUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/login`
+          : "/login";
+
       const { error } = await supabase.auth.resetPasswordForEmail(
         forgotPasswordEmail,
         {
           redirectTo: redirectUrl,
-        }
+        },
       );
 
       if (error) {
         let errorMessage = error.message;
         if (error.message === "Failed to fetch") {
-          errorMessage = "Unable to connect to authentication service. Please check your configuration.";
+          errorMessage =
+            "Unable to connect to authentication service. Please check your configuration.";
         }
         setError(errorMessage);
         setForgotPasswordLoading(false);
@@ -141,14 +159,16 @@ export default function LoginPage() {
       }
 
       setMessage(
-        "If an account with this email exists, we've sent you a password reset link."
+        "If an account with this email exists, we've sent you a password reset link.",
       );
       setForgotPasswordLoading(false);
       setShowForgotPassword(false);
     } catch (err) {
-      let errorMessage = err instanceof Error ? err.message : "An error occurred";
+      let errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
       if (err instanceof Error && err.message.includes("fetch")) {
-        errorMessage = "Network error: Unable to connect to authentication service.";
+        errorMessage =
+          "Network error: Unable to connect to authentication service.";
       }
       setError(errorMessage);
       setForgotPasswordLoading(false);
@@ -276,5 +296,24 @@ export default function LoginPage() {
         </AuthCard>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50">
+          <div className="mx-auto flex max-w-5xl items-center justify-center px-6 py-10">
+            <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white px-5 py-3 text-sm text-slate-600 shadow-lg">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+              Loading...
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -41,19 +41,23 @@ model Organization {
 
 model Plan {
   id        String   @id @default(cuid())
+  userId    String
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  currency  String   @default("EUR")
+  startMonth DateTime
+  months    Int
 
-  userId         String
-  organizationId String
+  organizationId String?
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   revenueStreams RevenueStream[]
   expenses       Expense[]
   people         Person[]
   metrics        Metric[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("plans")
 }
@@ -73,18 +77,27 @@ model RevenueStream {
 }
 
 model Expense {
-  id        String   @id @default(cuid())
-  name      String
-  amount    Float
-  category  String   // "salaries", "office", "marketing", "software", etc.
-  frequency String   // "monthly", "quarterly", "annually"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String            @id @default(cuid())
+  planId     String
+  plan       Plan              @relation(fields: [planId], references: [id], onDelete: Cascade)
 
-  planId String
-  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  name       String
+  category   String
+  amount     Decimal           @db.Decimal(18, 2)
+  frequency  ExpenseFrequency  @default(MONTHLY)
+  startMonth DateTime
+  endMonth   DateTime?
+
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
   @@map("expenses")
+}
+
+enum ExpenseFrequency {
+  MONTHLY
+  ONE_TIME
+  YEARLY
 }
 
 model Person {
