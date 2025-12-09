@@ -1,14 +1,25 @@
-export default function HomePage() {
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-          Budgeting App
-        </h1>
-        <p className="text-slate-600 mt-2">
-          Forecasting tool for SaaS fundraising and post-raise planning.
-        </p>
-      </div>
-    </main>
-  );
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
+
+/**
+ * Homepage - redirects based on authentication status
+ * - Authenticated users → /app (dashboard)
+ * - Unauthenticated users → /login
+ */
+export default async function HomePage() {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session) {
+      redirect("/app");
+    } else {
+      redirect("/login");
+    }
+  } catch (error) {
+    // On error, redirect to login
+    redirect("/login");
+  }
 }

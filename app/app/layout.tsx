@@ -9,6 +9,11 @@ type Session = Awaited<
   ReturnType<typeof supabase.auth.getSession>
 >["data"]["session"];
 
+/**
+ * App layout for authenticated routes
+ * Note: Route protection is handled by middleware.ts
+ * This component only handles UI state and logout functionality
+ */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
@@ -20,16 +25,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         data: { session },
       } = await supabase.auth.getSession();
 
-      if (!session) {
-        router.replace("/login");
-        return;
-      }
-
+      // Middleware handles redirect, but we still need session for UI
       setSession(session);
       setLoading(false);
     };
 
     loadSession();
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        router.replace("/login");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [router]);
 
   const handleLogout = async () => {
@@ -42,7 +55,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white px-5 py-3 text-sm text-slate-600 shadow-lg">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-          Verifying session...
+          Loading...
         </div>
       </div>
     );

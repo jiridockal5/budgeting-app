@@ -3,24 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import {
-  LayoutDashboard,
-  BarChart3,
-  Menu,
-  X,
-  ChevronRight,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-} from "lucide-react";
-
-const navItems = [
-  { href: "/app", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/app/metrics", label: "Metrics", icon: BarChart3 },
-  { href: "/app/revenue", label: "Revenue", icon: TrendingUp },
-  { href: "/app/expenses", label: "Expenses", icon: TrendingDown },
-  { href: "/pricing", label: "Pricing", icon: DollarSign },
-];
+import { Menu, X, ChevronRight } from "lucide-react";
+import { navItems } from "@/config/navItems";
 
 export function Sidebar() {
   const pathname = usePathname();

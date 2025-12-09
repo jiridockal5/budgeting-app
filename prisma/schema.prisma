@@ -7,7 +7,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Prefer POSTGRES_PRISMA_URL (Supabase connection pooler) - fallback to DATABASE_URL is handled in lib/prisma.ts
+  // Make sure password is URL-encoded in .env (%24 for $, %21 for !, etc.)
+  url      = env("POSTGRES_PRISMA_URL")
 }
 
 model User {
@@ -114,3 +116,71 @@ model Metric {
   @@map("metrics")
 }
 
+model ForecastScenario {
+  id         String   @id @default(cuid())
+  name       String
+  startMonth DateTime // First month of forecast (YYYY-MM-01)
+  months     Int      // Number of months to forecast
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  plgAssumptions    PLGRevenueAssumptions?
+  salesAssumptions  SalesRevenueAssumptions?
+  partnerAssumptions PartnerRevenueAssumptions?
+
+  @@map("forecast_scenarios")
+}
+
+model PLGRevenueAssumptions {
+  id                  String   @id @default(cuid())
+  scenarioId          String   @unique
+  monthlyTraffic      Decimal  @db.Decimal(12, 2) // Average or starting month traffic
+  trafficGrowthRate   Decimal  @db.Decimal(5, 4)  // % per month (e.g., 0.05 for 5%)
+  signupRate          Decimal  @db.Decimal(5, 4)  // 0-1 (e.g., 0.02 for 2%)
+  paidConversionRate  Decimal  @db.Decimal(5, 4)  // 0-1
+  churnRate           Decimal  @db.Decimal(5, 4)  // 0-1 per month
+  arpa                Decimal  @db.Decimal(12, 2) // Monthly ARPA
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  scenario ForecastScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@map("plg_revenue_assumptions")
+}
+
+model SalesRevenueAssumptions {
+  id                String   @id @default(cuid())
+  scenarioId        String   @unique
+  monthlyLeads      Decimal  @db.Decimal(12, 2)
+  leadGrowthRate    Decimal  @db.Decimal(5, 4)   // % per month
+  sqlRate           Decimal  @db.Decimal(5, 4)   // 0-1 (SQL = Sales Qualified Leads)
+  winRate           Decimal  @db.Decimal(5, 4)   // 0-1
+  salesCycleMonths  Int                          // Sales cycle length in months
+  acv               Decimal  @db.Decimal(12, 2)  // Annual Contract Value
+  churnRate         Decimal  @db.Decimal(5, 4)   // 0-1 per month on MRR
+  expansionRate     Decimal  @db.Decimal(5, 4)   // 0-1 per month on MRR
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  scenario ForecastScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@map("sales_revenue_assumptions")
+}
+
+model PartnerRevenueAssumptions {
+  id               String   @id @default(cuid())
+  scenarioId       String   @unique
+  activePartners   Decimal  @db.Decimal(12, 2)
+  partnerGrowthRate Decimal @db.Decimal(5, 4)   // % per month
+  leadsPerPartner  Decimal  @db.Decimal(12, 2)  // Per month
+  conversionRate   Decimal  @db.Decimal(5, 4)   // 0-1
+  arpa             Decimal  @db.Decimal(12, 2)  // Monthly ARPA
+  revenueShare     Decimal  @db.Decimal(5, 4)   // 0-1 of gross MRR
+  churnRate        Decimal  @db.Decimal(5, 4)   // 0-1 per month
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  scenario ForecastScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@map("partner_revenue_assumptions")
+}
