@@ -22,5 +22,5 @@ export const navItems: NavItem[] = [
   { href: "/app/metrics", label: "Metrics", icon: BarChart3 },
   { href: "/app/revenue", label: "Revenue", icon: TrendingUp },
   { href: "/app/expenses", label: "Expenses", icon: TrendingDown },
-  { href: "/pricing", label: "Pricing", icon: DollarSign },
+  { href: "/app/pricing", label: "Pricing", icon: DollarSign },
 ];
