@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SaasMetricCard } from "@/components/dashboard/SaasMetricCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -104,9 +105,12 @@ export default function DashboardPage() {
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Basic Plan
                 </span>
-                <button className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <Link
+                  href="/app/assumptions"
+                  className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
                   Edit assumptions
-                </button>
+                </Link>
               </div>
             }
           />
