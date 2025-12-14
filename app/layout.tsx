@@ -1,21 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Budgeting App",
-  description: "Forecasting tool for SaaS fundraising and post-raise planning",
+  title: "Runway Forecast | SaaS Budgeting & Runway Planning",
+  description:
+    "An opinionated budgeting tool for early-stage SaaS. Model revenue, hiring, and burn with simple inputs — and see runway and investor metrics instantly.",
+  openGraph: {
+    title: "Runway Forecast | SaaS Budgeting & Runway Planning",
+    description:
+      "An opinionated budgeting tool for early-stage SaaS. Model revenue, hiring, and burn with simple inputs — and see runway and investor metrics instantly.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Runway Forecast | SaaS Budgeting & Runway Planning",
+    description:
+      "An opinionated budgeting tool for early-stage SaaS. Model revenue, hiring, and burn with simple inputs — and see runway and investor metrics instantly.",
+  },
 };
 
 export default function RootLayout({
@@ -25,9 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${inter.variable} font-sans antialiased`}>
         <ErrorBoundary>{children}</ErrorBoundary>
       </body>
     </html>
