@@ -55,7 +55,8 @@ model Plan {
   expenses       Expense[]
   people         Person[]
   metrics        Metric[]
-  assumptions    GlobalAssumptions?
+  assumptions      GlobalAssumptions?
+  forecastScenario ForecastScenario?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -128,6 +129,8 @@ model Person {
   name      String
   role      String
   salary    Float
+  category  String   @default("rnd")
+  fte       Float    @default(1.0)
   startDate DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -154,14 +157,17 @@ model Metric {
 
 model ForecastScenario {
   id         String   @id @default(cuid())
-  name       String
-  startMonth DateTime // First month of forecast (YYYY-MM-01)
-  months     Int      // Number of months to forecast
+  planId     String   @unique
+  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  name       String   @default("Default")
+  startMonth DateTime
+  months     Int      @default(24)
+  config     Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  plgAssumptions    PLGRevenueAssumptions?
-  salesAssumptions  SalesRevenueAssumptions?
+  plgAssumptions     PLGRevenueAssumptions?
+  salesAssumptions   SalesRevenueAssumptions?
   partnerAssumptions PartnerRevenueAssumptions?
 
   @@map("forecast_scenarios")

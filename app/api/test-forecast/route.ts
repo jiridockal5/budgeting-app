@@ -1,25 +1,28 @@
 import { NextResponse } from "next/server";
+import { getServerUser } from "@/lib/serverUser";
 
 /**
- * Simple health-check endpoint for the forecast system.
+ * Health-check endpoint for the forecast system.
+ * Requires authentication.
  *
  * GET /api/test-forecast
  */
 export async function GET() {
   try {
+    const user = await getServerUser();
+
     return NextResponse.json({
       success: true,
-      message: "test-forecast endpoint is working",
+      message: "Forecast system is operational",
+      userId: user.id,
     });
   } catch (error) {
-    console.error("test-forecast error", error);
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        error: "Authentication required",
       },
-      { status: 500 }
+      { status: 401 }
     );
   }
 }

@@ -24,7 +24,11 @@ export async function getServerUser(): Promise<ServerUser> {
     console.warn("getServerUser fallback path hit", error);
   }
 
-  // TODO: replace fallback user once full Supabase <-> Prisma user sync is in place.
-  return { id: "demo-user", email: "demo@example.com", isFallback: true };
+  // Only allow demo fallback in development
+  if (process.env.NODE_ENV === "development") {
+    return { id: "demo-user", email: "demo@example.com", isFallback: true };
+  }
+
+  throw new Error("Authentication required");
 }
 

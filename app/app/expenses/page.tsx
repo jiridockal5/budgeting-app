@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Settings2,
@@ -11,9 +11,11 @@ import {
   Trash2,
   Pencil,
   Info,
+  Loader2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
+  GlobalAssumptions,
   DEFAULT_ASSUMPTIONS,
   formatCurrency,
   formatPercentage,
@@ -28,51 +30,89 @@ import {
   formatFrequency,
 } from "@/lib/expenses";
 
-// TODO:
-// - Replace local state with data loaded from Prisma for the current plan.
-// - On save, persist headcount and non-headcount expenses via server actions or /api endpoints.
-// - Use GlobalAssumptions (salaryTaxRate, salaryGrowthRate, inflationRate) when computing forecasted monthly costs.
-// - Add validation for inputs (positive numbers, valid date ranges, etc.).
-// - Consider optimistic updates with rollback on error.
+// ============================================================================
+// Helpers: map between DB and UI types
+// ============================================================================
 
-/**
- * Generate a simple unique ID for local state management
- */
 function generateId(): string {
   return `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
-/**
- * Get current month as YYYY-MM string
- */
 function getCurrentMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-/**
- * Expenses Page
- *
- * Configure headcount and non-headcount costs for the financial model.
- * Uses global assumptions for salary tax, growth, and inflation calculations.
- */
-export default function ExpensesPage() {
-  // ============================================================================
-  // Headcount State
-  // ============================================================================
-  // TODO: Replace with data loaded from Prisma for the current plan
-  const [headcountRows, setHeadcountRows] = useState<HeadcountRow[]>([
-    // Seed with one example row
-    {
-      id: generateId(),
-      role: "Senior Software Engineer",
-      category: "rnd",
-      baseSalary: 6000,
-      fte: 1.0,
-      startMonth: getCurrentMonth(),
-    },
-  ]);
+function isoToMonth(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
 
+function mapDbFrequency(
+  freq: string
+): NonHeadcountExpenseRow["frequency"] {
+  switch (freq) {
+    case "MONTHLY":
+      return "monthly";
+    case "YEARLY":
+      return "annual";
+    case "ONE_TIME":
+      return "one_time";
+    default:
+      return "monthly";
+  }
+}
+
+function mapUiFrequency(freq: NonHeadcountExpenseRow["frequency"]): string {
+  switch (freq) {
+    case "monthly":
+      return "MONTHLY";
+    case "annual":
+      return "YEARLY";
+    case "one_time":
+      return "ONE_TIME";
+  }
+}
+
+function mapPersonToRow(person: any): HeadcountRow {
+  return {
+    id: person.id,
+    role: person.role,
+    category: person.category as ExpenseCategory,
+    baseSalary: person.salary,
+    fte: person.fte,
+    startMonth: person.startDate
+      ? isoToMonth(person.startDate)
+      : getCurrentMonth(),
+  };
+}
+
+function mapExpenseToRow(expense: any): NonHeadcountExpenseRow {
+  return {
+    id: expense.id,
+    name: expense.name,
+    category: expense.category as ExpenseCategory,
+    amount: expense.amount,
+    frequency: mapDbFrequency(expense.frequency),
+    startMonth: isoToMonth(expense.startMonth),
+    endMonth: expense.endMonth ? isoToMonth(expense.endMonth) : undefined,
+  };
+}
+
+// ============================================================================
+// Expenses Page
+// ============================================================================
+
+export default function ExpensesPage() {
+  // ── Plan & loading state ──
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [assumptions, setAssumptions] =
+    useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
+
+  // ── Headcount state ──
+  const [headcountRows, setHeadcountRows] = useState<HeadcountRow[]>([]);
   const [headcountForm, setHeadcountForm] = useState<Omit<HeadcountRow, "id">>({
     role: "",
     category: "rnd",
@@ -80,37 +120,14 @@ export default function ExpensesPage() {
     fte: 1.0,
     startMonth: getCurrentMonth(),
   });
-
   const [editingHeadcountId, setEditingHeadcountId] = useState<string | null>(
     null
   );
 
-  // ============================================================================
-  // Non-headcount State
-  // ============================================================================
-  // TODO: Replace with data loaded from Prisma for the current plan
+  // ── Non-headcount state ──
   const [nonHeadcountRows, setNonHeadcountRows] = useState<
     NonHeadcountExpenseRow[]
-  >([
-    // Seed with example rows
-    {
-      id: generateId(),
-      name: "AWS Infrastructure",
-      category: "cos",
-      amount: 2500,
-      frequency: "monthly",
-      startMonth: getCurrentMonth(),
-    },
-    {
-      id: generateId(),
-      name: "Google Ads",
-      category: "gtm",
-      amount: 5000,
-      frequency: "monthly",
-      startMonth: getCurrentMonth(),
-    },
-  ]);
-
+  >([]);
   const [nonHeadcountForm, setNonHeadcountForm] = useState<
     Omit<NonHeadcountExpenseRow, "id">
   >({
@@ -121,43 +138,124 @@ export default function ExpensesPage() {
     startMonth: getCurrentMonth(),
     endMonth: undefined,
   });
-
   const [editingNonHeadcountId, setEditingNonHeadcountId] = useState<
     string | null
   >(null);
 
-  // ============================================================================
-  // Headcount Handlers
-  // ============================================================================
-  const handleAddHeadcount = () => {
-    if (!headcountForm.role.trim() || headcountForm.baseSalary <= 0) return;
+  // ── Load plan + data on mount ──
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError(null);
 
-    if (editingHeadcountId) {
-      setHeadcountRows((prev) =>
-        prev.map((row) =>
-          row.id === editingHeadcountId
-            ? { ...headcountForm, id: row.id }
-            : row
-        )
-      );
-      setEditingHeadcountId(null);
-    } else {
-      const newRow: HeadcountRow = {
-        ...headcountForm,
-        id: generateId(),
-      };
-      setHeadcountRows((prev) => [...prev, newRow]);
+        // Get or create the current plan
+        const planRes = await fetch("/api/plans/current");
+        const planData = await planRes.json();
+        if (!planData.success)
+          throw new Error(planData.error || "Failed to load plan");
+        const id = planData.data.id;
+        setPlanId(id);
+
+        // Fetch people, expenses, and assumptions in parallel
+        const [peopleRes, expensesRes, assumptionsRes] = await Promise.all([
+          fetch(`/api/people?planId=${id}`),
+          fetch(`/api/expenses?planId=${id}`),
+          fetch(`/api/assumptions?planId=${id}`),
+        ]);
+
+        const [peopleData, expensesData, assumptionsData] = await Promise.all([
+          peopleRes.json(),
+          expensesRes.json(),
+          assumptionsRes.json(),
+        ]);
+
+        if (peopleData.success) {
+          setHeadcountRows(peopleData.data.map(mapPersonToRow));
+        }
+        if (expensesData.success) {
+          setNonHeadcountRows(expensesData.data.map(mapExpenseToRow));
+        }
+        if (assumptionsData.success) {
+          setAssumptions({
+            cac: assumptionsData.data.cac,
+            churnRate: assumptionsData.data.churnRate,
+            expansionRate: assumptionsData.data.expansionRate,
+            baseAcv: assumptionsData.data.baseAcv,
+            salaryTaxRate: assumptionsData.data.salaryTaxRate,
+            salaryGrowthRate: assumptionsData.data.salaryGrowthRate,
+            inflationRate: assumptionsData.data.inflationRate,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load expenses data:", err);
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
     }
 
-    setHeadcountForm({
-      role: "",
-      category: "rnd",
-      baseSalary: 0,
-      fte: 1.0,
-      startMonth: getCurrentMonth(),
-    });
+    loadData();
+  }, []);
 
-    // TODO: Persist to database via server action or API
+  // ── Headcount handlers ──
+
+  const handleAddHeadcount = async () => {
+    if (!headcountForm.role.trim() || headcountForm.baseSalary <= 0 || !planId)
+      return;
+
+    try {
+      if (editingHeadcountId) {
+        const res = await fetch(`/api/people/${editingHeadcountId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId,
+            name: headcountForm.role,
+            role: headcountForm.role,
+            salary: headcountForm.baseSalary,
+            category: headcountForm.category,
+            fte: headcountForm.fte,
+            startDate: headcountForm.startMonth + "-01",
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to update");
+        setHeadcountRows((prev) =>
+          prev.map((r) =>
+            r.id === editingHeadcountId ? mapPersonToRow(data.data) : r
+          )
+        );
+        setEditingHeadcountId(null);
+      } else {
+        const res = await fetch("/api/people", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId,
+            name: headcountForm.role,
+            role: headcountForm.role,
+            salary: headcountForm.baseSalary,
+            category: headcountForm.category,
+            fte: headcountForm.fte,
+            startDate: headcountForm.startMonth + "-01",
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to create");
+        setHeadcountRows((prev) => [...prev, mapPersonToRow(data.data)]);
+      }
+
+      setHeadcountForm({
+        role: "",
+        category: "rnd",
+        baseSalary: 0,
+        fte: 1.0,
+        startMonth: getCurrentMonth(),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save headcount");
+    }
   };
 
   const handleEditHeadcount = (row: HeadcountRow) => {
@@ -182,45 +280,82 @@ export default function ExpensesPage() {
     });
   };
 
-  const handleDeleteHeadcount = (id: string) => {
-    setHeadcountRows((prev) => prev.filter((row) => row.id !== id));
-    if (editingHeadcountId === id) handleCancelEditHeadcount();
-    // TODO: Delete from database via server action or API
+  const handleDeleteHeadcount = async (id: string) => {
+    if (!planId) return;
+    try {
+      const res = await fetch(`/api/people/${id}?planId=${planId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to delete");
+      setHeadcountRows((prev) => prev.filter((row) => row.id !== id));
+      if (editingHeadcountId === id) handleCancelEditHeadcount();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete headcount"
+      );
+    }
   };
 
-  // ============================================================================
-  // Non-headcount Handlers
-  // ============================================================================
-  const handleAddNonHeadcount = () => {
-    if (!nonHeadcountForm.name.trim() || nonHeadcountForm.amount <= 0) return;
+  // ── Non-headcount handlers ──
 
-    if (editingNonHeadcountId) {
-      setNonHeadcountRows((prev) =>
-        prev.map((row) =>
-          row.id === editingNonHeadcountId
-            ? { ...nonHeadcountForm, id: row.id }
-            : row
-        )
-      );
-      setEditingNonHeadcountId(null);
-    } else {
-      const newRow: NonHeadcountExpenseRow = {
-        ...nonHeadcountForm,
-        id: generateId(),
-      };
-      setNonHeadcountRows((prev) => [...prev, newRow]);
+  const handleAddNonHeadcount = async () => {
+    if (!nonHeadcountForm.name.trim() || nonHeadcountForm.amount <= 0 || !planId)
+      return;
+
+    try {
+      if (editingNonHeadcountId) {
+        const res = await fetch(`/api/expenses/${editingNonHeadcountId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId,
+            name: nonHeadcountForm.name,
+            category: nonHeadcountForm.category,
+            amount: nonHeadcountForm.amount,
+            frequency: mapUiFrequency(nonHeadcountForm.frequency),
+            startMonth: nonHeadcountForm.startMonth,
+            endMonth: nonHeadcountForm.endMonth || null,
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to update");
+        setNonHeadcountRows((prev) =>
+          prev.map((r) =>
+            r.id === editingNonHeadcountId ? mapExpenseToRow(data.data) : r
+          )
+        );
+        setEditingNonHeadcountId(null);
+      } else {
+        const res = await fetch("/api/expenses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId,
+            name: nonHeadcountForm.name,
+            category: nonHeadcountForm.category,
+            amount: nonHeadcountForm.amount,
+            frequency: mapUiFrequency(nonHeadcountForm.frequency),
+            startMonth: nonHeadcountForm.startMonth,
+            endMonth: nonHeadcountForm.endMonth || null,
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Failed to create");
+        setNonHeadcountRows((prev) => [...prev, mapExpenseToRow(data.data)]);
+      }
+
+      setNonHeadcountForm({
+        name: "",
+        category: "ops",
+        amount: 0,
+        frequency: "monthly",
+        startMonth: getCurrentMonth(),
+        endMonth: undefined,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save expense");
     }
-
-    setNonHeadcountForm({
-      name: "",
-      category: "ops",
-      amount: 0,
-      frequency: "monthly",
-      startMonth: getCurrentMonth(),
-      endMonth: undefined,
-    });
-
-    // TODO: Persist to database via server action or API
   };
 
   const handleEditNonHeadcount = (row: NonHeadcountExpenseRow) => {
@@ -247,54 +382,82 @@ export default function ExpensesPage() {
     });
   };
 
-  const handleDeleteNonHeadcount = (id: string) => {
-    setNonHeadcountRows((prev) => prev.filter((row) => row.id !== id));
-    if (editingNonHeadcountId === id) handleCancelEditNonHeadcount();
-    // TODO: Delete from database via server action or API
+  const handleDeleteNonHeadcount = async (id: string) => {
+    if (!planId) return;
+    try {
+      const res = await fetch(`/api/expenses/${id}?planId=${planId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to delete");
+      setNonHeadcountRows((prev) => prev.filter((row) => row.id !== id));
+      if (editingNonHeadcountId === id) handleCancelEditNonHeadcount();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete expense"
+      );
+    }
   };
 
-  // ============================================================================
-  // Summary Calculations
-  // ============================================================================
+  // ── Summary calculations ──
+
   const headcountSummary = useMemo(() => {
     const totalBaseSalary = headcountRows.reduce(
       (sum, row) => sum + row.baseSalary * row.fte,
       0
     );
-    return {
-      count: headcountRows.length,
-      totalBaseSalary,
-    };
+    return { count: headcountRows.length, totalBaseSalary };
   }, [headcountRows]);
 
   const nonHeadcountSummary = useMemo(() => {
-    // Placeholder: Convert all to monthly equivalent for display
-    // Annual costs divided by 12, one-time shown as-is (would need amortization logic)
     const totalMonthlyEquivalent = nonHeadcountRows.reduce((sum, row) => {
       if (row.frequency === "annual") return sum + row.amount / 12;
-      if (row.frequency === "one_time") return sum; // Skip one-time for monthly view
+      if (row.frequency === "one_time") return sum;
       return sum + row.amount;
     }, 0);
-    return {
-      count: nonHeadcountRows.length,
-      totalMonthlyEquivalent,
-    };
+    return { count: nonHeadcountRows.length, totalMonthlyEquivalent };
   }, [nonHeadcountRows]);
+
+  // ── Loading state ──
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-6xl px-6 py-8">
+          <div className="flex items-center justify-center py-20">
+            <div className="flex items-center gap-3 text-slate-600">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Loading expenses...</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
-          {/* Page Header */}
           <PageHeader
             title="Expenses"
             subtitle="Configure headcount and non-headcount costs for your plan."
           />
 
-          {/* Cost Assumptions Snapshot */}
-          <CostAssumptionsSnapshot />
+          {/* Error banner */}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
+              <span>{error}</span>
+              <button
+                onClick={() => setError(null)}
+                className="text-red-500 hover:text-red-700 font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
-          {/* Headcount Section */}
+          <CostAssumptionsSnapshot assumptions={assumptions} />
+
           <HeadcountSection
             rows={headcountRows}
             form={headcountForm}
@@ -305,9 +468,9 @@ export default function ExpensesPage() {
             onDelete={handleDeleteHeadcount}
             editingId={editingHeadcountId}
             summary={headcountSummary}
+            assumptions={assumptions}
           />
 
-          {/* Non-headcount Section */}
           <NonHeadcountSection
             rows={nonHeadcountRows}
             form={nonHeadcountForm}
@@ -318,6 +481,7 @@ export default function ExpensesPage() {
             onDelete={handleDeleteNonHeadcount}
             editingId={editingNonHeadcountId}
             summary={nonHeadcountSummary}
+            assumptions={assumptions}
           />
 
           {/* Info Card */}
@@ -350,10 +514,11 @@ export default function ExpensesPage() {
 // Cost Assumptions Snapshot
 // ============================================================================
 
-/**
- * Read-only snapshot of cost-related global assumptions
- */
-function CostAssumptionsSnapshot() {
+function CostAssumptionsSnapshot({
+  assumptions,
+}: {
+  assumptions: GlobalAssumptions;
+}) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -384,17 +549,17 @@ function CostAssumptionsSnapshot() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <SnapshotMetric
             label="Salary Tax Rate"
-            value={formatPercentage(DEFAULT_ASSUMPTIONS.salaryTaxRate)}
+            value={formatPercentage(assumptions.salaryTaxRate)}
             helper="Added on top of gross salary"
           />
           <SnapshotMetric
             label="Salary Growth"
-            value={formatPercentage(DEFAULT_ASSUMPTIONS.salaryGrowthRate) + " / yr"}
+            value={formatPercentage(assumptions.salaryGrowthRate) + " / yr"}
             helper="Annual salary increase"
           />
           <SnapshotMetric
             label="Inflation Rate"
-            value={formatPercentage(DEFAULT_ASSUMPTIONS.inflationRate) + " / yr"}
+            value={formatPercentage(assumptions.inflationRate) + " / yr"}
             helper="Applied to non-salary costs"
           />
         </div>
@@ -435,6 +600,7 @@ interface HeadcountSectionProps {
   onDelete: (id: string) => void;
   editingId: string | null;
   summary: { count: number; totalBaseSalary: number };
+  assumptions: GlobalAssumptions;
 }
 
 function HeadcountSection({
@@ -447,6 +613,7 @@ function HeadcountSection({
   onDelete,
   editingId,
   summary,
+  assumptions,
 }: HeadcountSectionProps) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -680,10 +847,9 @@ function HeadcountSection({
         </div>
         <p className="mt-3 text-xs text-slate-500">
           Headcount costs will be adjusted using salary tax (
-          {formatPercentage(DEFAULT_ASSUMPTIONS.salaryTaxRate)}), annual growth
-          ({formatPercentage(DEFAULT_ASSUMPTIONS.salaryGrowthRate)}), and
-          inflation ({formatPercentage(DEFAULT_ASSUMPTIONS.inflationRate)})
-          assumptions.
+          {formatPercentage(assumptions.salaryTaxRate)}), annual growth (
+          {formatPercentage(assumptions.salaryGrowthRate)}), and inflation (
+          {formatPercentage(assumptions.inflationRate)}) assumptions.
         </p>
       </div>
     </section>
@@ -706,6 +872,7 @@ interface NonHeadcountSectionProps {
   onDelete: (id: string) => void;
   editingId: string | null;
   summary: { count: number; totalMonthlyEquivalent: number };
+  assumptions: GlobalAssumptions;
 }
 
 function NonHeadcountSection({
@@ -718,6 +885,7 @@ function NonHeadcountSection({
   onDelete,
   editingId,
   summary,
+  assumptions,
 }: NonHeadcountSectionProps) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -903,7 +1071,8 @@ function NonHeadcountSection({
               onChange={(e) =>
                 setForm((prev) => ({
                   ...prev,
-                  frequency: e.target.value as NonHeadcountExpenseRow["frequency"],
+                  frequency: e.target
+                    .value as NonHeadcountExpenseRow["frequency"],
                 }))
               }
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
@@ -979,7 +1148,7 @@ function NonHeadcountSection({
         <p className="mt-3 text-xs text-slate-500">
           Classify each cost so we can later compute GTM efficiency, R&D spend,
           and gross margin. Non-headcount costs will be adjusted by inflation (
-          {formatPercentage(DEFAULT_ASSUMPTIONS.inflationRate)}/yr).
+          {formatPercentage(assumptions.inflationRate)}/yr).
         </p>
       </div>
     </section>

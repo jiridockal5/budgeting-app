@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Settings2,
@@ -10,20 +10,18 @@ import {
   ArrowRight,
   TrendingUp,
   Info,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
+  GlobalAssumptions,
   DEFAULT_ASSUMPTIONS,
   formatCurrency,
   formatPercentage,
 } from "@/lib/assumptions";
-
-// TODO (later):
-// - Load per-plan revenue configuration from the database (Prisma).
-// - Combine it with GlobalAssumptions to compute forecasted MRR/ARR.
-// - Write rows to a "revenue_forecast" table or compute on the fly.
-// - Add validation for form inputs (percentages 0-100, positive numbers).
-// - Implement server actions for persisting stream configurations.
+import type { RevenueConfig } from "@/lib/revenueForecast";
+import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 
 /**
  * Revenue stream types for the tabbed interface
@@ -31,99 +29,197 @@ import {
 type RevenueStream = "plg" | "sales" | "partners";
 
 /**
- * Stream configuration interfaces (UI-only for now)
- */
-interface PlgConfig {
-  monthlyTrials: number;
-  trialConversionRate: number;
-  avgAcv: number;
-  churnRate: number;
-  expansionRate: number;
-}
-
-interface SalesConfig {
-  monthlySqls: number;
-  closeRate: number;
-  avgAcv: number;
-  churnRate: number;
-  expansionRate: number;
-}
-
-interface PartnersConfig {
-  monthlyReferrals: number;
-  closeRate: number;
-  avgAcv: number;
-  commissionRate: number;
-}
-
-/**
  * Revenue Page
  *
  * Define how PLG, sales, and partner streams generate ARR.
- * Uses global assumptions as defaults, allows per-stream overrides.
+ * Data is persisted to the database via /api/revenue.
  */
 export default function RevenuePage() {
   const [activeStream, setActiveStream] = useState<RevenueStream>("plg");
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [assumptions, setAssumptions] =
+    useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
+  const [config, setConfig] = useState<RevenueConfig>(DEFAULT_REVENUE_CONFIG);
 
-  // PLG stream configuration (local state for now)
-  const [plgConfig, setPlgConfig] = useState<PlgConfig>({
-    monthlyTrials: 500,
-    trialConversionRate: 8,
-    avgAcv: DEFAULT_ASSUMPTIONS.baseAcv,
-    churnRate: DEFAULT_ASSUMPTIONS.churnRate,
-    expansionRate: DEFAULT_ASSUMPTIONS.expansionRate,
-  });
+  // ── Load plan + revenue config on mount ──
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError(null);
 
-  // Sales stream configuration
-  const [salesConfig, setSalesConfig] = useState<SalesConfig>({
-    monthlySqls: 50,
-    closeRate: 25,
-    avgAcv: DEFAULT_ASSUMPTIONS.baseAcv,
-    churnRate: DEFAULT_ASSUMPTIONS.churnRate,
-    expansionRate: DEFAULT_ASSUMPTIONS.expansionRate,
-  });
+        const planRes = await fetch("/api/plans/current");
+        const planData = await planRes.json();
+        if (!planData.success)
+          throw new Error(planData.error || "Failed to load plan");
+        const id = planData.data.id;
+        setPlanId(id);
 
-  // Partners stream configuration
-  const [partnersConfig, setPartnersConfig] = useState<PartnersConfig>({
-    monthlyReferrals: 20,
-    closeRate: 40,
-    avgAcv: DEFAULT_ASSUMPTIONS.baseAcv,
-    commissionRate: 20,
-  });
+        const [revenueRes, assumptionsRes] = await Promise.all([
+          fetch(`/api/revenue?planId=${id}`),
+          fetch(`/api/assumptions?planId=${id}`),
+        ]);
 
-  // Calculate preview values (simple placeholder math)
+        const [revenueData, assumptionsData] = await Promise.all([
+          revenueRes.json(),
+          assumptionsRes.json(),
+        ]);
+
+        if (revenueData.success && revenueData.data.config) {
+          setConfig(revenueData.data.config as RevenueConfig);
+        }
+        if (assumptionsData.success) {
+          setAssumptions({
+            cac: assumptionsData.data.cac,
+            churnRate: assumptionsData.data.churnRate,
+            expansionRate: assumptionsData.data.expansionRate,
+            baseAcv: assumptionsData.data.baseAcv,
+            salaryTaxRate: assumptionsData.data.salaryTaxRate,
+            salaryGrowthRate: assumptionsData.data.salaryGrowthRate,
+            inflationRate: assumptionsData.data.inflationRate,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load revenue data:", err);
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  // ── Save handler ──
+  const handleSave = async () => {
+    if (!planId) return;
+    try {
+      setSaving(true);
+      setError(null);
+
+      const res = await fetch("/api/revenue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId, config }),
+      });
+      const data = await res.json();
+      if (!data.success)
+        throw new Error(data.error || "Failed to save revenue config");
+
+      setSaveMessage("Revenue config saved!");
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to save revenue config"
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Preview calculations ──
   const plgNewCustomers = Math.round(
-    (plgConfig.monthlyTrials * plgConfig.trialConversionRate) / 100
+    (config.plg.monthlyTrials * config.plg.trialConversionRate) / 100
   );
   const salesNewCustomers = Math.round(
-    (salesConfig.monthlySqls * salesConfig.closeRate) / 100
+    (config.sales.monthlySqls * config.sales.closeRate) / 100
   );
   const partnersNewCustomers = Math.round(
-    (partnersConfig.monthlyReferrals * partnersConfig.closeRate) / 100
+    (config.partners.monthlyReferrals * config.partners.closeRate) / 100
   );
 
-  const streamTabs: { key: RevenueStream; label: string; icon: React.ReactNode }[] = [
-    { key: "plg", label: "PLG / Self-service", icon: <Sparkles className="h-4 w-4" /> },
+  const streamTabs: {
+    key: RevenueStream;
+    label: string;
+    icon: React.ReactNode;
+  }[] = [
+    {
+      key: "plg",
+      label: "PLG / Self-service",
+      icon: <Sparkles className="h-4 w-4" />,
+    },
     { key: "sales", label: "Sales", icon: <Users className="h-4 w-4" /> },
-    { key: "partners", label: "Partners", icon: <Handshake className="h-4 w-4" /> },
+    {
+      key: "partners",
+      label: "Partners",
+      icon: <Handshake className="h-4 w-4" />,
+    },
   ];
+
+  // ── Loading state ──
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-6xl px-6 py-8">
+          <div className="flex items-center justify-center py-20">
+            <div className="flex items-center gap-3 text-slate-600">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Loading revenue config...</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
-          {/* Page Header */}
           <PageHeader
             title="Revenue"
             subtitle="Define how your PLG, sales, and partner streams generate ARR."
+            actions={
+              <div className="flex items-center gap-3">
+                {saveMessage && (
+                  <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 animate-pulse">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    {saveMessage}
+                  </span>
+                )}
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Save
+                    </>
+                  )}
+                </button>
+              </div>
+            }
           />
 
+          {/* Error banner */}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
+              <span>{error}</span>
+              <button
+                onClick={() => setError(null)}
+                className="text-red-500 hover:text-red-700 font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {/* Assumptions Snapshot Card */}
-          <AssumptionsSnapshot />
+          <AssumptionsSnapshot assumptions={assumptions} />
 
           {/* Stream Tabs */}
           <div className="space-y-6">
-            {/* Tab Navigation */}
             <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-xl w-fit">
               {streamTabs.map((tab) => (
                 <button
@@ -142,32 +238,59 @@ export default function RevenuePage() {
                   {tab.icon}
                   <span className="hidden sm:inline">{tab.label}</span>
                   <span className="sm:hidden">
-                    {tab.key === "plg" ? "PLG" : tab.key === "sales" ? "Sales" : "Partners"}
+                    {tab.key === "plg"
+                      ? "PLG"
+                      : tab.key === "sales"
+                        ? "Sales"
+                        : "Partners"}
                   </span>
                 </button>
               ))}
             </div>
 
-            {/* Stream Content */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               {activeStream === "plg" && (
                 <PlgStreamForm
-                  config={plgConfig}
-                  setConfig={setPlgConfig}
+                  config={config.plg}
+                  setConfig={(updater) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      plg:
+                        typeof updater === "function"
+                          ? updater(prev.plg)
+                          : updater,
+                    }))
+                  }
                   newCustomers={plgNewCustomers}
                 />
               )}
               {activeStream === "sales" && (
                 <SalesStreamForm
-                  config={salesConfig}
-                  setConfig={setSalesConfig}
+                  config={config.sales}
+                  setConfig={(updater) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      sales:
+                        typeof updater === "function"
+                          ? updater(prev.sales)
+                          : updater,
+                    }))
+                  }
                   newCustomers={salesNewCustomers}
                 />
               )}
               {activeStream === "partners" && (
                 <PartnersStreamForm
-                  config={partnersConfig}
-                  setConfig={setPartnersConfig}
+                  config={config.partners}
+                  setConfig={(updater) =>
+                    setConfig((prev) => ({
+                      ...prev,
+                      partners:
+                        typeof updater === "function"
+                          ? updater(prev.partners)
+                          : updater,
+                    }))
+                  }
                   newCustomers={partnersNewCustomers}
                 />
               )}
@@ -185,9 +308,10 @@ export default function RevenuePage() {
                   How revenue streams work
                 </h3>
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                  Each stream uses the global assumptions as defaults, but you can override
-                  churn, expansion, and ACV per stream. The forecast combines all streams
-                  to project your total MRR/ARR growth over time.
+                  Each stream uses the global assumptions as defaults, but you
+                  can override churn, expansion, and ACV per stream. The forecast
+                  combines all streams to project your total MRR/ARR growth over
+                  time.
                 </p>
               </div>
             </div>
@@ -199,13 +323,14 @@ export default function RevenuePage() {
 }
 
 // ============================================================================
-// Assumptions Snapshot Component
+// Assumptions Snapshot
 // ============================================================================
 
-/**
- * Read-only snapshot of global assumptions relevant to revenue forecasting
- */
-function AssumptionsSnapshot() {
+function AssumptionsSnapshot({
+  assumptions,
+}: {
+  assumptions: GlobalAssumptions;
+}) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -236,19 +361,19 @@ function AssumptionsSnapshot() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <SnapshotMetric
             label="Blended CAC"
-            value={formatCurrency(DEFAULT_ASSUMPTIONS.cac)}
+            value={formatCurrency(assumptions.cac)}
           />
           <SnapshotMetric
             label="Churn"
-            value={formatPercentage(DEFAULT_ASSUMPTIONS.churnRate) + " / mo"}
+            value={formatPercentage(assumptions.churnRate) + " / mo"}
           />
           <SnapshotMetric
             label="Expansion"
-            value={formatPercentage(DEFAULT_ASSUMPTIONS.expansionRate) + " / mo"}
+            value={formatPercentage(assumptions.expansionRate) + " / mo"}
           />
           <SnapshotMetric
             label="Base ACV"
-            value={formatCurrency(DEFAULT_ASSUMPTIONS.baseAcv)}
+            value={formatCurrency(assumptions.baseAcv)}
           />
         </div>
       </div>
@@ -269,9 +394,11 @@ function SnapshotMetric({ label, value }: { label: string; value: string }) {
 // PLG Stream Form
 // ============================================================================
 
+import type { PlgConfig, SalesConfig, PartnersConfig } from "@/lib/revenueForecast";
+
 interface PlgStreamFormProps {
   config: PlgConfig;
-  setConfig: React.Dispatch<React.SetStateAction<PlgConfig>>;
+  setConfig: (updater: PlgConfig | ((prev: PlgConfig) => PlgConfig)) => void;
   newCustomers: number;
 }
 
@@ -327,15 +454,20 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
         />
       </div>
 
-      {/* Preview */}
       <StreamPreview
         icon={<TrendingUp className="h-4 w-4 text-emerald-600" />}
         color="emerald"
       >
-        <span className="font-semibold text-emerald-700">{newCustomers}</span> new customers / month at{" "}
-        <span className="font-semibold text-emerald-700">{formatCurrency(config.avgAcv)}</span> ACV
+        <span className="font-semibold text-emerald-700">{newCustomers}</span>{" "}
+        new customers / month at{" "}
+        <span className="font-semibold text-emerald-700">
+          {formatCurrency(config.avgAcv)}
+        </span>{" "}
+        ACV
         <span className="text-slate-500">
-          {" "}(using {formatPercentage(config.churnRate)} churn, {formatPercentage(config.expansionRate)} expansion)
+          {" "}
+          (using {formatPercentage(config.churnRate)} churn,{" "}
+          {formatPercentage(config.expansionRate)} expansion)
         </span>
       </StreamPreview>
     </div>
@@ -348,11 +480,17 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
 
 interface SalesStreamFormProps {
   config: SalesConfig;
-  setConfig: React.Dispatch<React.SetStateAction<SalesConfig>>;
+  setConfig: (
+    updater: SalesConfig | ((prev: SalesConfig) => SalesConfig)
+  ) => void;
   newCustomers: number;
 }
 
-function SalesStreamForm({ config, setConfig, newCustomers }: SalesStreamFormProps) {
+function SalesStreamForm({
+  config,
+  setConfig,
+  newCustomers,
+}: SalesStreamFormProps) {
   const updateField = (field: keyof SalesConfig, value: string) => {
     const numValue = parseFloat(value) || 0;
     setConfig((prev) => ({ ...prev, [field]: numValue }));
@@ -404,15 +542,20 @@ function SalesStreamForm({ config, setConfig, newCustomers }: SalesStreamFormPro
         />
       </div>
 
-      {/* Preview */}
       <StreamPreview
         icon={<TrendingUp className="h-4 w-4 text-blue-600" />}
         color="blue"
       >
-        <span className="font-semibold text-blue-700">{newCustomers}</span> new customers / month at{" "}
-        <span className="font-semibold text-blue-700">{formatCurrency(config.avgAcv)}</span> ACV
+        <span className="font-semibold text-blue-700">{newCustomers}</span> new
+        customers / month at{" "}
+        <span className="font-semibold text-blue-700">
+          {formatCurrency(config.avgAcv)}
+        </span>{" "}
+        ACV
         <span className="text-slate-500">
-          {" "}(using {formatPercentage(config.churnRate)} churn, {formatPercentage(config.expansionRate)} expansion)
+          {" "}
+          (using {formatPercentage(config.churnRate)} churn,{" "}
+          {formatPercentage(config.expansionRate)} expansion)
         </span>
       </StreamPreview>
     </div>
@@ -425,11 +568,17 @@ function SalesStreamForm({ config, setConfig, newCustomers }: SalesStreamFormPro
 
 interface PartnersStreamFormProps {
   config: PartnersConfig;
-  setConfig: React.Dispatch<React.SetStateAction<PartnersConfig>>;
+  setConfig: (
+    updater: PartnersConfig | ((prev: PartnersConfig) => PartnersConfig)
+  ) => void;
   newCustomers: number;
 }
 
-function PartnersStreamForm({ config, setConfig, newCustomers }: PartnersStreamFormProps) {
+function PartnersStreamForm({
+  config,
+  setConfig,
+  newCustomers,
+}: PartnersStreamFormProps) {
   const updateField = (field: keyof PartnersConfig, value: string) => {
     const numValue = parseFloat(value) || 0;
     setConfig((prev) => ({ ...prev, [field]: numValue }));
@@ -474,15 +623,19 @@ function PartnersStreamForm({ config, setConfig, newCustomers }: PartnersStreamF
         />
       </div>
 
-      {/* Preview */}
       <StreamPreview
         icon={<TrendingUp className="h-4 w-4 text-violet-600" />}
         color="violet"
       >
-        <span className="font-semibold text-violet-700">{newCustomers}</span> new customers / month at{" "}
-        <span className="font-semibold text-violet-700">{formatCurrency(config.avgAcv)}</span> ACV
+        <span className="font-semibold text-violet-700">{newCustomers}</span>{" "}
+        new customers / month at{" "}
+        <span className="font-semibold text-violet-700">
+          {formatCurrency(config.avgAcv)}
+        </span>{" "}
+        ACV
         <span className="text-slate-500">
-          {" "}({formatPercentage(config.commissionRate)} partner commission)
+          {" "}
+          ({formatPercentage(config.commissionRate)} partner commission)
         </span>
       </StreamPreview>
     </div>
@@ -503,7 +656,9 @@ interface StreamHeaderProps {
 function StreamHeader({ icon, iconBg, title, description }: StreamHeaderProps) {
   return (
     <div className="flex items-center gap-3">
-      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}
+      >
         {icon}
       </div>
       <div>
@@ -533,7 +688,9 @@ function StreamInputField({
 }: StreamInputFieldProps) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-slate-700">{label}</label>
+      <label className="block text-sm font-medium text-slate-700">
+        {label}
+      </label>
       <div className="relative">
         {prefix && (
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
@@ -579,7 +736,9 @@ function StreamPreview({ icon, color, children }: StreamPreviewProps) {
   };
 
   return (
-    <div className={`flex items-center gap-3 p-4 rounded-xl border ${bgColorMap[color]}`}>
+    <div
+      className={`flex items-center gap-3 p-4 rounded-xl border ${bgColorMap[color]}`}
+    >
       <div className="flex-shrink-0">{icon}</div>
       <p className="text-sm text-slate-700">
         <span className="font-medium text-slate-500">Preview: </span>
