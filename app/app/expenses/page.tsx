@@ -9,6 +9,7 @@ import {
   Receipt,
   Plus,
   Trash2,
+  Pencil,
   Info,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -80,6 +81,10 @@ export default function ExpensesPage() {
     startMonth: getCurrentMonth(),
   });
 
+  const [editingHeadcountId, setEditingHeadcountId] = useState<string | null>(
+    null
+  );
+
   // ============================================================================
   // Non-headcount State
   // ============================================================================
@@ -117,18 +122,33 @@ export default function ExpensesPage() {
     endMonth: undefined,
   });
 
+  const [editingNonHeadcountId, setEditingNonHeadcountId] = useState<
+    string | null
+  >(null);
+
   // ============================================================================
   // Headcount Handlers
   // ============================================================================
   const handleAddHeadcount = () => {
     if (!headcountForm.role.trim() || headcountForm.baseSalary <= 0) return;
 
-    const newRow: HeadcountRow = {
-      ...headcountForm,
-      id: generateId(),
-    };
+    if (editingHeadcountId) {
+      setHeadcountRows((prev) =>
+        prev.map((row) =>
+          row.id === editingHeadcountId
+            ? { ...headcountForm, id: row.id }
+            : row
+        )
+      );
+      setEditingHeadcountId(null);
+    } else {
+      const newRow: HeadcountRow = {
+        ...headcountForm,
+        id: generateId(),
+      };
+      setHeadcountRows((prev) => [...prev, newRow]);
+    }
 
-    setHeadcountRows((prev) => [...prev, newRow]);
     setHeadcountForm({
       role: "",
       category: "rnd",
@@ -140,8 +160,31 @@ export default function ExpensesPage() {
     // TODO: Persist to database via server action or API
   };
 
+  const handleEditHeadcount = (row: HeadcountRow) => {
+    setEditingHeadcountId(row.id);
+    setHeadcountForm({
+      role: row.role,
+      category: row.category,
+      baseSalary: row.baseSalary,
+      fte: row.fte,
+      startMonth: row.startMonth,
+    });
+  };
+
+  const handleCancelEditHeadcount = () => {
+    setEditingHeadcountId(null);
+    setHeadcountForm({
+      role: "",
+      category: "rnd",
+      baseSalary: 0,
+      fte: 1.0,
+      startMonth: getCurrentMonth(),
+    });
+  };
+
   const handleDeleteHeadcount = (id: string) => {
     setHeadcountRows((prev) => prev.filter((row) => row.id !== id));
+    if (editingHeadcountId === id) handleCancelEditHeadcount();
     // TODO: Delete from database via server action or API
   };
 
@@ -151,12 +194,23 @@ export default function ExpensesPage() {
   const handleAddNonHeadcount = () => {
     if (!nonHeadcountForm.name.trim() || nonHeadcountForm.amount <= 0) return;
 
-    const newRow: NonHeadcountExpenseRow = {
-      ...nonHeadcountForm,
-      id: generateId(),
-    };
+    if (editingNonHeadcountId) {
+      setNonHeadcountRows((prev) =>
+        prev.map((row) =>
+          row.id === editingNonHeadcountId
+            ? { ...nonHeadcountForm, id: row.id }
+            : row
+        )
+      );
+      setEditingNonHeadcountId(null);
+    } else {
+      const newRow: NonHeadcountExpenseRow = {
+        ...nonHeadcountForm,
+        id: generateId(),
+      };
+      setNonHeadcountRows((prev) => [...prev, newRow]);
+    }
 
-    setNonHeadcountRows((prev) => [...prev, newRow]);
     setNonHeadcountForm({
       name: "",
       category: "ops",
@@ -169,8 +223,33 @@ export default function ExpensesPage() {
     // TODO: Persist to database via server action or API
   };
 
+  const handleEditNonHeadcount = (row: NonHeadcountExpenseRow) => {
+    setEditingNonHeadcountId(row.id);
+    setNonHeadcountForm({
+      name: row.name,
+      category: row.category,
+      amount: row.amount,
+      frequency: row.frequency,
+      startMonth: row.startMonth,
+      endMonth: row.endMonth,
+    });
+  };
+
+  const handleCancelEditNonHeadcount = () => {
+    setEditingNonHeadcountId(null);
+    setNonHeadcountForm({
+      name: "",
+      category: "ops",
+      amount: 0,
+      frequency: "monthly",
+      startMonth: getCurrentMonth(),
+      endMonth: undefined,
+    });
+  };
+
   const handleDeleteNonHeadcount = (id: string) => {
     setNonHeadcountRows((prev) => prev.filter((row) => row.id !== id));
+    if (editingNonHeadcountId === id) handleCancelEditNonHeadcount();
     // TODO: Delete from database via server action or API
   };
 
@@ -221,7 +300,10 @@ export default function ExpensesPage() {
             form={headcountForm}
             setForm={setHeadcountForm}
             onAdd={handleAddHeadcount}
+            onEdit={handleEditHeadcount}
+            onCancelEdit={handleCancelEditHeadcount}
             onDelete={handleDeleteHeadcount}
+            editingId={editingHeadcountId}
             summary={headcountSummary}
           />
 
@@ -231,7 +313,10 @@ export default function ExpensesPage() {
             form={nonHeadcountForm}
             setForm={setNonHeadcountForm}
             onAdd={handleAddNonHeadcount}
+            onEdit={handleEditNonHeadcount}
+            onCancelEdit={handleCancelEditNonHeadcount}
             onDelete={handleDeleteNonHeadcount}
+            editingId={editingNonHeadcountId}
             summary={nonHeadcountSummary}
           />
 
@@ -345,7 +430,10 @@ interface HeadcountSectionProps {
   form: Omit<HeadcountRow, "id">;
   setForm: React.Dispatch<React.SetStateAction<Omit<HeadcountRow, "id">>>;
   onAdd: () => void;
+  onEdit: (row: HeadcountRow) => void;
+  onCancelEdit: () => void;
   onDelete: (id: string) => void;
+  editingId: string | null;
   summary: { count: number; totalBaseSalary: number };
 }
 
@@ -354,7 +442,10 @@ function HeadcountSection({
   form,
   setForm,
   onAdd,
+  onEdit,
+  onCancelEdit,
   onDelete,
+  editingId,
   summary,
 }: HeadcountSectionProps) {
   return (
@@ -440,14 +531,24 @@ function HeadcountSection({
                     {row.startMonth}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onDelete(row.id)}
-                      className="inline-flex items-center gap-1 text-sm text-rose-600 hover:text-rose-700 transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only">Delete</span>
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(row)}
+                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="sr-only sm:not-sr-only">Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(row.id)}
+                        className="inline-flex items-center gap-1 text-sm text-rose-600 hover:text-rose-700 transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="sr-only sm:not-sr-only">Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -532,30 +633,50 @@ function HeadcountSection({
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
             />
           </div>
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Start
-              </label>
-              <input
-                type="month"
-                value={form.startMonth}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, startMonth: e.target.value }))
-                }
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Start
+            </label>
+            <input
+              type="month"
+              value={form.startMonth}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, startMonth: e.target.value }))
+              }
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {editingId ? (
+            <>
+              <button
+                type="button"
+                onClick={onAdd}
+                disabled={!form.role.trim() || form.baseSalary <= 0}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Update
+              </button>
+              <button
+                type="button"
+                onClick={onCancelEdit}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
             <button
               type="button"
               onClick={onAdd}
               disabled={!form.role.trim() || form.baseSalary <= 0}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add</span>
+              <Plus className="h-4 w-4 shrink-0" />
+              Add
             </button>
-          </div>
+          )}
         </div>
         <p className="mt-3 text-xs text-slate-500">
           Headcount costs will be adjusted using salary tax (
@@ -580,7 +701,10 @@ interface NonHeadcountSectionProps {
     React.SetStateAction<Omit<NonHeadcountExpenseRow, "id">>
   >;
   onAdd: () => void;
+  onEdit: (row: NonHeadcountExpenseRow) => void;
+  onCancelEdit: () => void;
   onDelete: (id: string) => void;
+  editingId: string | null;
   summary: { count: number; totalMonthlyEquivalent: number };
 }
 
@@ -589,7 +713,10 @@ function NonHeadcountSection({
   form,
   setForm,
   onAdd,
+  onEdit,
+  onCancelEdit,
   onDelete,
+  editingId,
   summary,
 }: NonHeadcountSectionProps) {
   return (
@@ -684,14 +811,24 @@ function NonHeadcountSection({
                     {row.endMonth || "—"}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onDelete(row.id)}
-                      className="inline-flex items-center gap-1 text-sm text-rose-600 hover:text-rose-700 transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span className="sr-only sm:not-sr-only">Delete</span>
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(row)}
+                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="sr-only sm:not-sr-only">Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(row.id)}
+                        className="inline-flex items-center gap-1 text-sm text-rose-600 hover:text-rose-700 transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="sr-only sm:not-sr-only">Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -702,7 +839,7 @@ function NonHeadcountSection({
 
       {/* Add Form */}
       <div className="border-t border-slate-200 bg-slate-50/50 px-6 py-4">
-        <div className="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-6 gap-3 items-end">
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium text-slate-600 mb-1">
               Name
@@ -791,33 +928,53 @@ function NonHeadcountSection({
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
             />
           </div>
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                End (opt)
-              </label>
-              <input
-                type="month"
-                value={form.endMonth || ""}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    endMonth: e.target.value || undefined,
-                  }))
-                }
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              End (opt)
+            </label>
+            <input
+              type="month"
+              value={form.endMonth || ""}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  endMonth: e.target.value || undefined,
+                }))
+              }
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {editingId ? (
+            <>
+              <button
+                type="button"
+                onClick={onAdd}
+                disabled={!form.name.trim() || form.amount <= 0}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Update
+              </button>
+              <button
+                type="button"
+                onClick={onCancelEdit}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
             <button
               type="button"
               onClick={onAdd}
               disabled={!form.name.trim() || form.amount <= 0}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add</span>
+              <Plus className="h-4 w-4 shrink-0" />
+              Add
             </button>
-          </div>
+          )}
         </div>
         <p className="mt-3 text-xs text-slate-500">
           Classify each cost so we can later compute GTM efficiency, R&D spend,
