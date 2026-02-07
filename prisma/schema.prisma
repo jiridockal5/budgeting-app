@@ -55,11 +55,34 @@ model Plan {
   expenses       Expense[]
   people         Person[]
   metrics        Metric[]
+  assumptions    GlobalAssumptions?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("plans")
+}
+
+model GlobalAssumptions {
+  id               String   @id @default(cuid())
+  planId           String   @unique
+  plan             Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  // Revenue drivers
+  cac              Decimal  @db.Decimal(12, 2)  // Customer Acquisition Cost in EUR
+  churnRate        Decimal  @db.Decimal(5, 2)   // Monthly churn (e.g., 3.00 = 3%)
+  expansionRate    Decimal  @db.Decimal(5, 2)   // Monthly expansion rate
+  baseAcv          Decimal  @db.Decimal(12, 2)  // Base Annual Contract Value in EUR
+
+  // Cost drivers
+  salaryTaxRate    Decimal  @db.Decimal(5, 2)   // Employer tax rate (e.g., 35.00 = 35%)
+  salaryGrowthRate Decimal  @db.Decimal(5, 2)   // Annual salary growth
+  inflationRate    Decimal  @db.Decimal(5, 2)   // Annual inflation rate
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("global_assumptions")
 }
 
 model RevenueStream {

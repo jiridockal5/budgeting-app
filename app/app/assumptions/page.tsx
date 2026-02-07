@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Save, Info, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, Save, Info, TrendingUp, Users, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   GlobalAssumptions,
@@ -12,24 +12,65 @@ import {
   formatPercentage,
 } from "@/lib/assumptions";
 
-// TODO (later):
-// - Fetch GlobalAssumptions for the current plan from the database.
-// - Persist changes via a server action or /api/assumptions route.
-// - Wire these values into the revenue and expense forecasting logic.
-// - Add validation (e.g., percentages should be between 0-100).
-// - Consider optimistic updates with rollback on error.
-
 /**
  * Assumptions Page
  * 
  * Captures global financial drivers that power revenue and expense forecasts.
- * This is a front-end only implementation; data persistence will be added later.
+ * Data is persisted to the database via /api/assumptions.
  */
 export default function AssumptionsPage() {
-  // Local state seeded from default assumptions
-  // TODO: Replace with data fetched from Prisma/API for the current plan
   const [assumptions, setAssumptions] = useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch current plan and assumptions on mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Get or create the current plan
+        const planRes = await fetch("/api/plans/current");
+        const planData = await planRes.json();
+        
+        if (!planData.success) {
+          throw new Error(planData.error || "Failed to load plan");
+        }
+        
+        setPlanId(planData.data.id);
+
+        // Fetch assumptions for this plan
+        const assumptionsRes = await fetch(`/api/assumptions?planId=${planData.data.id}`);
+        const assumptionsData = await assumptionsRes.json();
+        
+        if (!assumptionsData.success) {
+          throw new Error(assumptionsData.error || "Failed to load assumptions");
+        }
+
+        // Update state with fetched assumptions
+        setAssumptions({
+          cac: assumptionsData.data.cac,
+          churnRate: assumptionsData.data.churnRate,
+          expansionRate: assumptionsData.data.expansionRate,
+          baseAcv: assumptionsData.data.baseAcv,
+          salaryTaxRate: assumptionsData.data.salaryTaxRate,
+          salaryGrowthRate: assumptionsData.data.salaryGrowthRate,
+          inflationRate: assumptionsData.data.inflationRate,
+        });
+      } catch (err) {
+        console.error("Failed to load assumptions:", err);
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
 
   /**
    * Updates a single field in the assumptions state
@@ -40,19 +81,60 @@ export default function AssumptionsPage() {
   };
 
   /**
-   * Handles form submission
-   * Currently just logs to console; will persist to DB later
+   * Handles form submission - saves to database
    */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // TODO: Replace with actual API call or server action
-    console.log("Assumptions submit", assumptions);
-    
-    // Show temporary feedback
-    setSaveMessage("Saved (not yet persisted)");
-    setTimeout(() => setSaveMessage(null), 3000);
+    if (!planId) {
+      setError("No plan loaded");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      const res = await fetch("/api/assumptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId,
+          ...assumptions,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to save assumptions");
+      }
+
+      setSaveMessage("Assumptions saved successfully!");
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (err) {
+      console.error("Failed to save assumptions:", err);
+      setError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-6xl px-6 py-8">
+          <div className="flex items-center justify-center py-20">
+            <div className="flex items-center gap-3 text-slate-600">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Loading assumptions...</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -157,14 +239,31 @@ export default function AssumptionsPage() {
                   </div>
                 </div>
 
+                {/* Error Message */}
+                {error && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+
                 {/* Submit Button */}
                 <div className="flex items-center gap-4">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Save className="h-4 w-4" />
-                    Save assumptions
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Save assumptions
+                      </>
+                    )}
                   </button>
                   {saveMessage && (
                     <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 animate-pulse">
