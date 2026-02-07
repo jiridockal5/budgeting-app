@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Invalid assumptions payload", details: parsed.error.errors },
+        { success: false, error: "Invalid assumptions payload", details: parsed.error.issues },
         { status: 400 }
       );
     }
