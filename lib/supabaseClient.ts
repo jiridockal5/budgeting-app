@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -22,23 +22,8 @@ if (!supabaseUrl.startsWith('http://') && !supabaseUrl.startsWith('https://')) {
   throw new Error(`Invalid Supabase URL format: ${supabaseUrl}. URL must start with http:// or https://`)
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    flowType: 'pkce',
-  },
-  global: {
-    fetch: (url, options = {}) => {
-      return fetch(url, {
-        ...options,
-        headers: {
-          ...options.headers,
-        },
-      })
-    },
-  },
-})
+// Use createBrowserClient from @supabase/ssr for proper cookie synchronization
+// This ensures the session is stored in cookies (not just localStorage)
+// so that the server-side middleware can read the authentication state
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
