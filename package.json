@@ -20,7 +20,7 @@
     "framer-motion": "^12.23.26",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.460.0",
-    "next": "^16.0.6",
+    "next": "16.0.10",
     "prisma": "^5.22.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
