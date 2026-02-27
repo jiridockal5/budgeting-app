@@ -65,8 +65,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const scenario = await prisma.forecastScenario.findUnique({
-      where: { planId: plan.id },
+    const scenario = await prisma.forecastScenario.findFirst({
+      where: { planId: plan.id, name: "Default" },
     });
 
     if (!scenario || !scenario.config) {
@@ -130,19 +130,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const scenario = await prisma.forecastScenario.upsert({
-      where: { planId: plan.id },
-      create: {
-        planId: plan.id,
-        name: "Default",
-        startMonth: plan.startMonth,
-        months: plan.months,
-        config: input.config,
-      },
-      update: {
-        config: input.config,
-      },
+    let scenario = await prisma.forecastScenario.findFirst({
+      where: { planId: plan.id, name: "Default" },
     });
+
+    if (scenario) {
+      scenario = await prisma.forecastScenario.update({
+        where: { id: scenario.id },
+        data: { config: input.config },
+      });
+    } else {
+      scenario = await prisma.forecastScenario.create({
+        data: {
+          planId: plan.id,
+          name: "Default",
+          startMonth: plan.startMonth,
+          months: plan.months,
+          config: input.config,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,

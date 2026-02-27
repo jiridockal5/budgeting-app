@@ -44,8 +44,15 @@ export async function middleware(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // If no user and trying to access protected route, redirect to login
+  const isApiRoute = req.nextUrl.pathname.startsWith("/api");
+
   if (!user) {
+    if (isApiRoute) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirectTo", req.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
@@ -55,5 +62,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*"],
+  matcher: ["/app/:path*", "/api/:path*"],
 };

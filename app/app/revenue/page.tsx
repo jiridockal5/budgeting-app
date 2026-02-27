@@ -22,6 +22,8 @@ import {
 } from "@/lib/assumptions";
 import type { RevenueConfig } from "@/lib/revenueForecast";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
+import { useToast } from "@/components/ui/Toast";
+import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 
 /**
  * Revenue stream types for the tabbed interface
@@ -40,10 +42,10 @@ export default function RevenuePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [assumptions, setAssumptions] =
     useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
   const [config, setConfig] = useState<RevenueConfig>(DEFAULT_REVENUE_CONFIG);
+  const { toast } = useToast();
 
   // ── Load plan + revenue config on mount ──
   useEffect(() => {
@@ -74,6 +76,7 @@ export default function RevenuePage() {
         }
         if (assumptionsData.success) {
           setAssumptions({
+            cashOnHand: assumptionsData.data.cashOnHand ?? 0,
             cac: assumptionsData.data.cac,
             churnRate: assumptionsData.data.churnRate,
             expansionRate: assumptionsData.data.expansionRate,
@@ -110,8 +113,7 @@ export default function RevenuePage() {
       if (!data.success)
         throw new Error(data.error || "Failed to save revenue config");
 
-      setSaveMessage("Revenue config saved!");
-      setTimeout(() => setSaveMessage(null), 3000);
+      toast("Revenue config saved!");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to save revenue config"
@@ -154,13 +156,14 @@ export default function RevenuePage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="flex items-center gap-3 text-slate-600">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Loading revenue config...</span>
-            </div>
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-80" />
           </div>
+          <Skeleton className="h-20 w-full rounded-2xl" />
+          <Skeleton className="h-12 w-72 rounded-xl" />
+          <FormSectionSkeleton />
         </div>
       </main>
     );
@@ -175,12 +178,6 @@ export default function RevenuePage() {
             subtitle="Define how your PLG, sales, and partner streams generate ARR."
             actions={
               <div className="flex items-center gap-3">
-                {saveMessage && (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 animate-pulse">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {saveMessage}
-                  </span>
-                )}
                 <button
                   onClick={handleSave}
                   disabled={saving}

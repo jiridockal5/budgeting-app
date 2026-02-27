@@ -15,6 +15,8 @@
  * These values are used in Revenue (PLG, Sales, Partners) and Expenses (headcount & costs).
  */
 export interface GlobalAssumptions {
+  /** Starting cash balance in EUR */
+  cashOnHand: number;
   /** Blended Customer Acquisition Cost (or CAC per primary channel) in EUR */
   cac: number;
   /** Monthly logo or revenue churn rate (percentage, e.g., 3 = 3%) */
@@ -38,6 +40,7 @@ export interface GlobalAssumptions {
  * Later: Replace with data fetched from Prisma for the current plan.
  */
 export const DEFAULT_ASSUMPTIONS: GlobalAssumptions = {
+  cashOnHand: 500000,  // €500,000 starting cash
   cac: 5000,           // €5,000 blended CAC
   churnRate: 3,        // 3% monthly churn
   expansionRate: 5,    // 5% monthly expansion
@@ -52,6 +55,7 @@ export const DEFAULT_ASSUMPTIONS: GlobalAssumptions = {
  * Used to provide context in the UI form.
  */
 export const ASSUMPTION_HELPERS: Record<keyof GlobalAssumptions, string> = {
+  cashOnHand: "Current cash balance used to calculate runway.",
   cac: "Blended cost to acquire a new customer across all channels.",
   churnRate: "Monthly logo or revenue churn used to forecast lost MRR.",
   expansionRate: "Monthly expansion on surviving customers (upsells, seat growth).",

@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
 import { SaasMetricCard } from "@/components/dashboard/SaasMetricCard";
+import { Skeleton, MetricCardSkeleton, ChartCardSkeleton } from "@/components/ui/Skeleton";
 import { ChartCard } from "@/components/dashboard/ChartCard";
+import { WaterfallChart } from "@/components/dashboard/WaterfallChart";
+import { StackedExpenseChart } from "@/components/dashboard/StackedExpenseChart";
+import { OnboardingChecklist, type OnboardingStatus } from "@/components/dashboard/OnboardingChecklist";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { formatCurrency } from "@/lib/assumptions";
 import type { ForecastResult, ForecastMonth } from "@/lib/revenueForecast";
@@ -122,6 +125,11 @@ export default function DashboardPage() {
   const [forecast, setForecast] = useState<ForecastResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus>({
+    hasAssumptions: true,
+    hasRevenue: true,
+    hasExpenses: true,
+  });
 
   useEffect(() => {
     async function loadForecast() {
@@ -134,14 +142,39 @@ export default function DashboardPage() {
         if (!planData.success)
           throw new Error(planData.error || "Failed to load plan");
 
-        const forecastRes = await fetch(
-          `/api/forecast?planId=${planData.data.id}`
-        );
-        const forecastData = await forecastRes.json();
+        const planId = planData.data.id;
+
+        const [forecastRes, assumptionsRes, peopleRes, expensesRes] =
+          await Promise.all([
+            fetch(`/api/forecast?planId=${planId}`),
+            fetch(`/api/assumptions?planId=${planId}`),
+            fetch(`/api/people?planId=${planId}`),
+            fetch(`/api/expenses?planId=${planId}`),
+          ]);
+
+        const [forecastData, assumptionsData, peopleData, expensesData] =
+          await Promise.all([
+            forecastRes.json(),
+            assumptionsRes.json(),
+            peopleRes.json(),
+            expensesRes.json(),
+          ]);
+
         if (!forecastData.success)
           throw new Error(forecastData.error || "Failed to compute forecast");
 
         setForecast(forecastData.data);
+
+        setOnboarding({
+          hasAssumptions:
+            assumptionsData.success && !assumptionsData.data.isDefault,
+          hasRevenue: forecastData.data.months.some(
+            (m: ForecastMonth) => m.totalMrr > 0
+          ),
+          hasExpenses:
+            (peopleData.success && peopleData.data.length > 0) ||
+            (expensesData.success && expensesData.data.length > 0),
+        });
       } catch (err) {
         console.error("Failed to load forecast:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
@@ -156,12 +189,19 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="flex items-center gap-3 text-slate-600">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Computing forecast...</span>
-            </div>
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <MetricCardSkeleton key={i} />
+            ))}
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ChartCardSkeleton />
+            <ChartCardSkeleton />
           </div>
         </div>
       </main>
@@ -198,6 +238,9 @@ export default function DashboardPage() {
               {error}
             </div>
           )}
+
+          {/* Onboarding */}
+          <OnboardingChecklist status={onboarding} />
 
           {/* ── Metrics Grid ── */}
           <section aria-labelledby="metrics-heading">
@@ -314,6 +357,13 @@ export default function DashboardPage() {
                 ]}
               />
             </div>
+
+            {hasData && forecast && (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <WaterfallChart months={forecast.months} />
+                <StackedExpenseChart months={forecast.months} />
+              </div>
+            )}
           </section>
         </div>
       </div>

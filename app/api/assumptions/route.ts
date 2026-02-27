@@ -8,6 +8,7 @@ import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
 // Validation schema for assumptions input
 const assumptionsInputSchema = z.object({
   planId: z.string().min(1),
+  cashOnHand: z.number().min(0).optional(),
   cac: z.number().min(0),
   churnRate: z.number().min(0).max(100),
   expansionRate: z.number().min(0).max(100),
@@ -25,6 +26,9 @@ const querySchema = z.object({
 const serializeAssumptions = (assumptions: any) => ({
   id: assumptions.id,
   planId: assumptions.planId,
+  cashOnHand: assumptions.cashOnHand instanceof Prisma.Decimal
+    ? assumptions.cashOnHand.toNumber()
+    : Number(assumptions.cashOnHand ?? 0),
   cac: assumptions.cac instanceof Prisma.Decimal
     ? assumptions.cac.toNumber()
     : Number(assumptions.cac),
@@ -154,6 +158,7 @@ export async function POST(request: NextRequest) {
       where: { planId: plan.id },
       create: {
         planId: plan.id,
+        cashOnHand: input.cashOnHand ?? 0,
         cac: input.cac,
         churnRate: input.churnRate,
         expansionRate: input.expansionRate,
@@ -163,6 +168,7 @@ export async function POST(request: NextRequest) {
         inflationRate: input.inflationRate,
       },
       update: {
+        cashOnHand: input.cashOnHand ?? undefined,
         cac: input.cac,
         churnRate: input.churnRate,
         expansionRate: input.expansionRate,

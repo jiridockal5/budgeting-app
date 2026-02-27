@@ -5,6 +5,9 @@ import {
   TrendingUp,
   TrendingDown,
   Settings2,
+  GitCompareArrows,
+  Timer,
+  Users,
   LucideIcon,
 } from "lucide-react";
 
@@ -24,5 +27,8 @@ export const navItems: NavItem[] = [
   { href: "/app/metrics", label: "Metrics", icon: BarChart3 },
   { href: "/app/revenue", label: "Revenue", icon: TrendingUp },
   { href: "/app/expenses", label: "Expenses", icon: TrendingDown },
-  { href: "/app/pricing", label: "Pricing", icon: DollarSign },
+  { href: "/app/scenarios", label: "Scenarios", icon: GitCompareArrows },
+  { href: "/app/runway", label: "Runway", icon: Timer },
+  { href: "/app/settings/billing", label: "Billing", icon: DollarSign },
+  { href: "/app/settings/team", label: "Team", icon: Users },
 ];

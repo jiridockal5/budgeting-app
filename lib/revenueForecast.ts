@@ -61,6 +61,7 @@ export interface ExpenseInput {
 }
 
 export interface AssumptionsInput {
+  cashOnHand: number;
   cac: number;
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
@@ -100,9 +101,10 @@ export interface ForecastMonth {
   nonHeadcountExpense: number;
   totalExpense: number;
 
-  // Burn
+  // Burn & Runway
   netBurn: number; // positive = burning cash
   cumulativeBurn: number;
+  cashRemaining: number;
 }
 
 export interface ForecastSummary {
@@ -118,6 +120,8 @@ export interface ForecastSummary {
   netNewArr: number;
   totalCustomers: number;
   ruleOf40: number;
+  cashOnHand: number;
+  runwayMonths: number;
 }
 
 export interface ForecastResult {
@@ -313,6 +317,7 @@ export function buildForecast(
     const totalExpense = headcountExpense + nonHeadcountExpense;
     const netBurn = totalExpense - totalMrr;
     cumulativeBurn += netBurn;
+    const cashRemaining = assumptions.cashOnHand - cumulativeBurn;
 
     months.push({
       monthIndex: i,
@@ -337,6 +342,7 @@ export function buildForecast(
       totalExpense: round2(totalExpense),
       netBurn: round2(netBurn),
       cumulativeBurn: round2(cumulativeBurn),
+      cashRemaining: round2(cashRemaining),
     });
   }
 
@@ -366,6 +372,8 @@ function computeSummary(
       netNewArr: 0,
       totalCustomers: 0,
       ruleOf40: 0,
+      cashOnHand: assumptions.cashOnHand,
+      runwayMonths: assumptions.cashOnHand > 0 ? Infinity : 0,
     };
   }
 
@@ -420,6 +428,14 @@ function computeSummary(
       : -100;
   const ruleOf40 = mrrGrowthRate + profitMargin;
 
+  const runwayIdx = months.findIndex((m) => m.cashRemaining <= 0);
+  const runwayMonths =
+    runwayIdx >= 0
+      ? runwayIdx
+      : monthlyBurn > 0
+        ? assumptions.cashOnHand / monthlyBurn
+        : Infinity;
+
   return {
     projectedArr: round2(last.totalArr),
     projectedMrr: round2(last.totalMrr),
@@ -433,5 +449,7 @@ function computeSummary(
     netNewArr: round2(netNewArr),
     totalCustomers: last.totalCustomers,
     ruleOf40: round2(ruleOf40),
+    cashOnHand: assumptions.cashOnHand,
+    runwayMonths: round2(runwayMonths === Infinity ? 999 : runwayMonths),
   };
 }

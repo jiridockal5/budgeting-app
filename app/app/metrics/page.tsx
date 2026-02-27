@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { formatCurrency } from "@/lib/assumptions";
+import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
+import { exportForecastCSV, exportSummaryPDF } from "@/lib/export";
 import type { ForecastResult, ForecastMonth } from "@/lib/revenueForecast";
 
 // ============================================================================
@@ -72,13 +74,14 @@ export default function MetricsPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="flex items-center gap-3 text-slate-600">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Loading metrics...</span>
-            </div>
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-80" />
           </div>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <FormSectionSkeleton key={i} />
+          ))}
         </div>
       </main>
     );
@@ -98,13 +101,31 @@ export default function MetricsPage() {
             title="Metrics"
             subtitle="Deep-dive into your projected SaaS metrics across the forecast period."
             actions={
-              <Link
-                href="/app/assumptions"
-                className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
-              >
-                Edit assumptions
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+              <div className="flex items-center gap-2">
+                {forecast && (
+                  <>
+                    <button
+                      onClick={() => exportForecastCSV(forecast)}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    >
+                      Export CSV
+                    </button>
+                    <button
+                      onClick={() => exportSummaryPDF(forecast)}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    >
+                      Print PDF
+                    </button>
+                  </>
+                )}
+                <Link
+                  href="/app/assumptions"
+                  className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+                >
+                  Edit assumptions
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             }
           />
 

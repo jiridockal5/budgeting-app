@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { getUserTier } from "@/lib/planGating";
 
 /**
  * GET /api/plans/current
@@ -45,6 +46,8 @@ export async function GET() {
       });
     }
 
+    const tier = await getUserTier(user.id);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -53,6 +56,7 @@ export async function GET() {
         currency: plan.currency,
         startMonth: plan.startMonth.toISOString(),
         months: plan.months,
+        tier,
         createdAt: plan.createdAt.toISOString(),
         updatedAt: plan.updatedAt.toISOString(),
       },

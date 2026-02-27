@@ -57,13 +57,14 @@ export async function GET(request: NextRequest) {
         prisma.globalAssumptions.findUnique({ where: { planId: plan.id } }),
         prisma.person.findMany({ where: { planId: plan.id } }),
         prisma.expense.findMany({ where: { planId: plan.id } }),
-        prisma.forecastScenario.findUnique({ where: { planId: plan.id } }),
+        prisma.forecastScenario.findFirst({ where: { planId: plan.id, name: "Default" } }),
       ]
     );
 
     // 3. Build assumptions input
     const assumptions: AssumptionsInput = dbAssumptions
       ? {
+          cashOnHand: toNumber((dbAssumptions as any).cashOnHand ?? 0),
           cac: toNumber(dbAssumptions.cac),
           churnRate: toNumber(dbAssumptions.churnRate),
           expansionRate: toNumber(dbAssumptions.expansionRate),

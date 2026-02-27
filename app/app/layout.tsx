@@ -69,7 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <div className="flex flex-1 flex-col">
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-          <div className="flex items-center justify-end gap-4 px-6 py-4 lg:px-8">
+          <div className="flex items-center justify-end gap-4 pl-14 pr-6 py-4 lg:pl-6 lg:px-8">
             <div className="hidden text-right md:block">
               <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
                 Signed in as

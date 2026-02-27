@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Save, Info, TrendingUp, Users, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useToast } from "@/components/ui/Toast";
+import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import {
   GlobalAssumptions,
   DEFAULT_ASSUMPTIONS,
@@ -23,8 +25,8 @@ export default function AssumptionsPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Fetch current plan and assumptions on mount
   useEffect(() => {
@@ -53,6 +55,7 @@ export default function AssumptionsPage() {
 
         // Update state with fetched assumptions
         setAssumptions({
+          cashOnHand: assumptionsData.data.cashOnHand ?? 0,
           cac: assumptionsData.data.cac,
           churnRate: assumptionsData.data.churnRate,
           expansionRate: assumptionsData.data.expansionRate,
@@ -110,8 +113,7 @@ export default function AssumptionsPage() {
         throw new Error(data.error || "Failed to save assumptions");
       }
 
-      setSaveMessage("Assumptions saved successfully!");
-      setTimeout(() => setSaveMessage(null), 3000);
+      toast("Assumptions saved successfully!");
     } catch (err) {
       console.error("Failed to save assumptions:", err);
       setError(err instanceof Error ? err.message : "Failed to save");
@@ -124,11 +126,16 @@ export default function AssumptionsPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="flex items-center gap-3 text-slate-600">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Loading assumptions...</span>
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <div className="grid gap-8 lg:grid-cols-2">
+            <FormSectionSkeleton />
+            <div className="space-y-6">
+              <FormSectionSkeleton />
+              <Skeleton className="h-24 w-full rounded-2xl" />
             </div>
           </div>
         </div>
@@ -164,6 +171,14 @@ export default function AssumptionsPage() {
                   </div>
 
                   <div className="space-y-5">
+                    <InputField
+                      label="Cash on Hand"
+                      value={assumptions.cashOnHand}
+                      onChange={(v) => updateField("cashOnHand", v)}
+                      helper={ASSUMPTION_HELPERS.cashOnHand}
+                      prefix="€"
+                      type="currency"
+                    />
                     <InputField
                       label="Customer Acquisition Cost (CAC)"
                       value={assumptions.cac}
@@ -265,12 +280,6 @@ export default function AssumptionsPage() {
                       </>
                     )}
                   </button>
-                  {saveMessage && (
-                    <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 animate-pulse">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      {saveMessage}
-                    </span>
-                  )}
                 </div>
               </form>
             </section>
@@ -284,6 +293,11 @@ export default function AssumptionsPage() {
                   <p className="text-sm text-slate-500 mb-6">Current values at a glance</p>
 
                   <div className="space-y-4">
+                    <SummaryRow
+                      label="Cash on hand"
+                      value={formatCurrency(assumptions.cashOnHand)}
+                      variant="highlight"
+                    />
                     <SummaryRow
                       label="Blended CAC"
                       value={formatCurrency(assumptions.cac)}

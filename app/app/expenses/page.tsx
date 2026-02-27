@@ -11,7 +11,6 @@ import {
   Trash2,
   Pencil,
   Info,
-  Loader2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
@@ -29,6 +28,9 @@ import {
   EXPENSE_FREQUENCY_OPTIONS,
   formatFrequency,
 } from "@/lib/expenses";
+import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Skeleton, FormSectionSkeleton, TableRowSkeleton } from "@/components/ui/Skeleton";
 
 // ============================================================================
 // Helpers: map between DB and UI types
@@ -142,6 +144,9 @@ export default function ExpensesPage() {
     string | null
   >(null);
 
+  const { toast } = useToast();
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "headcount" | "expense"; id: string; name: string } | null>(null);
+
   // ── Load plan + data on mount ──
   useEffect(() => {
     async function loadData() {
@@ -178,6 +183,7 @@ export default function ExpensesPage() {
         }
         if (assumptionsData.success) {
           setAssumptions({
+            cashOnHand: assumptionsData.data.cashOnHand ?? 0,
             cac: assumptionsData.data.cac,
             churnRate: assumptionsData.data.churnRate,
             expansionRate: assumptionsData.data.expansionRate,
@@ -227,6 +233,7 @@ export default function ExpensesPage() {
           )
         );
         setEditingHeadcountId(null);
+        toast("Role updated successfully");
       } else {
         const res = await fetch("/api/people", {
           method: "POST",
@@ -244,6 +251,7 @@ export default function ExpensesPage() {
         const data = await res.json();
         if (!data.success) throw new Error(data.error || "Failed to create");
         setHeadcountRows((prev) => [...prev, mapPersonToRow(data.data)]);
+        toast("Role added successfully");
       }
 
       setHeadcountForm({
@@ -254,7 +262,7 @@ export default function ExpensesPage() {
         startMonth: getCurrentMonth(),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save headcount");
+      toast(err instanceof Error ? err.message : "Failed to save headcount", "error");
     }
   };
 
@@ -290,10 +298,9 @@ export default function ExpensesPage() {
       if (!data.success) throw new Error(data.error || "Failed to delete");
       setHeadcountRows((prev) => prev.filter((row) => row.id !== id));
       if (editingHeadcountId === id) handleCancelEditHeadcount();
+      toast("Role deleted");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to delete headcount"
-      );
+      toast(err instanceof Error ? err.message : "Failed to delete headcount", "error");
     }
   };
 
@@ -326,6 +333,7 @@ export default function ExpensesPage() {
           )
         );
         setEditingNonHeadcountId(null);
+        toast("Expense updated successfully");
       } else {
         const res = await fetch("/api/expenses", {
           method: "POST",
@@ -343,6 +351,7 @@ export default function ExpensesPage() {
         const data = await res.json();
         if (!data.success) throw new Error(data.error || "Failed to create");
         setNonHeadcountRows((prev) => [...prev, mapExpenseToRow(data.data)]);
+        toast("Expense added successfully");
       }
 
       setNonHeadcountForm({
@@ -354,7 +363,7 @@ export default function ExpensesPage() {
         endMonth: undefined,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save expense");
+      toast(err instanceof Error ? err.message : "Failed to save expense", "error");
     }
   };
 
@@ -392,10 +401,9 @@ export default function ExpensesPage() {
       if (!data.success) throw new Error(data.error || "Failed to delete");
       setNonHeadcountRows((prev) => prev.filter((row) => row.id !== id));
       if (editingNonHeadcountId === id) handleCancelEditNonHeadcount();
+      toast("Expense deleted");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to delete expense"
-      );
+      toast(err instanceof Error ? err.message : "Failed to delete expense", "error");
     }
   };
 
@@ -422,11 +430,20 @@ export default function ExpensesPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="flex items-center gap-3 text-slate-600">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Loading expenses...</span>
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <Skeleton className="h-24 w-full rounded-2xl" />
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200">
+              <Skeleton className="h-6 w-32" />
+            </div>
+            <div className="p-6">
+              <TableRowSkeleton cols={6} />
+              <TableRowSkeleton cols={6} />
+              <TableRowSkeleton cols={6} />
             </div>
           </div>
         </div>
@@ -465,7 +482,7 @@ export default function ExpensesPage() {
             onAdd={handleAddHeadcount}
             onEdit={handleEditHeadcount}
             onCancelEdit={handleCancelEditHeadcount}
-            onDelete={handleDeleteHeadcount}
+            onDelete={(id) => { const row = headcountRows.find(r => r.id === id); setDeleteTarget({ type: "headcount", id, name: row?.role ?? "this role" }); }}
             editingId={editingHeadcountId}
             summary={headcountSummary}
             assumptions={assumptions}
@@ -478,7 +495,7 @@ export default function ExpensesPage() {
             onAdd={handleAddNonHeadcount}
             onEdit={handleEditNonHeadcount}
             onCancelEdit={handleCancelEditNonHeadcount}
-            onDelete={handleDeleteNonHeadcount}
+            onDelete={(id) => { const row = nonHeadcountRows.find(r => r.id === id); setDeleteTarget({ type: "expense", id, name: row?.name ?? "this expense" }); }}
             editingId={editingNonHeadcountId}
             summary={nonHeadcountSummary}
             assumptions={assumptions}
@@ -504,6 +521,18 @@ export default function ExpensesPage() {
               </div>
             </div>
           </div>
+
+          <ConfirmDialog
+            open={deleteTarget !== null}
+            title={`Delete ${deleteTarget?.type === "headcount" ? "role" : "expense"}?`}
+            description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+            onConfirm={() => {
+              if (deleteTarget?.type === "headcount") handleDeleteHeadcount(deleteTarget.id);
+              else if (deleteTarget) handleDeleteNonHeadcount(deleteTarget.id);
+              setDeleteTarget(null);
+            }}
+            onCancel={() => setDeleteTarget(null)}
+          />
         </div>
       </div>
     </main>
