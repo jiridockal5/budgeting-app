@@ -2,19 +2,21 @@ import { prisma } from "./prisma";
 import { PLANS, type PlanTier } from "./stripe";
 
 export async function getUserTier(userId: string): Promise<PlanTier> {
-  const user = await prisma.user.findFirst({
-    where: { id: userId },
-    include: { subscription: true },
-  });
+  try {
+    const sub = await prisma.subscription.findFirst({
+      where: { userId },
+    });
 
-  if (!user?.subscription) return "free";
+    if (!sub) return "free";
 
-  const sub = user.subscription;
-  const isActive =
-    (sub.status === "ACTIVE" || sub.status === "TRIALING") &&
-    new Date(sub.currentPeriodEnd) > new Date();
+    const isActive =
+      (sub.status === "ACTIVE" || sub.status === "TRIALING") &&
+      new Date(sub.currentPeriodEnd) > new Date();
 
-  return isActive ? "growth" : "free";
+    return isActive ? "growth" : "free";
+  } catch {
+    return "free";
+  }
 }
 
 export async function checkPlanLimit(userId: string): Promise<{
