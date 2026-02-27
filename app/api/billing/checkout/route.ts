@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     let stripeCustomerId = user.stripeCustomerId;
 
     if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: email ?? undefined,
         metadata: { userId: user.id },
       });
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     const origin = request.headers.get("origin") ?? "http://localhost:3001";
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: stripeCustomerId,
       mode: "subscription",
       line_items: [{ price: parsed.data.priceId, quantity: 1 }],
