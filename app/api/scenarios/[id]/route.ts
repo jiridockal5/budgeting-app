@@ -5,7 +5,7 @@ import { getServerUser } from "@/lib/serverUser";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
 });
 
 type RouteParams = {

@@ -7,7 +7,7 @@ import { checkScenarioLimit } from "@/lib/planGating";
 const createSchema = z.object({
   planId: z.string().min(1),
   name: z.string().min(1).max(100),
-  config: z.record(z.unknown()),
+  config: z.record(z.string(), z.unknown()),
   sourceScenarioId: z.string().optional(),
 });
 
