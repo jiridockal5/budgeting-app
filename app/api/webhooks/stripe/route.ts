@@ -90,14 +90,14 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       stripeSubscriptionId: sub.id,
       stripePriceId: sub.items.data[0]?.price.id ?? "",
       status: mapStatus(sub.status),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
+      currentPeriodEnd: new Date(sub.currentPeriodEnd * 1000),
     },
     update: {
       stripeSubscriptionId: sub.id,
       stripePriceId: sub.items.data[0]?.price.id ?? "",
       status: mapStatus(sub.status),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
-      cancelAtPeriodEnd: sub.cancel_at_period_end,
+      currentPeriodEnd: new Date(sub.currentPeriodEnd * 1000),
+      cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
     },
   });
 }
@@ -119,14 +119,14 @@ async function handleSubscriptionUpdate(sub: Stripe.Subscription) {
       stripeSubscriptionId: sub.id,
       stripePriceId: sub.items.data[0]?.price.id ?? "",
       status: mapStatus(sub.status),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
-      cancelAtPeriodEnd: sub.cancel_at_period_end,
+      currentPeriodEnd: new Date(sub.currentPeriodEnd * 1000),
+      cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
     },
     update: {
       stripePriceId: sub.items.data[0]?.price.id ?? "",
       status: mapStatus(sub.status),
-      currentPeriodEnd: new Date(sub.current_period_end * 1000),
-      cancelAtPeriodEnd: sub.cancel_at_period_end,
+      currentPeriodEnd: new Date(sub.currentPeriodEnd * 1000),
+      cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
     },
   });
 }
