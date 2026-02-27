@@ -80,7 +80,7 @@ export function WaterfallChart({ months }: WaterfallChartProps) {
                 borderRadius: "8px",
                 fontSize: "13px",
               }}
-              formatter={(value: number) => [defaultFormat(value), "MRR"]}
+              formatter={(value: number | undefined) => [defaultFormat(value ?? 0), "MRR"]}
             />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               {data.map((entry, i) => (

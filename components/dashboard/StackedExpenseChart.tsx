@@ -71,9 +71,9 @@ export function StackedExpenseChart({ months }: StackedExpenseChartProps) {
                 borderRadius: "8px",
                 fontSize: "13px",
               }}
-              formatter={(value: number, name: string) => [
-                defaultFormat(value),
-                name,
+              formatter={(value: number | undefined, name: string | undefined) => [
+                defaultFormat(value ?? 0),
+                name ?? "",
               ]}
             />
             <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />

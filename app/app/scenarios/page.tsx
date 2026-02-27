@@ -201,7 +201,7 @@ export default function ScenariosPage() {
                 0 || i === forecasts[0].months.length - 1
           )
           .map((m, idx) => {
-            const point: Record<string, string | number> = { date: m.date };
+            const point: { date: string; [key: string]: string | number } = { date: m.date };
             forecasts.forEach((f) => {
               const fMonth = f.months.find(
                 (fm) => fm.date === m.date

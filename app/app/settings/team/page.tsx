@@ -176,7 +176,7 @@ export default function TeamPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
-        <FormSectionSkeleton rows={3} />
+        <FormSectionSkeleton />
       </div>
     );
   }
@@ -275,7 +275,7 @@ export default function TeamPage() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="Remove Member"
-        message={`Remove ${deleteTarget?.email ?? "this member"} from the organization?`}
+        description={`Remove ${deleteTarget?.email ?? "this member"} from the organization?`}
         confirmLabel="Remove"
         variant="danger"
         onConfirm={handleRemoveMember}

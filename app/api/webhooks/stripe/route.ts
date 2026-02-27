@@ -82,6 +82,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       : session.subscription.id;
 
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
+  const periodEnd = extractPeriodEnd(sub);
 
   await prisma.subscription.upsert({
     where: { userId },
@@ -90,14 +91,14 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       stripeSubscriptionId: sub.id,
       stripePriceId: sub.items.data[0]?.price.id ?? "",
       status: mapStatus(sub.status),
-      currentPeriodEnd: new Date(sub.currentPeriodEnd * 1000),
+      currentPeriodEnd: periodEnd,
     },
     update: {
       stripeSubscriptionId: sub.id,
       stripePriceId: sub.items.data[0]?.price.id ?? "",
       status: mapStatus(sub.status),
-      currentPeriodEnd: new Date(sub.currentPeriodEnd * 1000),
-      cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
     },
   });
 }
@@ -112,6 +113,8 @@ async function handleSubscriptionUpdate(sub: Stripe.Subscription) {
 
   if (!user) return;
 
+  const periodEnd = extractPeriodEnd(sub);
+
   await prisma.subscription.upsert({
     where: { userId: user.id },
     create: {
@@ -119,14 +122,14 @@ async function handleSubscriptionUpdate(sub: Stripe.Subscription) {
       stripeSubscriptionId: sub.id,
       stripePriceId: sub.items.data[0]?.price.id ?? "",
       status: mapStatus(sub.status),
-      currentPeriodEnd: new Date(sub.currentPeriodEnd * 1000),
-      cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
     },
     update: {
       stripePriceId: sub.items.data[0]?.price.id ?? "",
       status: mapStatus(sub.status),
-      currentPeriodEnd: new Date(sub.currentPeriodEnd * 1000),
-      cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
     },
   });
 }
@@ -165,6 +168,15 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     where: { userId: user.id },
     data: { status: "PAST_DUE" },
   });
+}
+
+function extractPeriodEnd(sub: Stripe.Subscription): Date {
+  // Stripe v20 removed current_period_end from Subscription;
+  // the value is still present in the API response at runtime.
+  const raw = (sub as unknown as Record<string, unknown>)["current_period_end"];
+  if (typeof raw === "number") return new Date(raw * 1000);
+  // Fallback: 30 days from now
+  return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 }
 
 function mapStatus(
