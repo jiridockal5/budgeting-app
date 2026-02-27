@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 
@@ -39,9 +40,15 @@ export async function PUT(request: NextRequest, context: RouteParams) {
       );
     }
 
+    const { name, config } = parsed.data;
     const updated = await prisma.forecastScenario.update({
       where: { id },
-      data: parsed.data,
+      data: {
+        ...(name !== undefined && { name }),
+        ...(config !== undefined && {
+          config: config as Prisma.InputJsonValue,
+        }),
+      },
     });
 
     return NextResponse.json({ success: true, data: updated });

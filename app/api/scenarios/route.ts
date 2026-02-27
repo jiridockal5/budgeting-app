@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { checkScenarioLimit } from "@/lib/planGating";
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
         name: input.name,
         startMonth: plan.startMonth,
         months: plan.months,
-        config: input.config,
+        config: input.config as Prisma.InputJsonValue,
       },
     });
 
