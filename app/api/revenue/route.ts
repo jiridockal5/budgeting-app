@@ -2,37 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
-import { DEFAULT_REVENUE_CONFIG, PLG_METRIC_KEYS } from "@/lib/revenueForecast";
-
-const plgMetricRowSchema = z.object({
-  defaultValue: z.number(),
-  growthPct: z.number().nullable(),
-  growthStartMonth: z.number().min(0).max(23),
-  seasonality: z.array(z.number()).length(12).nullable(),
-  overrides: z.record(z.string(), z.number()),
-});
-
-const plgSimpleSchema = z.object({
-  monthlyTrials: z.number().min(0),
-  trialConversionRate: z.number().min(0).max(100),
-  avgAcv: z.number().min(0),
-  churnRate: z.number().min(0).max(100),
-  expansionRate: z.number().min(0).max(100),
-});
-
-const plgAdvancedSchema = z.object({
-  mode: z.literal("advanced"),
-  metrics: z.object(
-    Object.fromEntries(
-      PLG_METRIC_KEYS.map((k) => [k, plgMetricRowSchema])
-    ) as Record<string, typeof plgMetricRowSchema>
-  ),
-});
+import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 
 const revenueConfigSchema = z.object({
   planId: z.string().min(1),
   config: z.object({
-    plg: z.union([plgSimpleSchema, plgAdvancedSchema]),
+    plg: z.object({
+      monthlyTrials: z.number().min(0),
+      trialConversionRate: z.number().min(0).max(100),
+      avgAcv: z.number().min(0),
+      churnRate: z.number().min(0).max(100),
+      expansionRate: z.number().min(0).max(100),
+    }),
     sales: z.object({
       monthlySqls: z.number().min(0),
       closeRate: z.number().min(0).max(100),
