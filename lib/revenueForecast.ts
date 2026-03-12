@@ -476,7 +476,7 @@ function computeSummary(
     runwayIdx >= 0
       ? runwayIdx
       : monthlyBurn > 0
-        ? assumptions.cashOnHand / monthlyBurn
+        ? months.length + last.cashRemaining / monthlyBurn
         : Infinity;
 
   return {
