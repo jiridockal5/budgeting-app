@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Settings2,
@@ -10,7 +10,7 @@ import {
   ArrowRight,
   TrendingUp,
   Info,
-  Save,
+  Check,
   Loader2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -23,8 +23,8 @@ import {
 } from "@/lib/assumptions";
 import type { RevenueConfig } from "@/lib/revenueForecast";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
-import { useToast } from "@/components/ui/Toast";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
+import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
 
 /**
  * Revenue stream types for the tabbed interface
@@ -41,12 +41,10 @@ export default function RevenuePage() {
   const [activeStream, setActiveStream] = useState<RevenueStream>("plg");
   const [planId, setPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [assumptions, setAssumptions] =
     useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
   const [config, setConfig] = useState<RevenueConfig>(DEFAULT_REVENUE_CONFIG);
-  const { toast } = useToast();
 
   // ── Load plan + revenue config on mount ──
   useEffect(() => {
@@ -89,31 +87,23 @@ export default function RevenuePage() {
     loadData();
   }, []);
 
-  // ── Save handler ──
-  const handleSave = async () => {
+  // ── Auto-save ──
+  const saveConfig = useCallback(async () => {
     if (!planId) return;
-    try {
-      setSaving(true);
-      setError(null);
+    const res = await fetch("/api/revenue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planId, config }),
+    });
+    const data = await res.json();
+    if (!data.success)
+      throw new Error(data.error || "Failed to save revenue config");
+  }, [planId, config]);
 
-      const res = await fetch("/api/revenue", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, config }),
-      });
-      const data = await res.json();
-      if (!data.success)
-        throw new Error(data.error || "Failed to save revenue config");
-
-      toast("Revenue config saved!");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to save revenue config"
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+  const autoSave = useAutoSave(config, saveConfig, {
+    enabled: !loading && !!planId,
+  });
+  const saveLabel = useAutoSaveLabel(autoSave);
 
   // ── Preview calculations ──
   const plgNewCustomers = Math.round(
@@ -169,32 +159,23 @@ export default function RevenuePage() {
             title="Revenue"
             subtitle="Define how your PLG, sales, and partner streams generate ARR."
             actions={
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
+              saveLabel ? (
+                <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
+                  {autoSave.saving ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      Save
-                    </>
+                    <Check className="h-3.5 w-3.5 text-emerald-500" />
                   )}
-                </button>
-              </div>
+                  {saveLabel}
+                </span>
+              ) : null
             }
           />
 
           {/* Error banner */}
-          {error && (
+          {(error || autoSave.error) && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
-              <span>{error}</span>
+              <span>{error || autoSave.error}</span>
               <button
                 onClick={() => setError(null)}
                 className="text-red-500 hover:text-red-700 font-medium"

@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import {
   ArrowRight,
+  Check,
   Info,
   Loader2,
   Receipt,
-  Save,
   Target,
   TrendingUp,
   Users,
@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MonthPicker } from "@/components/ui/MonthPicker";
-import { useToast } from "@/components/ui/Toast";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import {
   ASSUMPTION_HELPERS,
@@ -26,6 +25,7 @@ import {
   GlobalAssumptions,
   normalizeAssumptions,
 } from "@/lib/assumptions";
+import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
 
 type NumericField =
   | "cashOnHand"
@@ -45,9 +45,7 @@ export default function AssumptionsPage() {
     useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
   const [planId, setPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     async function loadData() {
@@ -106,42 +104,23 @@ export default function AssumptionsPage() {
     }));
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  // ── Auto-save ──
+  const saveAssumptions = useCallback(async () => {
+    if (!planId) return;
+    const res = await fetch("/api/assumptions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planId, ...assumptions }),
+    });
+    const data = await res.json();
+    if (!data.success)
+      throw new Error(data.error || "Failed to save assumptions");
+  }, [planId, assumptions]);
 
-    if (!planId) {
-      setError("No plan loaded");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError(null);
-
-      const res = await fetch("/api/assumptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId,
-          ...assumptions,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        throw new Error(data.error || "Failed to save assumptions");
-      }
-
-      setAssumptions(normalizeAssumptions(data.data));
-      toast("Assumptions saved successfully!");
-    } catch (err) {
-      console.error("Failed to save assumptions:", err);
-      setError(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const autoSave = useAutoSave(assumptions, saveAssumptions, {
+    enabled: !loading && !!planId,
+  });
+  const saveLabel = useAutoSaveLabel(autoSave);
 
   if (loading) {
     return (
@@ -174,11 +153,23 @@ export default function AssumptionsPage() {
           <PageHeader
             title="Assumptions"
             subtitle="Global defaults that shape runway, fundraising, and the core drivers behind your forecast."
+            actions={
+              saveLabel ? (
+                <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
+                  {autoSave.saving ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  )}
+                  {saveLabel}
+                </span>
+              ) : null
+            }
           />
 
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
             <section>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-6">
                 <SectionCard
                   title="Cash & fundraising"
                   description="Set the cash position and funding targets that define how much room you have to operate."
@@ -361,32 +352,18 @@ export default function AssumptionsPage() {
                   </p>
                 </SectionCard>
 
-                {error && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {error}
+                {(error || autoSave.error) && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
+                    <span>{error || autoSave.error}</span>
+                    <button
+                      onClick={() => setError(null)}
+                      className="text-red-500 hover:text-red-700 font-medium"
+                    >
+                      Dismiss
+                    </button>
                   </div>
                 )}
-
-                <div className="flex items-center gap-4">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4" />
-                        Save assumptions
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+              </div>
             </section>
 
             <section>
