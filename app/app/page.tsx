@@ -10,7 +10,8 @@ import { StackedExpenseChart } from "@/components/dashboard/StackedExpenseChart"
 import { OnboardingChecklist, type OnboardingStatus } from "@/components/dashboard/OnboardingChecklist";
 import { PeriodTabs } from "@/components/dashboard/PeriodTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { formatCurrency, normalizeAssumptions, type GlobalAssumptions } from "@/lib/assumptions";
+import { formatCurrency, normalizeAssumptions, DEFAULT_ASSUMPTIONS, type GlobalAssumptions } from "@/lib/assumptions";
+import { parseApiError } from "@/lib/apiErrorUtils";
 import { computeSummary, type ForecastResult, type ForecastMonth, type AssumptionsInput } from "@/lib/revenueForecast";
 
 // ============================================================================
@@ -186,7 +187,7 @@ export default function DashboardPage() {
         });
       } catch (err) {
         console.error("Failed to load forecast:", err);
-        setError(err instanceof Error ? err.message : "Failed to load data");
+        setError(parseApiError(err));
       } finally {
         setLoading(false);
       }
@@ -226,7 +227,7 @@ export default function DashboardPage() {
   const displaySummary = useMemo(() => {
     if (!forecast || displayMonths.length === 0) return forecast?.summary ?? null;
     if (periodMonths === null) return forecast.summary;
-    const assumptionsInput = (assumptions ?? {}) as AssumptionsInput;
+    const assumptionsInput = (assumptions ?? DEFAULT_ASSUMPTIONS) as AssumptionsInput;
     return computeSummary(displayMonths, assumptionsInput);
   }, [forecast, displayMonths, periodMonths, assumptions]);
 

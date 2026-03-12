@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PeriodTabs } from "@/components/dashboard/PeriodTabs";
-import { formatCurrency, normalizeAssumptions, type GlobalAssumptions } from "@/lib/assumptions";
+import { formatCurrency, DEFAULT_ASSUMPTIONS, normalizeAssumptions, type GlobalAssumptions } from "@/lib/assumptions";
+import { parseApiError } from "@/lib/apiErrorUtils";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { exportForecastCSV, exportSummaryPDF } from "@/lib/export";
 import { computeSummary, type ForecastResult, type ForecastMonth, type AssumptionsInput } from "@/lib/revenueForecast";
@@ -77,7 +78,7 @@ export default function MetricsPage() {
         }
       } catch (err) {
         console.error("Failed to load metrics:", err);
-        setError(err instanceof Error ? err.message : "Failed to load data");
+        setError(parseApiError(err));
       } finally {
         setLoading(false);
       }
@@ -111,7 +112,7 @@ export default function MetricsPage() {
   const summary = useMemo(() => {
     if (!forecast || displayMonths.length === 0) return forecast?.summary ?? null;
     if (periodMonths === null) return forecast.summary;
-    const assumptionsInput = (assumptions ?? {}) as AssumptionsInput;
+    const assumptionsInput = (assumptions ?? DEFAULT_ASSUMPTIONS) as AssumptionsInput;
     return computeSummary(displayMonths, assumptionsInput);
   }, [forecast, displayMonths, periodMonths, assumptions]);
 

@@ -27,6 +27,7 @@ import {
   normalizeAssumptions,
 } from "@/lib/assumptions";
 import { dateToMonth } from "@/lib/revenueForecast";
+import { parseApiError } from "@/lib/apiErrorUtils";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
 
 type NumericField =
@@ -81,7 +82,7 @@ export default function AssumptionsPage() {
         setAssumptions(normalizeAssumptions(assumptionsData.data));
       } catch (err) {
         console.error("Failed to load assumptions:", err);
-        setError(err instanceof Error ? err.message : "Failed to load data");
+        setError(parseApiError(err));
       } finally {
         setLoading(false);
       }

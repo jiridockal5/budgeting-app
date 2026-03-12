@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, ReactNode } from "react";
+import { isDatabaseError } from "@/lib/apiErrorUtils";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -36,11 +37,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         return this.props.fallback;
       }
 
+      const error = this.state.error;
+      const showDbHelp = error && isDatabaseError(error.message);
+
       return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
           <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
                 <svg
                   className="h-6 w-6 text-red-600"
                   fill="none"
@@ -55,21 +59,31 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                   />
                 </svg>
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">Something went wrong</h2>
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  {showDbHelp ? "Database connection issue" : "Something went wrong"}
+                </h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  An unexpected error occurred. Please try refreshing the page.
+                  {showDbHelp ? (
+                    <>
+                      Cannot connect to the database. Check that your Supabase project is running
+                      (free tier projects pause after inactivity) and that connection variables are
+                      set correctly in Vercel.
+                    </>
+                  ) : (
+                    "An unexpected error occurred. Please try refreshing the page."
+                  )}
                 </p>
               </div>
             </div>
-            {process.env.NODE_ENV === "development" && this.state.error && (
+            {process.env.NODE_ENV === "development" && error && (
               <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <summary className="cursor-pointer text-sm font-medium text-slate-700">
                   Error details (development only)
                 </summary>
                 <pre className="mt-2 overflow-auto text-xs text-slate-600">
-                  {this.state.error.toString()}
-                  {this.state.error.stack}
+                  {error.toString()}
+                  {error.stack}
                 </pre>
               </details>
             )}
