@@ -22,9 +22,10 @@ import {
   normalizeAssumptions,
 } from "@/lib/assumptions";
 import type { RevenueConfig } from "@/lib/revenueForecast";
-import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
+import { DEFAULT_REVENUE_CONFIG, isPlgAdvanced } from "@/lib/revenueForecast";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
+import { PlgForecastSection } from "@/components/revenue/plg/PlgForecastSection";
 
 /**
  * Revenue stream types for the tabbed interface
@@ -45,6 +46,8 @@ export default function RevenuePage() {
   const [assumptions, setAssumptions] =
     useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
   const [config, setConfig] = useState<RevenueConfig>(DEFAULT_REVENUE_CONFIG);
+  const [startMonth, setStartMonth] = useState("2026-01");
+  const [numMonths, setNumMonths] = useState(24);
 
   // ── Load plan + revenue config on mount ──
   useEffect(() => {
@@ -59,6 +62,8 @@ export default function RevenuePage() {
           throw new Error(planData.error || "Failed to load plan");
         const id = planData.data.id;
         setPlanId(id);
+        if (planData.data.startMonth) setStartMonth(planData.data.startMonth);
+        if (planData.data.months) setNumMonths(planData.data.months);
 
         const [revenueRes, assumptionsRes] = await Promise.all([
           fetch(`/api/revenue?planId=${id}`),
@@ -106,9 +111,6 @@ export default function RevenuePage() {
   const saveLabel = useAutoSaveLabel(autoSave);
 
   // ── Preview calculations ──
-  const plgNewCustomers = Math.round(
-    (config.plg.monthlyTrials * config.plg.trialConversionRate) / 100
-  );
   const salesNewCustomers = Math.round(
     (config.sales.monthlySqls * config.sales.closeRate) / 100
   );
@@ -218,9 +220,9 @@ export default function RevenuePage() {
               ))}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm ${activeStream === "plg" && isPlgAdvanced(config.plg) ? "p-4 sm:p-5" : "p-6"}`}>
               {activeStream === "plg" && (
-                <PlgStreamForm
+                <PlgForecastSection
                   config={config.plg}
                   setConfig={(updater) =>
                     setConfig((prev) => ({
@@ -231,7 +233,8 @@ export default function RevenuePage() {
                           : updater,
                     }))
                   }
-                  newCustomers={plgNewCustomers}
+                  startMonth={startMonth}
+                  numMonths={numMonths}
                 />
               )}
               {activeStream === "sales" && (
@@ -365,92 +368,10 @@ function SnapshotMetric({ label, value }: { label: string; value: string }) {
 }
 
 // ============================================================================
-// PLG Stream Form
-// ============================================================================
-
-import type { PlgConfig, SalesConfig, PartnersConfig } from "@/lib/revenueForecast";
-
-interface PlgStreamFormProps {
-  config: PlgConfig;
-  setConfig: (updater: PlgConfig | ((prev: PlgConfig) => PlgConfig)) => void;
-  newCustomers: number;
-}
-
-function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) {
-  const updateField = (field: keyof PlgConfig, value: string) => {
-    const numValue = parseFloat(value) || 0;
-    setConfig((prev) => ({ ...prev, [field]: numValue }));
-  };
-
-  return (
-    <div className="space-y-6">
-      <StreamHeader
-        icon={<Sparkles className="h-5 w-5 text-emerald-600" />}
-        iconBg="bg-emerald-50"
-        title="PLG / Self-service"
-        description="Product-led growth through free trials and self-service signups"
-      />
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <StreamInputField
-          label="Monthly new trials"
-          value={config.monthlyTrials}
-          onChange={(v) => updateField("monthlyTrials", v)}
-          helper="Number of new trial signups per month"
-        />
-        <StreamInputField
-          label="Trial → paid conversion"
-          value={config.trialConversionRate}
-          onChange={(v) => updateField("trialConversionRate", v)}
-          helper="Percentage of trials that convert to paid"
-          suffix="%"
-        />
-        <StreamInputField
-          label="Average self-service ACV"
-          value={config.avgAcv}
-          onChange={(v) => updateField("avgAcv", v)}
-          helper="Annual contract value for self-service customers"
-          prefix="€"
-        />
-        <StreamInputField
-          label="PLG churn rate"
-          value={config.churnRate}
-          onChange={(v) => updateField("churnRate", v)}
-          helper="Monthly churn rate for PLG customers"
-          suffix="%"
-        />
-        <StreamInputField
-          label="PLG expansion rate"
-          value={config.expansionRate}
-          onChange={(v) => updateField("expansionRate", v)}
-          helper="Monthly expansion on surviving PLG customers"
-          suffix="%"
-        />
-      </div>
-
-      <StreamPreview
-        icon={<TrendingUp className="h-4 w-4 text-emerald-600" />}
-        color="emerald"
-      >
-        <span className="font-semibold text-emerald-700">{newCustomers}</span>{" "}
-        new customers / month at{" "}
-        <span className="font-semibold text-emerald-700">
-          {formatCurrency(config.avgAcv)}
-        </span>{" "}
-        ACV
-        <span className="text-slate-500">
-          {" "}
-          (using {formatPercentage(config.churnRate)} churn,{" "}
-          {formatPercentage(config.expansionRate)} expansion)
-        </span>
-      </StreamPreview>
-    </div>
-  );
-}
-
-// ============================================================================
 // Sales Stream Form
 // ============================================================================
+
+import type { SalesConfig, PartnersConfig } from "@/lib/revenueForecast";
 
 interface SalesStreamFormProps {
   config: SalesConfig;

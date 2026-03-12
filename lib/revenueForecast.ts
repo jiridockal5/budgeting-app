@@ -5,6 +5,8 @@
  * expenses, and global assumptions for SaaS businesses.
  */
 
+import { resolveAllPlgMetrics } from "./plgForecast";
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -32,8 +34,48 @@ export interface PartnersConfig {
   commissionRate: number; // percentage
 }
 
+// ── PLG Advanced Mode Types ──
+
+export type PlgMetricKey =
+  | "visitors"
+  | "visitorToTrialPct"
+  | "trialToActivationPct"
+  | "activationToPaidPct"
+  | "arpa"
+  | "churnPct"
+  | "expansionPct";
+
+export const PLG_METRIC_KEYS: PlgMetricKey[] = [
+  "visitors",
+  "visitorToTrialPct",
+  "trialToActivationPct",
+  "activationToPaidPct",
+  "arpa",
+  "churnPct",
+  "expansionPct",
+];
+
+export interface PlgMetricRow {
+  defaultValue: number;
+  growthPct: number | null;
+  growthStartMonth: number;
+  seasonality: number[] | null;
+  overrides: Record<number, number>;
+}
+
+export interface PlgAdvancedConfig {
+  mode: "advanced";
+  metrics: Record<PlgMetricKey, PlgMetricRow>;
+}
+
+export function isPlgAdvanced(
+  plg: PlgConfig | PlgAdvancedConfig
+): plg is PlgAdvancedConfig {
+  return "mode" in plg && plg.mode === "advanced";
+}
+
 export interface RevenueConfig {
-  plg: PlgConfig;
+  plg: PlgConfig | PlgAdvancedConfig;
   sales: SalesConfig;
   partners: PartnersConfig;
 }
@@ -213,6 +255,11 @@ export function buildForecast(
   // TODO: Apply paymentTimingDays and priceUplift to cash collection timing and pricing.
   // TODO: Use commissionRate as a default for incentive-based roles when role-level logic exists.
 
+  const plgAdvanced = isPlgAdvanced(revenue.plg);
+  const plgResolved = plgAdvanced
+    ? resolveAllPlgMetrics(revenue.plg as PlgAdvancedConfig, numMonths)
+    : null;
+
   let plgCustomers = 0;
   let salesCustomers = 0;
   let partnerCustomers = 0;
@@ -224,10 +271,32 @@ export function buildForecast(
   for (let i = 0; i < numMonths; i++) {
     const date = addMonths(startMonth, i);
 
-    // ── New customers this month ──
-    const newPlgCustomers = Math.round(
-      revenue.plg.monthlyTrials * (revenue.plg.trialConversionRate / 100)
-    );
+    // ── New PLG customers this month ──
+    let newPlgCustomers: number;
+    let plgArpa: number;
+    let plgChurnRate: number;
+    let plgExpansionRate: number;
+
+    if (plgAdvanced && plgResolved) {
+      const visitors = plgResolved.visitors[i];
+      const trials = visitors * (plgResolved.visitorToTrialPct[i] / 100);
+      const activated = trials * (plgResolved.trialToActivationPct[i] / 100);
+      newPlgCustomers = Math.round(
+        activated * (plgResolved.activationToPaidPct[i] / 100)
+      );
+      plgArpa = plgResolved.arpa[i];
+      plgChurnRate = plgResolved.churnPct[i];
+      plgExpansionRate = plgResolved.expansionPct[i];
+    } else {
+      const simple = revenue.plg as PlgConfig;
+      newPlgCustomers = Math.round(
+        simple.monthlyTrials * (simple.trialConversionRate / 100)
+      );
+      plgArpa = simple.avgAcv / 12;
+      plgChurnRate = simple.churnRate;
+      plgExpansionRate = simple.expansionRate;
+    }
+
     const newSalesCustomers = Math.round(
       revenue.sales.monthlySqls * (revenue.sales.closeRate / 100)
     );
@@ -236,7 +305,7 @@ export function buildForecast(
     );
 
     // ── New MRR from new customers ──
-    const newPlgMrr = newPlgCustomers * (revenue.plg.avgAcv / 12);
+    const newPlgMrr = newPlgCustomers * plgArpa;
     const newSalesMrr = newSalesCustomers * (revenue.sales.avgAcv / 12);
     const newPartnerMrr =
       newPartnerCustomers *
@@ -244,12 +313,12 @@ export function buildForecast(
       (1 - revenue.partners.commissionRate / 100);
 
     // ── Churn on existing MRR ──
-    const plgChurn = plgMrr * (revenue.plg.churnRate / 100);
+    const plgChurn = plgMrr * (plgChurnRate / 100);
     const salesChurn = salesMrr * (revenue.sales.churnRate / 100);
     const partnerChurn = partnerMrr * (assumptions.churnRate / 100);
 
     // ── Expansion on existing MRR ──
-    const plgExpansion = plgMrr * (revenue.plg.expansionRate / 100);
+    const plgExpansion = plgMrr * (plgExpansionRate / 100);
     const salesExpansion = salesMrr * (revenue.sales.expansionRate / 100);
 
     // ── Update MRR ──
@@ -260,7 +329,7 @@ export function buildForecast(
     // ── Update customer counts ──
     const plgChurnedCust =
       plgCustomers > 0
-        ? Math.round(plgCustomers * (revenue.plg.churnRate / 100))
+        ? Math.round(plgCustomers * (plgChurnRate / 100))
         : 0;
     const salesChurnedCust =
       salesCustomers > 0
