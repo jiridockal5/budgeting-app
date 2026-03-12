@@ -65,7 +65,11 @@ export async function GET(request: NextRequest) {
     const assumptions: AssumptionsInput = dbAssumptions
       ? {
           cashOnHand: toNumber(dbAssumptions.cashOnHand ?? 0),
-          raiseMonth: dbAssumptions.raiseMonth ?? null,
+          plannedRaiseMonth: dbAssumptions.plannedRaiseMonth ?? null,
+          plannedRaiseAmount:
+            dbAssumptions.plannedRaiseAmount == null
+              ? null
+              : toNumber(dbAssumptions.plannedRaiseAmount),
           fundraisingFees: toNumber(dbAssumptions.fundraisingFees ?? 0),
           minCashBuffer:
             dbAssumptions.minCashBuffer == null

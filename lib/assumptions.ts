@@ -9,7 +9,9 @@ export interface CashFundraisingAssumptions {
   /** Starting cash balance in EUR */
   cashOnHand: number;
   /** Expected month when funding is received ("YYYY-MM") */
-  raiseMonth: string | null;
+  plannedRaiseMonth: string | null;
+  /** Expected gross cash proceeds from the next funding round */
+  plannedRaiseAmount: number | null;
   /** Estimated transaction costs / dilution friction (%) */
   fundraisingFees: number;
   /** Minimum desired cash balance in EUR */
@@ -60,7 +62,8 @@ export interface GlobalAssumptions
 
 export const DEFAULT_ASSUMPTIONS: GlobalAssumptions = {
   cashOnHand: 500000,
-  raiseMonth: null,
+  plannedRaiseMonth: null,
+  plannedRaiseAmount: null,
   fundraisingFees: 0,
   minCashBuffer: 100000,
   targetRunwayMonths: 18,
@@ -82,13 +85,15 @@ export const DEFAULT_ASSUMPTIONS: GlobalAssumptions = {
  */
 export const ASSUMPTION_HELPERS: Record<keyof GlobalAssumptions, string> = {
   cashOnHand: "Cash available at the beginning of the forecast period.",
-  raiseMonth: "Expected month when new funding is received.",
+  plannedRaiseMonth: "Expected month when new funding is received.",
+  plannedRaiseAmount:
+    "Expected gross cash proceeds from the next funding round.",
   fundraisingFees:
     "Estimated transaction costs or dilution-related funding friction.",
   minCashBuffer:
     "Safety threshold used to evaluate whether the company remains sufficiently funded.",
   targetRunwayMonths:
-    "Safety threshold used to evaluate whether the company remains sufficiently funded.",
+    "Desired number of months the company should remain funded.",
   churnRate:
     "Baseline monthly customer or revenue churn used unless overridden elsewhere.",
   expansionRate:
@@ -152,7 +157,10 @@ export function normalizeAssumptions(
   return {
     ...DEFAULT_ASSUMPTIONS,
     ...value,
-    raiseMonth: value?.raiseMonth ?? DEFAULT_ASSUMPTIONS.raiseMonth,
+    plannedRaiseMonth:
+      value?.plannedRaiseMonth ?? DEFAULT_ASSUMPTIONS.plannedRaiseMonth,
+    plannedRaiseAmount:
+      value?.plannedRaiseAmount ?? DEFAULT_ASSUMPTIONS.plannedRaiseAmount,
     minCashBuffer: value?.minCashBuffer ?? DEFAULT_ASSUMPTIONS.minCashBuffer,
     targetRunwayMonths:
       value?.targetRunwayMonths ?? DEFAULT_ASSUMPTIONS.targetRunwayMonths,

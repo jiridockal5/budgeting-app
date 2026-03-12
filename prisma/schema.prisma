@@ -119,11 +119,12 @@ model GlobalAssumptions {
   plan             Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   // Cash & fundraising
-  cashOnHand       Decimal  @default(0) @db.Decimal(14, 2) // Starting cash balance in EUR
-  raiseMonth       String?                                  // Expected funding month (YYYY-MM)
-  fundraisingFees  Decimal  @default(0) @db.Decimal(5, 2)  // Estimated funding friction (%)
-  minCashBuffer    Decimal? @db.Decimal(14, 2)              // Minimum cash safety buffer in EUR
-  targetRunwayMonths Int?                                   // Desired runway threshold in months
+  cashOnHand         Decimal  @default(0) @db.Decimal(14, 2) // Starting cash balance in EUR
+  plannedRaiseMonth  String?                                  // Expected funding month (YYYY-MM)
+  plannedRaiseAmount Decimal? @db.Decimal(14, 2)              // Expected gross proceeds from next round
+  fundraisingFees    Decimal  @default(0) @db.Decimal(5, 2)  // Estimated funding friction (%)
+  minCashBuffer      Decimal? @db.Decimal(14, 2)              // Minimum cash safety buffer in EUR
+  targetRunwayMonths Int?                                     // Desired runway threshold in months
 
   // Revenue defaults
   churnRate        Decimal  @db.Decimal(5, 2)               // Monthly churn (e.g., 3.00 = 3%)

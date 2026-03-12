@@ -29,11 +29,10 @@ import {
 
 type NumericField =
   | "cashOnHand"
+  | "plannedRaiseAmount"
   | "fundraisingFees"
-  | "minCashBuffer"
   | "targetRunwayMonths"
   | "churnRate"
-  | "expansionRate"
   | "paymentTimingDays"
   | "priceUplift"
   | "salaryTaxRate"
@@ -100,10 +99,10 @@ export default function AssumptionsPage() {
     });
   };
 
-  const updateRaiseMonth = (value: string) => {
+  const updatePlannedRaiseMonth = (value: string) => {
     setAssumptions((prev) => ({
       ...prev,
-      raiseMonth: value || null,
+      plannedRaiseMonth: value || null,
     }));
   };
 
@@ -197,6 +196,7 @@ export default function AssumptionsPage() {
                     </p>
                   </div>
 
+                  {/* TODO: Reintroduce minCashBuffer under an "Advanced settings" section in a future version. */}
                   <div className="grid gap-5 sm:grid-cols-2">
                     <InputField
                       label="Starting cash"
@@ -207,11 +207,24 @@ export default function AssumptionsPage() {
                       type="number"
                     />
                     <InputField
-                      label="Raise month"
-                      value={assumptions.raiseMonth}
-                      onChange={updateRaiseMonth}
-                      helper={ASSUMPTION_HELPERS.raiseMonth}
+                      label="Planned raise month"
+                      value={assumptions.plannedRaiseMonth}
+                      onChange={updatePlannedRaiseMonth}
+                      helper={ASSUMPTION_HELPERS.plannedRaiseMonth}
                       type="month"
+                    />
+                    <InputField
+                      label="Planned raise amount"
+                      value={assumptions.plannedRaiseAmount}
+                      onChange={(value) =>
+                        updateNumericField("plannedRaiseAmount", value, {
+                          nullable: true,
+                        })
+                      }
+                      helper={ASSUMPTION_HELPERS.plannedRaiseAmount}
+                      prefix="€"
+                      type="number"
+                      optional
                     />
                     <InputField
                       label="Fundraising fees / dilution fees"
@@ -222,19 +235,6 @@ export default function AssumptionsPage() {
                       helper={ASSUMPTION_HELPERS.fundraisingFees}
                       suffix="%"
                       type="number"
-                    />
-                    <InputField
-                      label="Minimum target cash buffer"
-                      value={assumptions.minCashBuffer}
-                      onChange={(value) =>
-                        updateNumericField("minCashBuffer", value, {
-                          nullable: true,
-                        })
-                      }
-                      helper={ASSUMPTION_HELPERS.minCashBuffer}
-                      prefix="€"
-                      type="number"
-                      optional
                     />
                     <InputField
                       label="Target runway"
@@ -258,22 +258,15 @@ export default function AssumptionsPage() {
                   icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
                   iconBg="bg-emerald-50"
                 >
+                  {/* TODO: Monthly expansion rate is hidden from global assumptions for v1.
+                      It is still used in forecast calculations via the default value.
+                      Consider moving expansion rate to per-stream Revenue config. */}
                   <div className="grid gap-5 sm:grid-cols-2">
                     <InputField
                       label="Default churn"
                       value={assumptions.churnRate}
                       onChange={(value) => updateNumericField("churnRate", value)}
                       helper={ASSUMPTION_HELPERS.churnRate}
-                      suffix="%"
-                      type="number"
-                    />
-                    <InputField
-                      label="Monthly expansion rate"
-                      value={assumptions.expansionRate}
-                      onChange={(value) =>
-                        updateNumericField("expansionRate", value)
-                      }
-                      helper={ASSUMPTION_HELPERS.expansionRate}
                       suffix="%"
                       type="number"
                     />
@@ -415,21 +408,51 @@ export default function AssumptionsPage() {
 
                   <div className="mt-5 space-y-3 rounded-2xl bg-slate-50 p-4">
                     <DecisionPoint
-                      title="Starting position"
+                      title="Starting cash"
                       value={formatCurrency(assumptions.cashOnHand)}
                       detail="Cash available at the start of the forecast."
                     />
                     <DecisionPoint
-                      title="Expected raise"
-                      value={formatMonth(assumptions.raiseMonth)}
-                      detail={`Funding friction ${formatPercentage(
-                        assumptions.fundraisingFees
-                      )}`}
+                      title="Planned raise"
+                      value={formatMonth(assumptions.plannedRaiseMonth)}
+                      detail={
+                        assumptions.plannedRaiseAmount != null
+                          ? `${formatCurrency(assumptions.plannedRaiseAmount)} gross proceeds`
+                          : "Amount not set"
+                      }
                     />
                     <DecisionPoint
-                      title="Safety threshold"
-                      value={formatFundingThreshold(assumptions)}
-                      detail="Use buffer, target runway, or both to judge whether the plan stays safely funded."
+                      title="Funding fees"
+                      value={formatPercentage(assumptions.fundraisingFees)}
+                      detail="Transaction costs or dilution friction."
+                    />
+                    <DecisionPoint
+                      title="Target runway"
+                      value={formatOptionalMonths(assumptions.targetRunwayMonths)}
+                      detail="Desired months the company should remain funded."
+                    />
+                  </div>
+
+                  {/* TODO: Wire runway, cash-out month, and suggested raise needed from forecast summary.
+                      These require loading forecast results on this page or computing inline. */}
+                  <div className="mt-4 space-y-3 rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/40 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                      Derived outputs
+                    </p>
+                    <DecisionPoint
+                      title="Runway"
+                      value="—"
+                      detail="Projected months of funding remaining."
+                    />
+                    <DecisionPoint
+                      title="Cash-out month"
+                      value="—"
+                      detail="Estimated month when cash reaches zero."
+                    />
+                    <DecisionPoint
+                      title="Suggested raise needed"
+                      value="—"
+                      detail="Estimated funding required to hit target runway."
                     />
                   </div>
                 </div>
@@ -447,16 +470,16 @@ export default function AssumptionsPage() {
                         variant="highlight"
                       />
                       <SummaryRow
-                        label="Raise month"
-                        value={formatMonth(assumptions.raiseMonth)}
+                        label="Planned raise month"
+                        value={formatMonth(assumptions.plannedRaiseMonth)}
                       />
                       <SummaryRow
-                        label="Fundraising fees"
+                        label="Planned raise amount"
+                        value={formatOptionalCurrency(assumptions.plannedRaiseAmount)}
+                      />
+                      <SummaryRow
+                        label="Funding fees"
                         value={formatPercentage(assumptions.fundraisingFees)}
-                      />
-                      <SummaryRow
-                        label="Minimum cash buffer"
-                        value={formatOptionalCurrency(assumptions.minCashBuffer)}
                       />
                       <SummaryRow
                         label="Target runway"
@@ -638,7 +661,7 @@ function InputField({
             value={typeof value === "string" ? value : null}
             onChange={onChange}
             placeholder="Select month"
-            allowClear={optional || label === "Raise month"}
+            allowClear={optional || label === "Planned raise month"}
           />
         ) : (
           <>
@@ -737,16 +760,4 @@ function formatOptionalMonths(value: number | null): string {
   return value == null ? "Not set" : `${value} mo`;
 }
 
-function formatFundingThreshold(assumptions: GlobalAssumptions): string {
-  const parts = [
-    assumptions.minCashBuffer == null
-      ? null
-      : `${formatCurrency(assumptions.minCashBuffer)} buffer`,
-    assumptions.targetRunwayMonths == null
-      ? null
-      : `${assumptions.targetRunwayMonths} mo runway`,
-  ].filter(Boolean);
-
-  return parts.length > 0 ? parts.join(" + ") : "Not set";
-}
 

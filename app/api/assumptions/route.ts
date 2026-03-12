@@ -9,7 +9,8 @@ import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
 const assumptionsInputSchema = z.object({
   planId: z.string().min(1),
   cashOnHand: z.number().min(0).optional(),
-  raiseMonth: z.string().regex(/^\d{4}-\d{2}$/).nullable().optional(),
+  plannedRaiseMonth: z.string().regex(/^\d{4}-\d{2}$/).nullable().optional(),
+  plannedRaiseAmount: z.number().min(0).nullable().optional(),
   fundraisingFees: z.number().min(0).max(100),
   minCashBuffer: z.number().min(0).nullable().optional(),
   targetRunwayMonths: z.number().int().min(0).nullable().optional(),
@@ -36,7 +37,12 @@ const serializeAssumptions = (assumptions: DbGlobalAssumptions) => ({
   cashOnHand: assumptions.cashOnHand instanceof Prisma.Decimal
     ? assumptions.cashOnHand.toNumber()
     : Number(assumptions.cashOnHand ?? 0),
-  raiseMonth: assumptions.raiseMonth ?? null,
+  plannedRaiseMonth: assumptions.plannedRaiseMonth ?? null,
+  plannedRaiseAmount: assumptions.plannedRaiseAmount == null
+    ? null
+    : assumptions.plannedRaiseAmount instanceof Prisma.Decimal
+      ? assumptions.plannedRaiseAmount.toNumber()
+      : Number(assumptions.plannedRaiseAmount),
   fundraisingFees: assumptions.fundraisingFees instanceof Prisma.Decimal
     ? assumptions.fundraisingFees.toNumber()
     : Number(assumptions.fundraisingFees ?? 0),
@@ -188,7 +194,8 @@ export async function POST(request: NextRequest) {
       create: {
         planId: plan.id,
         cashOnHand: input.cashOnHand ?? 0,
-        raiseMonth: input.raiseMonth ?? null,
+        plannedRaiseMonth: input.plannedRaiseMonth ?? null,
+        plannedRaiseAmount: input.plannedRaiseAmount ?? null,
         fundraisingFees: input.fundraisingFees,
         minCashBuffer: input.minCashBuffer ?? null,
         targetRunwayMonths: input.targetRunwayMonths ?? null,
@@ -205,7 +212,9 @@ export async function POST(request: NextRequest) {
       },
       update: {
         cashOnHand: input.cashOnHand ?? undefined,
-        raiseMonth: input.raiseMonth ?? undefined,
+        plannedRaiseMonth: input.plannedRaiseMonth ?? undefined,
+        plannedRaiseAmount:
+          input.plannedRaiseAmount === undefined ? undefined : input.plannedRaiseAmount,
         fundraisingFees: input.fundraisingFees,
         minCashBuffer: input.minCashBuffer === undefined ? undefined : input.minCashBuffer,
         targetRunwayMonths:

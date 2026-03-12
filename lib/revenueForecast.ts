@@ -62,7 +62,8 @@ export interface ExpenseInput {
 
 export interface AssumptionsInput {
   cashOnHand: number;
-  raiseMonth: string | null;
+  plannedRaiseMonth: string | null;
+  plannedRaiseAmount: number | null;
   fundraisingFees: number;
   minCashBuffer: number | null;
   targetRunwayMonths: number | null;
@@ -207,8 +208,9 @@ export function buildForecast(
 ): ForecastResult {
   const months: ForecastMonth[] = [];
 
-  // TODO: Apply raiseMonth, fundraisingFees, minCashBuffer, and targetRunwayMonths
-  // to financing-specific calculations and summary recommendations.
+  // TODO: Apply plannedRaiseMonth, plannedRaiseAmount, fundraisingFees,
+  // minCashBuffer, and targetRunwayMonths to financing-specific calculations
+  // and summary recommendations (runway, cash-out month, suggested raise needed).
   // TODO: Apply paymentTimingDays and priceUplift to cash collection timing and pricing.
   // TODO: Use commissionRate as a default for incentive-based roles when role-level logic exists.
 
