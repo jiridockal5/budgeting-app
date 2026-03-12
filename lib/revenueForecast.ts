@@ -62,12 +62,19 @@ export interface ExpenseInput {
 
 export interface AssumptionsInput {
   cashOnHand: number;
+  raiseMonth: string | null;
+  fundraisingFees: number;
+  minCashBuffer: number | null;
+  targetRunwayMonths: number | null;
   cac: number;
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
+  paymentTimingDays: number; // average collection lag in days
+  priceUplift: number | null; // annual percentage
   baseAcv: number; // annual
   salaryTaxRate: number; // percentage
   salaryGrowthRate: number; // annual percentage
+  commissionRate: number; // default percentage
   inflationRate: number; // annual percentage
 }
 
@@ -199,6 +206,11 @@ export function buildForecast(
   assumptions: AssumptionsInput
 ): ForecastResult {
   const months: ForecastMonth[] = [];
+
+  // TODO: Apply raiseMonth, fundraisingFees, minCashBuffer, and targetRunwayMonths
+  // to financing-specific calculations and summary recommendations.
+  // TODO: Apply paymentTimingDays and priceUplift to cash collection timing and pricing.
+  // TODO: Use commissionRate as a default for incentive-based roles when role-level logic exists.
 
   let plgCustomers = 0;
   let salesCustomers = 0;

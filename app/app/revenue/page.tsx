@@ -19,6 +19,7 @@ import {
   DEFAULT_ASSUMPTIONS,
   formatCurrency,
   formatPercentage,
+  normalizeAssumptions,
 } from "@/lib/assumptions";
 import type { RevenueConfig } from "@/lib/revenueForecast";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
@@ -75,16 +76,7 @@ export default function RevenuePage() {
           setConfig(revenueData.data.config as RevenueConfig);
         }
         if (assumptionsData.success) {
-          setAssumptions({
-            cashOnHand: assumptionsData.data.cashOnHand ?? 0,
-            cac: assumptionsData.data.cac,
-            churnRate: assumptionsData.data.churnRate,
-            expansionRate: assumptionsData.data.expansionRate,
-            baseAcv: assumptionsData.data.baseAcv,
-            salaryTaxRate: assumptionsData.data.salaryTaxRate,
-            salaryGrowthRate: assumptionsData.data.salaryGrowthRate,
-            inflationRate: assumptionsData.data.inflationRate,
-          });
+          setAssumptions(normalizeAssumptions(assumptionsData.data));
         }
       } catch (err) {
         console.error("Failed to load revenue data:", err);
@@ -340,7 +332,7 @@ function AssumptionsSnapshot({
               Global Assumptions
             </h2>
             <p className="text-xs text-slate-500">
-              These defaults apply to all revenue streams
+              These defaults apply unless a stream overrides them
             </p>
           </div>
         </div>
@@ -355,13 +347,9 @@ function AssumptionsSnapshot({
       </div>
 
       <div className="mt-4 pt-4 border-t border-slate-100">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <SnapshotMetric
-            label="Blended CAC"
-            value={formatCurrency(assumptions.cac)}
-          />
-          <SnapshotMetric
-            label="Churn"
+            label="Default churn"
             value={formatPercentage(assumptions.churnRate) + " / mo"}
           />
           <SnapshotMetric
@@ -369,8 +357,16 @@ function AssumptionsSnapshot({
             value={formatPercentage(assumptions.expansionRate) + " / mo"}
           />
           <SnapshotMetric
-            label="Base ACV"
-            value={formatCurrency(assumptions.baseAcv)}
+            label="Collection lag"
+            value={`${assumptions.paymentTimingDays} days`}
+          />
+          <SnapshotMetric
+            label="Price uplift"
+            value={
+              assumptions.priceUplift == null
+                ? "Optional"
+                : formatPercentage(assumptions.priceUplift)
+            }
           />
         </div>
       </div>

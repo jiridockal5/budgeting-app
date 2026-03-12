@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
+import { GlobalAssumptions as DbGlobalAssumptions, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
@@ -9,13 +9,20 @@ import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
 const assumptionsInputSchema = z.object({
   planId: z.string().min(1),
   cashOnHand: z.number().min(0).optional(),
-  cac: z.number().min(0),
+  raiseMonth: z.string().regex(/^\d{4}-\d{2}$/).nullable().optional(),
+  fundraisingFees: z.number().min(0).max(100),
+  minCashBuffer: z.number().min(0).nullable().optional(),
+  targetRunwayMonths: z.number().int().min(0).nullable().optional(),
   churnRate: z.number().min(0).max(100),
   expansionRate: z.number().min(0).max(100),
-  baseAcv: z.number().min(0),
+  paymentTimingDays: z.number().int().min(0),
+  priceUplift: z.number().min(0).max(100).nullable().optional(),
   salaryTaxRate: z.number().min(0).max(100),
   salaryGrowthRate: z.number().min(0).max(100),
+  commissionRate: z.number().min(0).max(100),
   inflationRate: z.number().min(0).max(100),
+  cac: z.number().min(0).optional(),
+  baseAcv: z.number().min(0).optional(),
 });
 
 const querySchema = z.object({
@@ -23,33 +30,55 @@ const querySchema = z.object({
 });
 
 // Serialize Prisma Decimal values to numbers
-const serializeAssumptions = (assumptions: any) => ({
+const serializeAssumptions = (assumptions: DbGlobalAssumptions) => ({
   id: assumptions.id,
   planId: assumptions.planId,
   cashOnHand: assumptions.cashOnHand instanceof Prisma.Decimal
     ? assumptions.cashOnHand.toNumber()
     : Number(assumptions.cashOnHand ?? 0),
-  cac: assumptions.cac instanceof Prisma.Decimal
-    ? assumptions.cac.toNumber()
-    : Number(assumptions.cac),
+  raiseMonth: assumptions.raiseMonth ?? null,
+  fundraisingFees: assumptions.fundraisingFees instanceof Prisma.Decimal
+    ? assumptions.fundraisingFees.toNumber()
+    : Number(assumptions.fundraisingFees ?? 0),
+  minCashBuffer: assumptions.minCashBuffer == null
+    ? null
+    : assumptions.minCashBuffer instanceof Prisma.Decimal
+      ? assumptions.minCashBuffer.toNumber()
+      : Number(assumptions.minCashBuffer),
+  targetRunwayMonths:
+    assumptions.targetRunwayMonths == null
+      ? null
+      : Number(assumptions.targetRunwayMonths),
   churnRate: assumptions.churnRate instanceof Prisma.Decimal
     ? assumptions.churnRate.toNumber()
     : Number(assumptions.churnRate),
   expansionRate: assumptions.expansionRate instanceof Prisma.Decimal
     ? assumptions.expansionRate.toNumber()
     : Number(assumptions.expansionRate),
-  baseAcv: assumptions.baseAcv instanceof Prisma.Decimal
-    ? assumptions.baseAcv.toNumber()
-    : Number(assumptions.baseAcv),
+  paymentTimingDays: Number(assumptions.paymentTimingDays ?? 0),
+  priceUplift: assumptions.priceUplift == null
+    ? null
+    : assumptions.priceUplift instanceof Prisma.Decimal
+      ? assumptions.priceUplift.toNumber()
+      : Number(assumptions.priceUplift),
   salaryTaxRate: assumptions.salaryTaxRate instanceof Prisma.Decimal
     ? assumptions.salaryTaxRate.toNumber()
     : Number(assumptions.salaryTaxRate),
   salaryGrowthRate: assumptions.salaryGrowthRate instanceof Prisma.Decimal
     ? assumptions.salaryGrowthRate.toNumber()
     : Number(assumptions.salaryGrowthRate),
+  commissionRate: assumptions.commissionRate instanceof Prisma.Decimal
+    ? assumptions.commissionRate.toNumber()
+    : Number(assumptions.commissionRate ?? 0),
   inflationRate: assumptions.inflationRate instanceof Prisma.Decimal
     ? assumptions.inflationRate.toNumber()
     : Number(assumptions.inflationRate),
+  cac: assumptions.cac instanceof Prisma.Decimal
+    ? assumptions.cac.toNumber()
+    : Number(assumptions.cac ?? 0),
+  baseAcv: assumptions.baseAcv instanceof Prisma.Decimal
+    ? assumptions.baseAcv.toNumber()
+    : Number(assumptions.baseAcv ?? 0),
   createdAt: assumptions.createdAt.toISOString(),
   updatedAt: assumptions.updatedAt.toISOString(),
 });
@@ -159,23 +188,38 @@ export async function POST(request: NextRequest) {
       create: {
         planId: plan.id,
         cashOnHand: input.cashOnHand ?? 0,
-        cac: input.cac,
+        raiseMonth: input.raiseMonth ?? null,
+        fundraisingFees: input.fundraisingFees,
+        minCashBuffer: input.minCashBuffer ?? null,
+        targetRunwayMonths: input.targetRunwayMonths ?? null,
         churnRate: input.churnRate,
         expansionRate: input.expansionRate,
-        baseAcv: input.baseAcv,
+        paymentTimingDays: input.paymentTimingDays,
+        priceUplift: input.priceUplift ?? null,
         salaryTaxRate: input.salaryTaxRate,
         salaryGrowthRate: input.salaryGrowthRate,
+        commissionRate: input.commissionRate,
         inflationRate: input.inflationRate,
+        cac: input.cac ?? 0,
+        baseAcv: input.baseAcv ?? 0,
       },
       update: {
         cashOnHand: input.cashOnHand ?? undefined,
-        cac: input.cac,
+        raiseMonth: input.raiseMonth ?? undefined,
+        fundraisingFees: input.fundraisingFees,
+        minCashBuffer: input.minCashBuffer === undefined ? undefined : input.minCashBuffer,
+        targetRunwayMonths:
+          input.targetRunwayMonths === undefined ? undefined : input.targetRunwayMonths,
         churnRate: input.churnRate,
         expansionRate: input.expansionRate,
-        baseAcv: input.baseAcv,
+        paymentTimingDays: input.paymentTimingDays,
+        priceUplift: input.priceUplift === undefined ? undefined : input.priceUplift,
         salaryTaxRate: input.salaryTaxRate,
         salaryGrowthRate: input.salaryGrowthRate,
+        commissionRate: input.commissionRate,
         inflationRate: input.inflationRate,
+        cac: input.cac ?? undefined,
+        baseAcv: input.baseAcv ?? undefined,
       },
     });
 

@@ -118,19 +118,30 @@ model GlobalAssumptions {
   planId           String   @unique
   plan             Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
 
-  // Cash
+  // Cash & fundraising
   cashOnHand       Decimal  @default(0) @db.Decimal(14, 2) // Starting cash balance in EUR
+  raiseMonth       String?                                  // Expected funding month (YYYY-MM)
+  fundraisingFees  Decimal  @default(0) @db.Decimal(5, 2)  // Estimated funding friction (%)
+  minCashBuffer    Decimal? @db.Decimal(14, 2)              // Minimum cash safety buffer in EUR
+  targetRunwayMonths Int?                                   // Desired runway threshold in months
 
-  // Revenue drivers
-  cac              Decimal  @db.Decimal(12, 2)  // Customer Acquisition Cost in EUR
-  churnRate        Decimal  @db.Decimal(5, 2)   // Monthly churn (e.g., 3.00 = 3%)
-  expansionRate    Decimal  @db.Decimal(5, 2)   // Monthly expansion rate
-  baseAcv          Decimal  @db.Decimal(12, 2)  // Base Annual Contract Value in EUR
+  // Revenue defaults
+  churnRate        Decimal  @db.Decimal(5, 2)               // Monthly churn (e.g., 3.00 = 3%)
+  expansionRate    Decimal  @db.Decimal(5, 2)               // Monthly expansion rate
+  paymentTimingDays Int     @default(30)                    // Average time to collect cash after invoicing
+  priceUplift      Decimal? @db.Decimal(5, 2)               // Optional annual pricing uplift (%)
 
-  // Cost drivers
-  salaryTaxRate    Decimal  @db.Decimal(5, 2)   // Employer tax rate (e.g., 35.00 = 35%)
-  salaryGrowthRate Decimal  @db.Decimal(5, 2)   // Annual salary growth
-  inflationRate    Decimal  @db.Decimal(5, 2)   // Annual inflation rate
+  // Team defaults
+  salaryTaxRate    Decimal  @db.Decimal(5, 2)               // Employer tax rate (e.g., 35.00 = 35%)
+  salaryGrowthRate Decimal  @db.Decimal(5, 2)               // Annual salary growth
+  commissionRate   Decimal  @default(0) @db.Decimal(5, 2)   // Default commission / bonus (%)
+
+  // Expense defaults
+  inflationRate    Decimal  @db.Decimal(5, 2)               // Annual inflation rate
+
+  // Legacy forecast fields kept for compatibility until moved elsewhere
+  cac              Decimal  @default(0) @db.Decimal(12, 2)  // Customer Acquisition Cost in EUR
+  baseAcv          Decimal  @default(0) @db.Decimal(12, 2)  // Base Annual Contract Value in EUR
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

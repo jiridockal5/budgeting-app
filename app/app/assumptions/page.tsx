@@ -1,69 +1,79 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Save, Info, TrendingUp, Users, Loader2 } from "lucide-react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  ArrowRight,
+  Info,
+  Loader2,
+  Receipt,
+  Save,
+  Target,
+  TrendingUp,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useToast } from "@/components/ui/Toast";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import {
-  GlobalAssumptions,
-  DEFAULT_ASSUMPTIONS,
   ASSUMPTION_HELPERS,
+  DEFAULT_ASSUMPTIONS,
   formatCurrency,
+  formatMonth,
   formatPercentage,
+  GlobalAssumptions,
+  normalizeAssumptions,
 } from "@/lib/assumptions";
 
-/**
- * Assumptions Page
- * 
- * Captures global financial drivers that power revenue and expense forecasts.
- * Data is persisted to the database via /api/assumptions.
- */
+type NumericField =
+  | "cashOnHand"
+  | "fundraisingFees"
+  | "minCashBuffer"
+  | "targetRunwayMonths"
+  | "churnRate"
+  | "expansionRate"
+  | "paymentTimingDays"
+  | "priceUplift"
+  | "salaryTaxRate"
+  | "salaryGrowthRate"
+  | "commissionRate"
+  | "inflationRate";
+
 export default function AssumptionsPage() {
-  const [assumptions, setAssumptions] = useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
+  const [assumptions, setAssumptions] =
+    useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
   const [planId, setPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fetch current plan and assumptions on mount
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
         setError(null);
 
-        // Get or create the current plan
         const planRes = await fetch("/api/plans/current");
         const planData = await planRes.json();
-        
+
         if (!planData.success) {
           throw new Error(planData.error || "Failed to load plan");
         }
-        
+
         setPlanId(planData.data.id);
 
-        // Fetch assumptions for this plan
-        const assumptionsRes = await fetch(`/api/assumptions?planId=${planData.data.id}`);
+        const assumptionsRes = await fetch(
+          `/api/assumptions?planId=${planData.data.id}`
+        );
         const assumptionsData = await assumptionsRes.json();
-        
+
         if (!assumptionsData.success) {
           throw new Error(assumptionsData.error || "Failed to load assumptions");
         }
 
-        // Update state with fetched assumptions
-        setAssumptions({
-          cashOnHand: assumptionsData.data.cashOnHand ?? 0,
-          cac: assumptionsData.data.cac,
-          churnRate: assumptionsData.data.churnRate,
-          expansionRate: assumptionsData.data.expansionRate,
-          baseAcv: assumptionsData.data.baseAcv,
-          salaryTaxRate: assumptionsData.data.salaryTaxRate,
-          salaryGrowthRate: assumptionsData.data.salaryGrowthRate,
-          inflationRate: assumptionsData.data.inflationRate,
-        });
+        setAssumptions(normalizeAssumptions(assumptionsData.data));
       } catch (err) {
         console.error("Failed to load assumptions:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
@@ -75,20 +85,30 @@ export default function AssumptionsPage() {
     loadData();
   }, []);
 
-  /**
-   * Updates a single field in the assumptions state
-   */
-  const updateField = (field: keyof GlobalAssumptions, value: string) => {
-    const numValue = parseFloat(value) || 0;
-    setAssumptions((prev) => ({ ...prev, [field]: numValue }));
+  const updateNumericField = (
+    field: NumericField,
+    value: string,
+    options?: { nullable?: boolean }
+  ) => {
+    setAssumptions((prev) => {
+      if (options?.nullable && value === "") {
+        return { ...prev, [field]: null };
+      }
+
+      return { ...prev, [field]: parseFloat(value) || 0 };
+    });
   };
 
-  /**
-   * Handles form submission - saves to database
-   */
-  const handleSubmit = async (e: React.FormEvent) => {
+  const updateRaiseMonth = (value: string) => {
+    setAssumptions((prev) => ({
+      ...prev,
+      raiseMonth: value || null,
+    }));
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!planId) {
       setError("No plan loaded");
       return;
@@ -113,6 +133,7 @@ export default function AssumptionsPage() {
         throw new Error(data.error || "Failed to save assumptions");
       }
 
+      setAssumptions(normalizeAssumptions(data.data));
       toast("Assumptions saved successfully!");
     } catch (err) {
       console.error("Failed to save assumptions:", err);
@@ -122,17 +143,20 @@ export default function AssumptionsPage() {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+        <div className="mx-auto max-w-6xl space-y-8 px-6 py-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-4 w-80" />
           </div>
-          <div className="grid gap-8 lg:grid-cols-2">
-            <FormSectionSkeleton />
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="space-y-6">
+              <FormSectionSkeleton />
+              <FormSectionSkeleton />
+              <FormSectionSkeleton />
+            </div>
             <div className="space-y-6">
               <FormSectionSkeleton />
               <Skeleton className="h-24 w-full rounded-2xl" />
@@ -147,126 +171,218 @@ export default function AssumptionsPage() {
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
-          {/* Page Header */}
           <PageHeader
             title="Assumptions"
-            subtitle="Global drivers that power your revenue and expense forecasts."
+            subtitle="Global defaults that shape runway, fundraising, and the core drivers behind your forecast."
           />
 
-          {/* Two-column layout */}
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* Left column: Editable Form */}
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
             <section>
-              <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Revenue Drivers Section */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-                      <TrendingUp className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">Revenue drivers</h2>
-                      <p className="text-sm text-slate-500">Inputs for revenue forecasting</p>
-                    </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <SectionCard
+                  title="Cash & fundraising"
+                  description="Set the cash position and funding targets that define how much room you have to operate."
+                  icon={<Wallet className="h-5 w-5 text-indigo-600" />}
+                  iconBg="bg-indigo-50"
+                  featured
+                >
+                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
+                    <p className="text-sm font-semibold text-indigo-900">
+                      Why this matters
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-indigo-900/80">
+                      A founder usually wants to know: “When do I run out of cash,
+                      and how much should I raise?”
+                    </p>
                   </div>
 
-                  <div className="space-y-5">
+                  <div className="grid gap-5 sm:grid-cols-2">
                     <InputField
-                      label="Cash on Hand"
+                      label="Starting cash"
                       value={assumptions.cashOnHand}
-                      onChange={(v) => updateField("cashOnHand", v)}
+                      onChange={(value) => updateNumericField("cashOnHand", value)}
                       helper={ASSUMPTION_HELPERS.cashOnHand}
                       prefix="€"
-                      type="currency"
+                      type="number"
                     />
                     <InputField
-                      label="Customer Acquisition Cost (CAC)"
-                      value={assumptions.cac}
-                      onChange={(v) => updateField("cac", v)}
-                      helper={ASSUMPTION_HELPERS.cac}
+                      label="Raise month"
+                      value={assumptions.raiseMonth}
+                      onChange={updateRaiseMonth}
+                      helper={ASSUMPTION_HELPERS.raiseMonth}
+                      type="month"
+                    />
+                    <InputField
+                      label="Fundraising fees / dilution fees"
+                      value={assumptions.fundraisingFees}
+                      onChange={(value) =>
+                        updateNumericField("fundraisingFees", value)
+                      }
+                      helper={ASSUMPTION_HELPERS.fundraisingFees}
+                      suffix="%"
+                      type="number"
+                    />
+                    <InputField
+                      label="Minimum target cash buffer"
+                      value={assumptions.minCashBuffer}
+                      onChange={(value) =>
+                        updateNumericField("minCashBuffer", value, {
+                          nullable: true,
+                        })
+                      }
+                      helper={ASSUMPTION_HELPERS.minCashBuffer}
                       prefix="€"
-                      type="currency"
+                      type="number"
+                      optional
                     />
                     <InputField
-                      label="Monthly Churn Rate"
+                      label="Target runway"
+                      value={assumptions.targetRunwayMonths}
+                      onChange={(value) =>
+                        updateNumericField("targetRunwayMonths", value, {
+                          nullable: true,
+                        })
+                      }
+                      helper={ASSUMPTION_HELPERS.targetRunwayMonths}
+                      suffix="mo"
+                      type="number"
+                      optional
+                    />
+                  </div>
+                </SectionCard>
+
+                <SectionCard
+                  title="Revenue defaults"
+                  description="Only keep baseline revenue assumptions here when they truly apply across the model."
+                  icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
+                  iconBg="bg-emerald-50"
+                >
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <InputField
+                      label="Default churn"
                       value={assumptions.churnRate}
-                      onChange={(v) => updateField("churnRate", v)}
+                      onChange={(value) => updateNumericField("churnRate", value)}
                       helper={ASSUMPTION_HELPERS.churnRate}
                       suffix="%"
-                      type="percentage"
+                      type="number"
                     />
                     <InputField
-                      label="Monthly Expansion Rate"
+                      label="Monthly expansion rate"
                       value={assumptions.expansionRate}
-                      onChange={(v) => updateField("expansionRate", v)}
+                      onChange={(value) =>
+                        updateNumericField("expansionRate", value)
+                      }
                       helper={ASSUMPTION_HELPERS.expansionRate}
                       suffix="%"
-                      type="percentage"
+                      type="number"
                     />
                     <InputField
-                      label="Base ACV"
-                      value={assumptions.baseAcv}
-                      onChange={(v) => updateField("baseAcv", v)}
-                      helper={ASSUMPTION_HELPERS.baseAcv}
-                      prefix="€"
-                      type="currency"
+                      label="Payment timing / collection lag"
+                      value={assumptions.paymentTimingDays}
+                      onChange={(value) =>
+                        updateNumericField("paymentTimingDays", value)
+                      }
+                      helper={ASSUMPTION_HELPERS.paymentTimingDays}
+                      suffix="days"
+                      type="number"
+                    />
+                    <InputField
+                      label="Price uplift / annual price increase"
+                      value={assumptions.priceUplift}
+                      onChange={(value) =>
+                        updateNumericField("priceUplift", value, {
+                          nullable: true,
+                        })
+                      }
+                      helper={ASSUMPTION_HELPERS.priceUplift}
+                      suffix="%"
+                      type="number"
+                      optional
                     />
                   </div>
-                </div>
+                  <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
+                    TODO: CAC belongs on a Revenue / GTM assumptions page, and ACV
+                    should live closer to each revenue stream rather than in global
+                    defaults.
+                  </p>
+                </SectionCard>
 
-                {/* People & Cost Drivers Section */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50">
-                      <Users className="h-5 w-5 text-violet-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">People & cost drivers</h2>
-                      <p className="text-sm text-slate-500">Inputs for expense forecasting</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-5">
+                <SectionCard
+                  title="Team defaults"
+                  description="Keep shared people assumptions here, then override them later by role when needed."
+                  icon={<Users className="h-5 w-5 text-violet-600" />}
+                  iconBg="bg-violet-50"
+                >
+                  <div className="grid gap-5 sm:grid-cols-2">
                     <InputField
-                      label="Salary Tax Rate"
+                      label="Employer tax rate"
                       value={assumptions.salaryTaxRate}
-                      onChange={(v) => updateField("salaryTaxRate", v)}
+                      onChange={(value) =>
+                        updateNumericField("salaryTaxRate", value)
+                      }
                       helper={ASSUMPTION_HELPERS.salaryTaxRate}
                       suffix="%"
-                      type="percentage"
+                      type="number"
                     />
                     <InputField
-                      label="Annual Salary Growth"
+                      label="Annual salary increase"
                       value={assumptions.salaryGrowthRate}
-                      onChange={(v) => updateField("salaryGrowthRate", v)}
+                      onChange={(value) =>
+                        updateNumericField("salaryGrowthRate", value)
+                      }
                       helper={ASSUMPTION_HELPERS.salaryGrowthRate}
                       suffix="%"
-                      type="percentage"
+                      type="number"
                     />
                     <InputField
-                      label="Annual Inflation Rate"
-                      value={assumptions.inflationRate}
-                      onChange={(v) => updateField("inflationRate", v)}
-                      helper={ASSUMPTION_HELPERS.inflationRate}
+                      label="Commission / bonus"
+                      value={assumptions.commissionRate}
+                      onChange={(value) =>
+                        updateNumericField("commissionRate", value)
+                      }
+                      helper={ASSUMPTION_HELPERS.commissionRate}
                       suffix="%"
-                      type="percentage"
+                      type="number"
                     />
                   </div>
-                </div>
+                </SectionCard>
 
-                {/* Error Message */}
+                <SectionCard
+                  title="Expense defaults"
+                  description="Use this section only for broad operating cost assumptions that repeat across the model."
+                  icon={<Receipt className="h-5 w-5 text-amber-600" />}
+                  iconBg="bg-amber-50"
+                >
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <InputField
+                      label="General opex inflation"
+                      value={assumptions.inflationRate}
+                      onChange={(value) =>
+                        updateNumericField("inflationRate", value)
+                      }
+                      helper={ASSUMPTION_HELPERS.inflationRate}
+                      suffix="%"
+                      type="number"
+                    />
+                  </div>
+                  <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
+                    TODO: detailed category-level expense assumptions and any
+                    month-by-month inputs should live on the Expenses page instead
+                    of here.
+                  </p>
+                </SectionCard>
+
                 {error && (
                   <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {error}
                   </div>
                 )}
 
-                {/* Submit Button */}
                 <div className="flex items-center gap-4">
                   <button
                     type="submit"
                     disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {saving ? (
                       <>
@@ -284,86 +400,145 @@ export default function AssumptionsPage() {
               </form>
             </section>
 
-            {/* Right column: Summary & Effect */}
             <section>
               <div className="sticky top-24 space-y-6">
-                {/* Summary Card */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-1">Summary & effect</h2>
-                  <p className="text-sm text-slate-500 mb-6">Current values at a glance</p>
+                <div className="rounded-2xl border border-indigo-100 bg-white p-6 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
+                      <Target className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-900">
+                        Funding focus
+                      </h2>
+                      <p className="text-sm text-slate-500">
+                        The key defaults that shape runway and fundraising decisions.
+                      </p>
+                    </div>
+                  </div>
 
-                  <div className="space-y-4">
-                    <SummaryRow
-                      label="Cash on hand"
+                  <div className="mt-5 space-y-3 rounded-2xl bg-slate-50 p-4">
+                    <DecisionPoint
+                      title="Starting position"
                       value={formatCurrency(assumptions.cashOnHand)}
-                      variant="highlight"
+                      detail="Cash available at the start of the forecast."
                     />
-                    <SummaryRow
-                      label="Blended CAC"
-                      value={formatCurrency(assumptions.cac)}
-                      variant="highlight"
+                    <DecisionPoint
+                      title="Expected raise"
+                      value={formatMonth(assumptions.raiseMonth)}
+                      detail={`Funding friction ${formatPercentage(
+                        assumptions.fundraisingFees
+                      )}`}
                     />
-                    <SummaryRow
-                      label="Churn"
-                      value={formatPercentage(assumptions.churnRate) + " / month"}
-                    />
-                    <SummaryRow
-                      label="Expansion"
-                      value={formatPercentage(assumptions.expansionRate) + " / month"}
-                    />
-                    <SummaryRow
-                      label="Base ACV"
-                      value={formatCurrency(assumptions.baseAcv)}
-                      variant="highlight"
-                    />
-                    
-                    <div className="border-t border-slate-100 pt-4 mt-4" />
-                    
-                    <SummaryRow
-                      label="Total payroll on-top cost"
-                      value={formatPercentage(assumptions.salaryTaxRate)}
-                    />
-                    <SummaryRow
-                      label="Salary growth"
-                      value={formatPercentage(assumptions.salaryGrowthRate) + " / year"}
-                    />
-                    <SummaryRow
-                      label="Inflation"
-                      value={formatPercentage(assumptions.inflationRate) + " / year"}
+                    <DecisionPoint
+                      title="Safety threshold"
+                      value={formatFundingThreshold(assumptions)}
+                      detail="Use buffer, target runway, or both to judge whether the plan stays safely funded."
                     />
                   </div>
                 </div>
 
-                {/* Explanation Card */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    Current global defaults
+                  </h3>
+
+                  <div className="mt-5 space-y-5">
+                    <SummaryGroup title="Cash & fundraising">
+                      <SummaryRow
+                        label="Starting cash"
+                        value={formatCurrency(assumptions.cashOnHand)}
+                        variant="highlight"
+                      />
+                      <SummaryRow
+                        label="Raise month"
+                        value={formatMonth(assumptions.raiseMonth)}
+                      />
+                      <SummaryRow
+                        label="Fundraising fees"
+                        value={formatPercentage(assumptions.fundraisingFees)}
+                      />
+                      <SummaryRow
+                        label="Minimum cash buffer"
+                        value={formatOptionalCurrency(assumptions.minCashBuffer)}
+                      />
+                      <SummaryRow
+                        label="Target runway"
+                        value={formatOptionalMonths(assumptions.targetRunwayMonths)}
+                      />
+                    </SummaryGroup>
+
+                    <SummaryGroup title="Revenue defaults">
+                      <SummaryRow
+                        label="Default churn"
+                        value={`${formatPercentage(assumptions.churnRate)} / month`}
+                      />
+                      <SummaryRow
+                        label="Collection lag"
+                        value={`${assumptions.paymentTimingDays} days`}
+                      />
+                      <SummaryRow
+                        label="Price uplift"
+                        value={formatOptionalPercentage(assumptions.priceUplift)}
+                      />
+                    </SummaryGroup>
+
+                    <SummaryGroup title="Team defaults">
+                      <SummaryRow
+                        label="Annual salary increase"
+                        value={`${formatPercentage(
+                          assumptions.salaryGrowthRate
+                        )} / year`}
+                      />
+                      <SummaryRow
+                        label="Employer tax rate"
+                        value={formatPercentage(assumptions.salaryTaxRate)}
+                      />
+                      <SummaryRow
+                        label="Commission / bonus"
+                        value={formatPercentage(assumptions.commissionRate)}
+                      />
+                    </SummaryGroup>
+
+                    <SummaryGroup title="Expense defaults">
+                      <SummaryRow
+                        label="General opex inflation"
+                        value={`${formatPercentage(assumptions.inflationRate)} / year`}
+                      />
+                    </SummaryGroup>
+                  </div>
+                </div>
+
                 <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6">
                   <div className="flex items-start gap-3">
                     <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
                       <Info className="h-4 w-4 text-indigo-600" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-900">How this fits in</h3>
-                      <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                        These global assumptions are used when projecting{" "}
-                        <span className="font-medium text-slate-900">Revenue</span> (PLG, Sales, Partners) and{" "}
-                        <span className="font-medium text-slate-900">Expenses</span> (headcount & costs).
-                        You can override specific values per stream or category directly on the Revenue and Expenses pages.
+                      <h3 className="text-sm font-semibold text-slate-900">
+                        How this fits in
+                      </h3>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                        This page is for global defaults only. Put stream-specific
+                        revenue assumptions on the Revenue page and detailed cost
+                        assumptions on the Expenses page so this stays focused on
+                        runway, fundraising, and reusable model drivers.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Navigation Links */}
                 <div className="flex gap-3">
                   <Link
                     href="/app/revenue"
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
                   >
                     Go to Revenue
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
                     href="/app/expenses"
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
                   >
                     Go to Expenses
                     <ArrowRight className="h-4 w-4" />
@@ -378,27 +553,84 @@ export default function AssumptionsPage() {
   );
 }
 
-// ============================================================================
-// Helper Components
-// ============================================================================
+interface SectionCardProps {
+  title: string;
+  description: string;
+  icon: ReactNode;
+  iconBg: string;
+  featured?: boolean;
+  children: ReactNode;
+}
+
+function SectionCard({
+  title,
+  description,
+  icon,
+  iconBg,
+  featured = false,
+  children,
+}: SectionCardProps) {
+  return (
+    <div
+      className={`rounded-2xl bg-white p-6 shadow-sm ${
+        featured
+          ? "border-2 border-indigo-100"
+          : "border border-slate-200"
+      }`}
+    >
+      <div className="mb-6 flex items-center gap-3">
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}
+        >
+          {icon}
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+          <p className="text-sm text-slate-500">{description}</p>
+        </div>
+      </div>
+
+      <div className="space-y-5">{children}</div>
+    </div>
+  );
+}
 
 interface InputFieldProps {
   label: string;
-  value: number;
+  value: number | string | null;
   onChange: (value: string) => void;
   helper: string;
   prefix?: string;
   suffix?: string;
-  type: "currency" | "percentage";
+  type: "number" | "month";
+  optional?: boolean;
 }
 
-/**
- * Reusable input field component with label, prefix/suffix, and helper text
- */
-function InputField({ label, value, onChange, helper, prefix, suffix }: InputFieldProps) {
+function InputField({
+  label,
+  value,
+  onChange,
+  helper,
+  prefix,
+  suffix,
+  type,
+  optional = false,
+}: InputFieldProps) {
+  const displayValue =
+    value == null ? "" : typeof value === "number" ? String(value) : value;
+
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-slate-700">{label}</label>
+      <div className="flex items-center gap-2">
+        <label className="block text-sm font-medium text-slate-700">
+          {label}
+        </label>
+        {optional && (
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+            Optional
+          </span>
+        )}
+      </div>
       <div className="relative">
         {prefix && (
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
@@ -406,18 +638,14 @@ function InputField({ label, value, onChange, helper, prefix, suffix }: InputFie
           </span>
         )}
         <input
-          type="number"
-          value={value}
+          type={type}
+          value={displayValue}
           onChange={(e) => onChange(e.target.value)}
-          step="any"
-          min="0"
-          className={`
-            w-full rounded-xl border border-slate-200 bg-white py-2.5 text-sm text-slate-900
-            shadow-sm transition placeholder:text-slate-400
-            focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100
-            ${prefix ? "pl-8" : "pl-3"}
-            ${suffix ? "pr-10" : "pr-3"}
-          `}
+          step={type === "number" ? "any" : undefined}
+          min={type === "number" ? "0" : undefined}
+          className={`w-full rounded-xl bg-white py-2.5 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 ${
+            optional ? "border border-dashed border-slate-300" : "border border-slate-200"
+          } ${prefix ? "pl-8" : "pl-3"} ${suffix ? "pr-12" : "pr-3"}`}
         />
         {suffix && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
@@ -425,7 +653,44 @@ function InputField({ label, value, onChange, helper, prefix, suffix }: InputFie
           </span>
         )}
       </div>
-      <p className="text-xs text-slate-500 leading-relaxed">{helper}</p>
+      <p className="text-xs leading-relaxed text-slate-500">{helper}</p>
+    </div>
+  );
+}
+
+function DecisionPoint({
+  title,
+  value,
+  detail,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {title}
+      </p>
+      <p className="mt-1 text-base font-semibold text-slate-900">{value}</p>
+      <p className="mt-1 text-xs leading-relaxed text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
+function SummaryGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {title}
+      </h4>
+      <div className="space-y-3">{children}</div>
     </div>
   );
 }
@@ -436,15 +701,12 @@ interface SummaryRowProps {
   variant?: "default" | "highlight";
 }
 
-/**
- * Reusable summary row for the right-side panel
- */
 function SummaryRow({ label, value, variant = "default" }: SummaryRowProps) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-4">
       <span className="text-sm text-slate-600">{label}</span>
       <span
-        className={`text-sm font-semibold ${
+        className={`text-right text-sm font-semibold ${
           variant === "highlight" ? "text-indigo-600" : "text-slate-900"
         }`}
       >
@@ -452,5 +714,30 @@ function SummaryRow({ label, value, variant = "default" }: SummaryRowProps) {
       </span>
     </div>
   );
+}
+
+function formatOptionalCurrency(value: number | null): string {
+  return value == null ? "Not set" : formatCurrency(value);
+}
+
+function formatOptionalPercentage(value: number | null): string {
+  return value == null ? "Not set" : formatPercentage(value);
+}
+
+function formatOptionalMonths(value: number | null): string {
+  return value == null ? "Not set" : `${value} mo`;
+}
+
+function formatFundingThreshold(assumptions: GlobalAssumptions): string {
+  const parts = [
+    assumptions.minCashBuffer == null
+      ? null
+      : `${formatCurrency(assumptions.minCashBuffer)} buffer`,
+    assumptions.targetRunwayMonths == null
+      ? null
+      : `${assumptions.targetRunwayMonths} mo runway`,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" + ") : "Not set";
 }
 

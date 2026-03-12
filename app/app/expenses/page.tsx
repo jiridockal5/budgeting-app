@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import type { Expense, Person } from "@prisma/client";
 import {
   Settings2,
   ArrowRight,
@@ -18,6 +19,7 @@ import {
   DEFAULT_ASSUMPTIONS,
   formatCurrency,
   formatPercentage,
+  normalizeAssumptions,
 } from "@/lib/assumptions";
 import {
   ExpenseCategory,
@@ -30,23 +32,19 @@ import {
 } from "@/lib/expenses";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Skeleton, FormSectionSkeleton, TableRowSkeleton } from "@/components/ui/Skeleton";
+import { Skeleton, TableRowSkeleton } from "@/components/ui/Skeleton";
 
 // ============================================================================
 // Helpers: map between DB and UI types
 // ============================================================================
-
-function generateId(): string {
-  return `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-}
 
 function getCurrentMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function isoToMonth(iso: string): string {
-  const d = new Date(iso);
+function isoToMonth(iso: string | Date): string {
+  const d = iso instanceof Date ? iso : new Date(iso);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -76,7 +74,7 @@ function mapUiFrequency(freq: NonHeadcountExpenseRow["frequency"]): string {
   }
 }
 
-function mapPersonToRow(person: any): HeadcountRow {
+function mapPersonToRow(person: Person): HeadcountRow {
   return {
     id: person.id,
     role: person.role,
@@ -89,12 +87,12 @@ function mapPersonToRow(person: any): HeadcountRow {
   };
 }
 
-function mapExpenseToRow(expense: any): NonHeadcountExpenseRow {
+function mapExpenseToRow(expense: Expense): NonHeadcountExpenseRow {
   return {
     id: expense.id,
     name: expense.name,
     category: expense.category as ExpenseCategory,
-    amount: expense.amount,
+    amount: Number(expense.amount),
     frequency: mapDbFrequency(expense.frequency),
     startMonth: isoToMonth(expense.startMonth),
     endMonth: expense.endMonth ? isoToMonth(expense.endMonth) : undefined,
@@ -182,16 +180,7 @@ export default function ExpensesPage() {
           setNonHeadcountRows(expensesData.data.map(mapExpenseToRow));
         }
         if (assumptionsData.success) {
-          setAssumptions({
-            cashOnHand: assumptionsData.data.cashOnHand ?? 0,
-            cac: assumptionsData.data.cac,
-            churnRate: assumptionsData.data.churnRate,
-            expansionRate: assumptionsData.data.expansionRate,
-            baseAcv: assumptionsData.data.baseAcv,
-            salaryTaxRate: assumptionsData.data.salaryTaxRate,
-            salaryGrowthRate: assumptionsData.data.salaryGrowthRate,
-            inflationRate: assumptionsData.data.inflationRate,
-          });
+          setAssumptions(normalizeAssumptions(assumptionsData.data));
         }
       } catch (err) {
         console.error("Failed to load expenses data:", err);
@@ -560,7 +549,7 @@ function CostAssumptionsSnapshot({
               Cost Assumptions
             </h2>
             <p className="text-xs text-slate-500">
-              These values adjust headcount and cost forecasts
+              These defaults adjust payroll and operating cost forecasts
             </p>
           </div>
         </div>
@@ -575,9 +564,9 @@ function CostAssumptionsSnapshot({
       </div>
 
       <div className="mt-4 pt-4 border-t border-slate-100">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <SnapshotMetric
-            label="Salary Tax Rate"
+            label="Employer Tax Rate"
             value={formatPercentage(assumptions.salaryTaxRate)}
             helper="Added on top of gross salary"
           />
@@ -587,7 +576,12 @@ function CostAssumptionsSnapshot({
             helper="Annual salary increase"
           />
           <SnapshotMetric
-            label="Inflation Rate"
+            label="Commission / Bonus"
+            value={formatPercentage(assumptions.commissionRate)}
+            helper="Default variable compensation"
+          />
+          <SnapshotMetric
+            label="Opex Inflation"
             value={formatPercentage(assumptions.inflationRate) + " / yr"}
             helper="Applied to non-salary costs"
           />

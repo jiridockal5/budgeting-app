@@ -61,13 +61,29 @@ export async function GET(_request: NextRequest, context: RouteParams) {
 
     const assumptions: AssumptionsInput = dbAssumptions
       ? {
-          cashOnHand: toNumber((dbAssumptions as any).cashOnHand ?? 0),
-          cac: toNumber(dbAssumptions.cac),
+          cashOnHand: toNumber(dbAssumptions.cashOnHand ?? 0),
+          raiseMonth: dbAssumptions.raiseMonth ?? null,
+          fundraisingFees: toNumber(dbAssumptions.fundraisingFees ?? 0),
+          minCashBuffer:
+            dbAssumptions.minCashBuffer == null
+              ? null
+              : toNumber(dbAssumptions.minCashBuffer),
+          targetRunwayMonths:
+            dbAssumptions.targetRunwayMonths == null
+              ? null
+              : Number(dbAssumptions.targetRunwayMonths),
+          cac: toNumber(dbAssumptions.cac ?? 0),
           churnRate: toNumber(dbAssumptions.churnRate),
           expansionRate: toNumber(dbAssumptions.expansionRate),
-          baseAcv: toNumber(dbAssumptions.baseAcv),
+          paymentTimingDays: Number(dbAssumptions.paymentTimingDays ?? 30),
+          priceUplift:
+            dbAssumptions.priceUplift == null
+              ? null
+              : toNumber(dbAssumptions.priceUplift),
+          baseAcv: toNumber(dbAssumptions.baseAcv ?? 0),
           salaryTaxRate: toNumber(dbAssumptions.salaryTaxRate),
           salaryGrowthRate: toNumber(dbAssumptions.salaryGrowthRate),
+          commissionRate: toNumber(dbAssumptions.commissionRate ?? 0),
           inflationRate: toNumber(dbAssumptions.inflationRate),
         }
       : DEFAULT_ASSUMPTIONS;
