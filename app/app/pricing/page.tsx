@@ -32,9 +32,9 @@ const plans: PlanConfig[] = [
     },
     description: "For founders validating their first budget.",
     features: [
-      "1 active plan",
-      "Basic revenue & expense forecasting",
-      "Manual exports (CSV/Excel)",
+      "Unlimited plans & scenarios",
+      "Advanced SaaS metrics (CAC, LTV/CAC, NRR, burn multiple)",
+      "PDF & CSV export",
       "Community support",
     ],
     cta: {
@@ -50,7 +50,7 @@ const plans: PlanConfig[] = [
     },
     description: "For SaaS teams preparing for fundraising.",
     features: [
-      "Multiple plans & scenarios",
+      "Unlimited plans & scenarios",
       "Advanced SaaS metrics (CAC, LTV/CAC, NRR, burn multiple)",
       "Priority support",
       "Ready for investors & board reporting",

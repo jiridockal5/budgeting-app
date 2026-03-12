@@ -27,9 +27,9 @@ const plans: Plan[] = [
     tagline: "For founders validating their first budget.",
     description: "",
     features: [
-      "1 active plan",
-      "Basic revenue & expense forecasting",
-      "Manual exports (CSV/Excel)",
+      "Unlimited plans & scenarios",
+      "Advanced SaaS metrics (CAC, LTV/CAC, NRR, burn multiple)",
+      "PDF & CSV export",
       "Community support",
     ],
     cta: "Get started for free",
@@ -41,7 +41,7 @@ const plans: Plan[] = [
     tagline: "For SaaS teams preparing for fundraising.",
     description: "Billed monthly. Cancel anytime.",
     features: [
-      "Multiple plans & scenarios",
+      "Unlimited plans & scenarios",
       "Advanced SaaS metrics (CAC, LTV/CAC, NRR, burn multiple)",
       "Priority support",
       "Ready for investors & board reporting",

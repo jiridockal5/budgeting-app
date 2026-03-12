@@ -29,7 +29,7 @@ const faqs = [
   {
     question: "Can I run multiple scenarios?",
     answer:
-      "Yes. Starter includes 3 scenarios; Growth supports unlimited. Compare different growth, hiring, or pricing strategies side by side.",
+      "Yes. All registered users get unlimited scenarios. Compare different growth, hiring, or pricing strategies side by side.",
   },
   {
     question: "Is my data private?",

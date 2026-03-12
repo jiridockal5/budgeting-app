@@ -64,6 +64,6 @@ export async function checkScenarioLimit(
   };
 }
 
-export function canExport(tier: PlanTier): boolean {
-  return tier === "growth";
+export function canExport(_tier: PlanTier): boolean {
+  return true;
 }

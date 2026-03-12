@@ -146,9 +146,7 @@ export default function BillingPage() {
                     {status?.plan.name ?? "Free"} Plan
                   </h2>
                   <p className="text-sm text-slate-500">
-                    {status?.tier === "growth"
-                      ? "Full access to all features"
-                      : "Basic features included"}
+                    {"Full access to all features"}
                   </p>
                 </div>
               </div>

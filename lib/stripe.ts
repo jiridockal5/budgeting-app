@@ -16,18 +16,24 @@ export function getStripe(): Stripe {
 export const PLANS = {
   free: {
     name: "Free",
-    maxPlans: 1,
-    maxScenarios: 1,
-    features: ["Basic forecasting", "1 active plan", "Community support"],
+    maxPlans: Infinity,
+    maxScenarios: Infinity,
+    features: [
+      "Unlimited forecasting",
+      "Unlimited plans",
+      "Unlimited scenarios",
+      "PDF & CSV export",
+      "Community support",
+    ],
   },
   growth: {
     name: "Growth",
-    maxPlans: 10,
-    maxScenarios: 5,
+    maxPlans: Infinity,
+    maxScenarios: Infinity,
     features: [
       "Unlimited forecasting",
-      "Up to 10 plans",
-      "5 scenarios per plan",
+      "Unlimited plans",
+      "Unlimited scenarios",
       "PDF & CSV export",
       "Priority support",
     ],
