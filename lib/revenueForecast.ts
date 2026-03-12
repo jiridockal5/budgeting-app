@@ -208,9 +208,8 @@ export function buildForecast(
 ): ForecastResult {
   const months: ForecastMonth[] = [];
 
-  // TODO: Apply plannedRaiseMonth, plannedRaiseAmount, fundraisingFees,
-  // minCashBuffer, and targetRunwayMonths to financing-specific calculations
-  // and summary recommendations (runway, cash-out month, suggested raise needed).
+  // TODO: Apply minCashBuffer and targetRunwayMonths to summary recommendations
+  // (suggested raise needed, cash-out warnings).
   // TODO: Apply paymentTimingDays and priceUplift to cash collection timing and pricing.
   // TODO: Use commissionRate as a default for incentive-based roles when role-level logic exists.
 
@@ -340,7 +339,18 @@ export function buildForecast(
 
     const totalExpense = headcountExpense + nonHeadcountExpense;
     const netBurn = totalExpense - totalMrr;
-    cumulativeBurn += netBurn;
+
+    let raiseInjection = 0;
+    if (
+      assumptions.plannedRaiseMonth &&
+      assumptions.plannedRaiseAmount &&
+      date === assumptions.plannedRaiseMonth
+    ) {
+      raiseInjection =
+        assumptions.plannedRaiseAmount * (1 - assumptions.fundraisingFees / 100);
+    }
+
+    cumulativeBurn += netBurn - raiseInjection;
     const cashRemaining = assumptions.cashOnHand - cumulativeBurn;
 
     months.push({
