@@ -87,22 +87,7 @@ export default function MetricsPage() {
     loadForecast();
   }, []);
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-80" />
-          </div>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <FormSectionSkeleton key={i} />
-          ))}
-        </div>
-      </main>
-    );
-  }
-
+  // Hooks must run unconditionally (before any early return)
   const displayMonths = useMemo(() => {
     if (!forecast) return [];
     if (periodMonths === null) return forecast.months;
@@ -120,6 +105,22 @@ export default function MetricsPage() {
   const last = months.length > 0 ? months[months.length - 1] : null;
   const month6 = months.length > 6 ? months[5] : null;
   const month12 = months.length > 12 ? months[11] : null;
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <FormSectionSkeleton key={i} />
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50">

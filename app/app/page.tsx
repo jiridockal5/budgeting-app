@@ -196,28 +196,7 @@ export default function DashboardPage() {
     loadForecast();
   }, []);
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-80" />
-          </div>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <MetricCardSkeleton key={i} />
-            ))}
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ChartCardSkeleton />
-            <ChartCardSkeleton />
-          </div>
-        </div>
-      </main>
-    );
-  }
-
+  // Hooks must run unconditionally (before any early return)
   const displayMonths = useMemo(() => {
     if (!forecast) return [];
     if (periodMonths === null) return forecast.months;
