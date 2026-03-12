@@ -22,7 +22,6 @@ const assumptionsInputSchema = z.object({
   salaryGrowthRate: z.number().min(0).max(100),
   commissionRate: z.number().min(0).max(100),
   inflationRate: z.number().min(0).max(100),
-  cac: z.number().min(0).optional(),
   baseAcv: z.number().min(0).optional(),
 });
 
@@ -79,9 +78,6 @@ const serializeAssumptions = (assumptions: DbGlobalAssumptions) => ({
   inflationRate: assumptions.inflationRate instanceof Prisma.Decimal
     ? assumptions.inflationRate.toNumber()
     : Number(assumptions.inflationRate),
-  cac: assumptions.cac instanceof Prisma.Decimal
-    ? assumptions.cac.toNumber()
-    : Number(assumptions.cac ?? 0),
   baseAcv: assumptions.baseAcv instanceof Prisma.Decimal
     ? assumptions.baseAcv.toNumber()
     : Number(assumptions.baseAcv ?? 0),
@@ -207,7 +203,6 @@ export async function POST(request: NextRequest) {
         salaryGrowthRate: input.salaryGrowthRate,
         commissionRate: input.commissionRate,
         inflationRate: input.inflationRate,
-        cac: input.cac ?? 0,
         baseAcv: input.baseAcv ?? 0,
       },
       update: {
@@ -227,7 +222,6 @@ export async function POST(request: NextRequest) {
         salaryGrowthRate: input.salaryGrowthRate,
         commissionRate: input.commissionRate,
         inflationRate: input.inflationRate,
-        cac: input.cac ?? undefined,
         baseAcv: input.baseAcv ?? undefined,
       },
     });

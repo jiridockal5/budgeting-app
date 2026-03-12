@@ -54,8 +54,6 @@ export interface GlobalAssumptions
     RevenueDefaultAssumptions,
     TeamDefaultAssumptions,
     ExpenseDefaultAssumptions {
-  /** Legacy forecast metric kept until moved to Revenue / GTM assumptions */
-  cac: number;
   /** Legacy fallback ACV kept until configured per revenue stream */
   baseAcv: number;
 }
@@ -75,7 +73,6 @@ export const DEFAULT_ASSUMPTIONS: GlobalAssumptions = {
   salaryGrowthRate: 5,
   commissionRate: 10,
   inflationRate: 2,
-  cac: 5000,
   baseAcv: 12000,
 };
 
@@ -109,7 +106,6 @@ export const ASSUMPTION_HELPERS: Record<keyof GlobalAssumptions, string> = {
     "Default variable compensation assumption for sales or incentive-based roles.",
   inflationRate:
     "Default annual inflation applied to operating expenses unless overridden elsewhere.",
-  cac: "Legacy blended cost to acquire a new customer across all channels.",
   baseAcv: "Legacy fallback annual contract value for forecast summary metrics.",
 };
 

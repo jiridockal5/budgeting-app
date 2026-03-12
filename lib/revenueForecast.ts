@@ -67,7 +67,6 @@ export interface AssumptionsInput {
   fundraisingFees: number;
   minCashBuffer: number | null;
   targetRunwayMonths: number | null;
-  cac: number;
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
   paymentTimingDays: number; // average collection lag in days
@@ -107,6 +106,7 @@ export interface ForecastMonth {
   // Expenses by category
   headcountExpense: number;
   nonHeadcountExpense: number;
+  gtmExpense: number;
   totalExpense: number;
 
   // Burn & Runway
@@ -302,31 +302,41 @@ export function buildForecast(
     );
 
     let headcountExpense = 0;
+    let gtmHeadcountExpense = 0;
     for (const person of expenses.headcount) {
       if (date >= person.startMonth) {
         const adjusted = person.baseSalary * salaryGrowth;
         const withTax = adjusted * (1 + assumptions.salaryTaxRate / 100);
-        headcountExpense += withTax * person.fte;
+        const cost = withTax * person.fte;
+        headcountExpense += cost;
+        if (person.category === "gtm") gtmHeadcountExpense += cost;
       }
     }
 
     let nonHeadcountExpense = 0;
+    let gtmNonHeadcountExpense = 0;
     for (const expense of expenses.nonHeadcount) {
       if (date < expense.startMonth) continue;
       if (expense.endMonth && date > expense.endMonth) continue;
 
       const adjusted = expense.amount * inflationGrowth;
+      let monthCost = 0;
 
       if (expense.frequency === "monthly") {
-        nonHeadcountExpense += adjusted;
+        monthCost = adjusted;
       } else if (expense.frequency === "annual") {
-        nonHeadcountExpense += adjusted / 12;
+        monthCost = adjusted / 12;
       } else if (expense.frequency === "one_time") {
         if (date === expense.startMonth) {
-          nonHeadcountExpense += adjusted;
+          monthCost = adjusted;
         }
       }
+
+      nonHeadcountExpense += monthCost;
+      if (expense.category === "gtm") gtmNonHeadcountExpense += monthCost;
     }
+
+    const gtmExpense = gtmHeadcountExpense + gtmNonHeadcountExpense;
 
     const totalExpense = headcountExpense + nonHeadcountExpense;
     const netBurn = totalExpense - totalMrr;
@@ -353,6 +363,7 @@ export function buildForecast(
       newMrr: round2(newMrr),
       headcountExpense: round2(headcountExpense),
       nonHeadcountExpense: round2(nonHeadcountExpense),
+      gtmExpense: round2(gtmExpense),
       totalExpense: round2(totalExpense),
       netBurn: round2(netBurn),
       cumulativeBurn: round2(cumulativeBurn),
@@ -378,7 +389,7 @@ function computeSummary(
       projectedMrr: 0,
       annualNrr: 100,
       annualGrr: 100,
-      cac: assumptions.cac,
+      cac: 0,
       cacPaybackMonths: 0,
       ltvCacRatio: 0,
       monthlyBurn: 0,
@@ -402,6 +413,14 @@ function computeSummary(
   const annualNrr = Math.pow(1 + monthlyExpansion - monthlyChurn, 12) * 100;
   const annualGrr = Math.pow(1 - monthlyChurn, 12) * 100;
 
+  // CAC = total GTM spend / total new customers across the forecast
+  const totalGtmSpend = months.reduce((sum, m) => sum + m.gtmExpense, 0);
+  const totalNewCustomers = months.reduce(
+    (sum, m) => sum + m.newPlgCustomers + m.newSalesCustomers + m.newPartnerCustomers,
+    0
+  );
+  const cac = totalNewCustomers > 0 ? totalGtmSpend / totalNewCustomers : 0;
+
   // Average MRR per customer
   const avgMrrPerCustomer =
     last.totalCustomers > 0
@@ -410,14 +429,14 @@ function computeSummary(
 
   // CAC payback in months
   const cacPayback =
-    avgMrrPerCustomer > 0 ? assumptions.cac / avgMrrPerCustomer : 0;
+    avgMrrPerCustomer > 0 ? cac / avgMrrPerCustomer : 0;
 
   // LTV = ARPA / monthly churn, then LTV / CAC
   const ltv =
     monthlyChurn > 0
       ? avgMrrPerCustomer / monthlyChurn
       : avgMrrPerCustomer * 60;
-  const ltvCac = assumptions.cac > 0 ? ltv / assumptions.cac : 0;
+  const ltvCac = cac > 0 ? ltv / cac : 0;
 
   // Monthly burn (last month)
   const monthlyBurn = last.netBurn;
@@ -455,7 +474,7 @@ function computeSummary(
     projectedMrr: round2(last.totalMrr),
     annualNrr: round2(annualNrr),
     annualGrr: round2(annualGrr),
-    cac: assumptions.cac,
+    cac: round2(cac),
     cacPaybackMonths: round2(cacPayback),
     ltvCacRatio: round2(ltvCac),
     monthlyBurn: round2(monthlyBurn),

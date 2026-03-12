@@ -141,7 +141,6 @@ model GlobalAssumptions {
   inflationRate    Decimal  @db.Decimal(5, 2)               // Annual inflation rate
 
   // Legacy forecast fields kept for compatibility until moved elsewhere
-  cac              Decimal  @default(0) @db.Decimal(12, 2)  // Customer Acquisition Cost in EUR
   baseAcv          Decimal  @default(0) @db.Decimal(12, 2)  // Base Annual Contract Value in EUR
 
   createdAt        DateTime @default(now())

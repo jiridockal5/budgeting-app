@@ -57,7 +57,7 @@ function buildMetrics(summary: ForecastResult["summary"]) {
       id: "cac",
       name: "CAC",
       value: formatCompact(summary.cac),
-      helper: "Customer acquisition cost from your global assumptions.",
+      helper: "Total GTM spend divided by new customers acquired.",
     },
     {
       id: "cac-payback",
