@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { ExpenseFrequency, ExpenseView, PlanSummary } from "./types";
 
 type ExpenseFormState = {
@@ -380,23 +381,20 @@ export default function ExpensesClient({ plan, initialExpenses }: Props) {
               <label className="text-sm font-medium text-slate-800">
                 Start month
               </label>
-              <input
-                required
-                type="month"
+              <MonthPicker
                 value={form.startMonth}
-                onChange={(e) => handleInputChange("startMonth", e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                onChange={(value) => handleInputChange("startMonth", value)}
               />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-800">
                 End month (optional)
               </label>
-              <input
-                type="month"
+              <MonthPicker
                 value={form.endMonth}
-                onChange={(e) => handleInputChange("endMonth", e.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                onChange={(value) => handleInputChange("endMonth", value)}
+                allowClear
+                placeholder="Select month"
               />
             </div>
           </div>

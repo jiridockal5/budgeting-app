@@ -14,6 +14,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import { useToast } from "@/components/ui/Toast";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import {
@@ -300,11 +301,6 @@ export default function AssumptionsPage() {
                       optional
                     />
                   </div>
-                  <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
-                    TODO: CAC belongs on a Revenue / GTM assumptions page, and ACV
-                    should live closer to each revenue stream rather than in global
-                    defaults.
-                  </p>
                 </SectionCard>
 
                 <SectionCard
@@ -637,20 +633,33 @@ function InputField({
             {prefix}
           </span>
         )}
-        <input
-          type={type}
-          value={displayValue}
-          onChange={(e) => onChange(e.target.value)}
-          step={type === "number" ? "any" : undefined}
-          min={type === "number" ? "0" : undefined}
-          className={`w-full rounded-xl bg-white py-2.5 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 ${
-            optional ? "border border-dashed border-slate-300" : "border border-slate-200"
-          } ${prefix ? "pl-8" : "pl-3"} ${suffix ? "pr-12" : "pr-3"}`}
-        />
-        {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-            {suffix}
-          </span>
+        {type === "month" ? (
+          <MonthPicker
+            value={typeof value === "string" ? value : null}
+            onChange={onChange}
+            placeholder="Select month"
+            allowClear={optional || label === "Raise month"}
+          />
+        ) : (
+          <>
+            <input
+              type={type}
+              value={displayValue}
+              onChange={(e) => onChange(e.target.value)}
+              step={type === "number" ? "any" : undefined}
+              min={type === "number" ? "0" : undefined}
+              className={`w-full rounded-xl bg-white py-2.5 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 ${
+                optional
+                  ? "border border-dashed border-slate-300"
+                  : "border border-slate-200"
+              } ${prefix ? "pl-8" : "pl-3"} ${suffix ? "pr-12" : "pr-3"}`}
+            />
+            {suffix && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+                {suffix}
+              </span>
+            )}
+          </>
         )}
       </div>
       <p className="text-xs leading-relaxed text-slate-500">{helper}</p>

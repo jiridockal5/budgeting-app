@@ -14,6 +14,7 @@ import {
   Info,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { MonthPicker } from "@/components/ui/MonthPicker";
 import {
   GlobalAssumptions,
   DEFAULT_ASSUMPTIONS,
@@ -827,13 +828,11 @@ function HeadcountSection({
             <label className="block text-xs font-medium text-slate-600 mb-1">
               Start
             </label>
-            <input
-              type="month"
+            <MonthPicker
               value={form.startMonth}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, startMonth: e.target.value }))
+              onChange={(value) =>
+                setForm((prev) => ({ ...prev, startMonth: value }))
               }
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
             />
           </div>
         </div>
@@ -1111,29 +1110,27 @@ function NonHeadcountSection({
             <label className="block text-xs font-medium text-slate-600 mb-1">
               Start
             </label>
-            <input
-              type="month"
+            <MonthPicker
               value={form.startMonth}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, startMonth: e.target.value }))
+              onChange={(value) =>
+                setForm((prev) => ({ ...prev, startMonth: value }))
               }
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
             />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">
               End (opt)
             </label>
-            <input
-              type="month"
+            <MonthPicker
               value={form.endMonth || ""}
-              onChange={(e) =>
+              onChange={(value) =>
                 setForm((prev) => ({
                   ...prev,
-                  endMonth: e.target.value || undefined,
+                  endMonth: value || undefined,
                 }))
               }
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              allowClear
+              placeholder="Select month"
             />
           </div>
         </div>

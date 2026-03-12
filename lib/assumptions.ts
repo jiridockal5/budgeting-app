@@ -112,7 +112,7 @@ export const ASSUMPTION_HELPERS: Record<keyof GlobalAssumptions, string> = {
  * Formats a number as currency (EUR)
  */
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('de-DE', {
+  return new Intl.NumberFormat("en-US", {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 0,
