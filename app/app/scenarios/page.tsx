@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   GitCompareArrows,
@@ -9,6 +9,7 @@ import {
   Copy,
   Loader2,
   ArrowRight,
+  Pencil,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
@@ -55,6 +56,9 @@ export default function ScenariosPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [newName, setNewName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Scenario | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const loadScenarios = useCallback(async () => {
@@ -183,6 +187,37 @@ export default function ScenariosPage() {
     }
   };
 
+  const startEditing = (scenario: Scenario) => {
+    setEditingId(scenario.id);
+    setEditName(scenario.name);
+    setTimeout(() => editInputRef.current?.select(), 0);
+  };
+
+  const handleRename = async (id: string) => {
+    const original = scenarios.find((s) => s.id === id);
+    if (!editName.trim() || editName.trim() === original?.name) {
+      setEditingId(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/scenarios/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      toast(`Renamed to "${editName.trim()}"`);
+      setEditingId(null);
+      loadScenarios();
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "Failed to rename scenario",
+        "error"
+      );
+    }
+  };
+
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
@@ -303,11 +338,39 @@ export default function ScenariosPage() {
                       }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {s.name}
-                      </p>
+                      {editingId === s.id ? (
+                        <input
+                          ref={editInputRef}
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleRename(s.id);
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                          onBlur={() => handleRename(s.id)}
+                          className="w-full rounded-lg border border-indigo-300 px-2 py-1 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                          autoFocus
+                        />
+                      ) : (
+                        <p
+                          className="text-sm font-medium text-slate-900 truncate cursor-pointer"
+                          onDoubleClick={() => startEditing(s)}
+                        >
+                          {s.name}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
+                      {editingId !== s.id && (
+                        <button
+                          onClick={() => startEditing(s)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 transition"
+                          title="Rename"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDuplicate(s)}
                         className="p-1.5 text-slate-400 hover:text-slate-600 transition"
