@@ -389,7 +389,7 @@ export function buildForecast(
 // Summary Metrics
 // ============================================================================
 
-function computeSummary(
+export function computeSummary(
   months: ForecastMonth[],
   assumptions: AssumptionsInput
 ): ForecastSummary {

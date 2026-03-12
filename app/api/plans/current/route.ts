@@ -1,7 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { getUserTier } from "@/lib/planGating";
+
+const patchSchema = z.object({
+  months: z.number().int().min(1).max(120).optional(),
+  startMonth: z.string().regex(/^\d{4}-\d{2}$/, "Expected YYYY-MM format").optional(),
+});
 
 /**
  * GET /api/plans/current
@@ -63,6 +69,90 @@ export async function GET() {
     });
   } catch (error) {
     console.error("GET /api/plans/current error", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unexpected error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/plans/current
+ * Updates the user's current plan settings (months, startMonth)
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const { email } = await getServerUser();
+
+    const user = await prisma.user.findFirst({
+      where: { email: email ?? undefined },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    const plan = await prisma.plan.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (!plan) {
+      return NextResponse.json(
+        { success: false, error: "Plan not found" },
+        { status: 404 }
+      );
+    }
+
+    const body = await request.json();
+    const parsed = patchSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues.map((i) => i.message).join(", ") },
+        { status: 400 }
+      );
+    }
+
+    const updates: { months?: number; startMonth?: Date } = {};
+
+    if (parsed.data.months !== undefined) {
+      updates.months = parsed.data.months;
+    }
+
+    if (parsed.data.startMonth !== undefined) {
+      const [year, month] = parsed.data.startMonth.split("-").map(Number);
+      updates.startMonth = new Date(Date.UTC(year, month - 1, 1));
+    }
+
+    const updated = await prisma.plan.update({
+      where: { id: plan.id },
+      data: updates,
+    });
+
+    const tier = await getUserTier(user.id);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: updated.id,
+        name: updated.name,
+        currency: updated.currency,
+        startMonth: updated.startMonth.toISOString(),
+        months: updated.months,
+        tier,
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("PATCH /api/plans/current error", error);
     return NextResponse.json(
       {
         success: false,

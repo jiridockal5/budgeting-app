@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { SaasMetricCard } from "@/components/dashboard/SaasMetricCard";
 import { Skeleton, MetricCardSkeleton, ChartCardSkeleton } from "@/components/ui/Skeleton";
@@ -8,9 +8,10 @@ import { ChartCard } from "@/components/dashboard/ChartCard";
 import { WaterfallChart } from "@/components/dashboard/WaterfallChart";
 import { StackedExpenseChart } from "@/components/dashboard/StackedExpenseChart";
 import { OnboardingChecklist, type OnboardingStatus } from "@/components/dashboard/OnboardingChecklist";
+import { PeriodTabs } from "@/components/dashboard/PeriodTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { formatCurrency } from "@/lib/assumptions";
-import type { ForecastResult, ForecastMonth } from "@/lib/revenueForecast";
+import { formatCurrency, normalizeAssumptions, type GlobalAssumptions } from "@/lib/assumptions";
+import { computeSummary, type ForecastResult, type ForecastMonth, type AssumptionsInput } from "@/lib/revenueForecast";
 
 // ============================================================================
 // Helpers
@@ -123,6 +124,9 @@ function buildBurnChartData(months: ForecastMonth[]) {
 
 export default function DashboardPage() {
   const [forecast, setForecast] = useState<ForecastResult | null>(null);
+  const [assumptions, setAssumptions] = useState<GlobalAssumptions | null>(null);
+  const [totalMonths, setTotalMonths] = useState(24);
+  const [periodMonths, setPeriodMonths] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingStatus>({
@@ -143,6 +147,7 @@ export default function DashboardPage() {
           throw new Error(planData.error || "Failed to load plan");
 
         const planId = planData.data.id;
+        setTotalMonths(planData.data.months);
 
         const [forecastRes, assumptionsRes, peopleRes, expensesRes] =
           await Promise.all([
@@ -164,6 +169,10 @@ export default function DashboardPage() {
           throw new Error(forecastData.error || "Failed to compute forecast");
 
         setForecast(forecastData.data);
+
+        if (assumptionsData.success) {
+          setAssumptions(normalizeAssumptions(assumptionsData.data));
+        }
 
         setOnboarding({
           hasAssumptions:
@@ -208,10 +217,23 @@ export default function DashboardPage() {
     );
   }
 
-  const metrics = forecast ? buildMetrics(forecast.summary) : [];
-  const arrChartData = forecast ? buildArrChartData(forecast.months) : [];
-  const burnChartData = forecast ? buildBurnChartData(forecast.months) : [];
-  const hasData = forecast && forecast.months.length > 0;
+  const displayMonths = useMemo(() => {
+    if (!forecast) return [];
+    if (periodMonths === null) return forecast.months;
+    return forecast.months.slice(0, periodMonths);
+  }, [forecast, periodMonths]);
+
+  const displaySummary = useMemo(() => {
+    if (!forecast || displayMonths.length === 0) return forecast?.summary ?? null;
+    if (periodMonths === null) return forecast.summary;
+    const assumptionsInput = (assumptions ?? {}) as AssumptionsInput;
+    return computeSummary(displayMonths, assumptionsInput);
+  }, [forecast, displayMonths, periodMonths, assumptions]);
+
+  const metrics = displaySummary ? buildMetrics(displaySummary) : [];
+  const arrChartData = displayMonths.length > 0 ? buildArrChartData(displayMonths) : [];
+  const burnChartData = displayMonths.length > 0 ? buildBurnChartData(displayMonths) : [];
+  const hasData = forecast && displayMonths.length > 0;
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -241,6 +263,20 @@ export default function DashboardPage() {
 
           {/* Onboarding */}
           <OnboardingChecklist status={onboarding} />
+
+          {/* ── Period Filter ── */}
+          <div className="flex items-center justify-between">
+            <PeriodTabs
+              totalMonths={totalMonths}
+              selected={periodMonths}
+              onChange={setPeriodMonths}
+            />
+            {periodMonths !== null && (
+              <span className="text-sm text-slate-500">
+                Showing first {periodMonths} months
+              </span>
+            )}
+          </div>
 
           {/* ── Metrics Grid ── */}
           <section aria-labelledby="metrics-heading">
@@ -358,10 +394,10 @@ export default function DashboardPage() {
               />
             </div>
 
-            {hasData && forecast && (
+            {hasData && (
               <div className="grid gap-4 lg:grid-cols-2">
-                <WaterfallChart months={forecast.months} />
-                <StackedExpenseChart months={forecast.months} />
+                <WaterfallChart months={displayMonths} />
+                <StackedExpenseChart months={displayMonths} />
               </div>
             )}
           </section>

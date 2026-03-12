@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
@@ -12,10 +12,11 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { formatCurrency } from "@/lib/assumptions";
+import { PeriodTabs } from "@/components/dashboard/PeriodTabs";
+import { formatCurrency, normalizeAssumptions, type GlobalAssumptions } from "@/lib/assumptions";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { exportForecastCSV, exportSummaryPDF } from "@/lib/export";
-import type { ForecastResult, ForecastMonth } from "@/lib/revenueForecast";
+import { computeSummary, type ForecastResult, type ForecastMonth, type AssumptionsInput } from "@/lib/revenueForecast";
 
 // ============================================================================
 // Helpers
@@ -38,6 +39,9 @@ function formatPct(value: number): string {
 
 export default function MetricsPage() {
   const [forecast, setForecast] = useState<ForecastResult | null>(null);
+  const [assumptions, setAssumptions] = useState<GlobalAssumptions | null>(null);
+  const [totalMonths, setTotalMonths] = useState(24);
+  const [periodMonths, setPeriodMonths] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,14 +56,25 @@ export default function MetricsPage() {
         if (!planData.success)
           throw new Error(planData.error || "Failed to load plan");
 
-        const forecastRes = await fetch(
-          `/api/forecast?planId=${planData.data.id}`
-        );
-        const forecastData = await forecastRes.json();
+        setTotalMonths(planData.data.months);
+
+        const [forecastRes, assumptionsRes] = await Promise.all([
+          fetch(`/api/forecast?planId=${planData.data.id}`),
+          fetch(`/api/assumptions?planId=${planData.data.id}`),
+        ]);
+        const [forecastData, assumptionsData] = await Promise.all([
+          forecastRes.json(),
+          assumptionsRes.json(),
+        ]);
+
         if (!forecastData.success)
           throw new Error(forecastData.error || "Failed to compute forecast");
 
         setForecast(forecastData.data);
+
+        if (assumptionsData.success) {
+          setAssumptions(normalizeAssumptions(assumptionsData.data));
+        }
       } catch (err) {
         console.error("Failed to load metrics:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
@@ -87,8 +102,20 @@ export default function MetricsPage() {
     );
   }
 
-  const months = forecast?.months ?? [];
-  const summary = forecast?.summary;
+  const displayMonths = useMemo(() => {
+    if (!forecast) return [];
+    if (periodMonths === null) return forecast.months;
+    return forecast.months.slice(0, periodMonths);
+  }, [forecast, periodMonths]);
+
+  const summary = useMemo(() => {
+    if (!forecast || displayMonths.length === 0) return forecast?.summary ?? null;
+    if (periodMonths === null) return forecast.summary;
+    const assumptionsInput = (assumptions ?? {}) as AssumptionsInput;
+    return computeSummary(displayMonths, assumptionsInput);
+  }, [forecast, displayMonths, periodMonths, assumptions]);
+
+  const months = displayMonths;
   const last = months.length > 0 ? months[months.length - 1] : null;
   const month6 = months.length > 6 ? months[5] : null;
   const month12 = months.length > 12 ? months[11] : null;
@@ -128,6 +155,20 @@ export default function MetricsPage() {
               </div>
             }
           />
+
+          {/* ── Period Filter ── */}
+          <div className="flex items-center justify-between">
+            <PeriodTabs
+              totalMonths={totalMonths}
+              selected={periodMonths}
+              onChange={setPeriodMonths}
+            />
+            {periodMonths !== null && (
+              <span className="text-sm text-slate-500">
+                Showing first {periodMonths} months
+              </span>
+            )}
+          </div>
 
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

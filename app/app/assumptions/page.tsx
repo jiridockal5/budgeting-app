@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import {
   ArrowRight,
+  CalendarRange,
   Check,
   Info,
   Loader2,
@@ -25,6 +26,7 @@ import {
   GlobalAssumptions,
   normalizeAssumptions,
 } from "@/lib/assumptions";
+import { dateToMonth } from "@/lib/revenueForecast";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
 
 type NumericField =
@@ -44,6 +46,7 @@ export default function AssumptionsPage() {
   const [assumptions, setAssumptions] =
     useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
   const [planId, setPlanId] = useState<string | null>(null);
+  const [planSettings, setPlanSettings] = useState({ startMonth: "", months: 24 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +64,10 @@ export default function AssumptionsPage() {
         }
 
         setPlanId(planData.data.id);
+        setPlanSettings({
+          startMonth: dateToMonth(planData.data.startMonth),
+          months: planData.data.months,
+        });
 
         const assumptionsRes = await fetch(
           `/api/assumptions?planId=${planData.data.id}`
@@ -120,7 +127,33 @@ export default function AssumptionsPage() {
   const autoSave = useAutoSave(assumptions, saveAssumptions, {
     enabled: !loading && !!planId,
   });
-  const saveLabel = useAutoSaveLabel(autoSave);
+
+  const savePlanSettings = useCallback(async () => {
+    if (!planId) return;
+    const res = await fetch("/api/plans/current", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(planSettings),
+    });
+    const data = await res.json();
+    if (!data.success)
+      throw new Error(data.error || "Failed to save plan settings");
+  }, [planId, planSettings]);
+
+  const planAutoSave = useAutoSave(planSettings, savePlanSettings, {
+    enabled: !loading && !!planId,
+  });
+
+  const combinedSaving = autoSave.saving || planAutoSave.saving;
+  const combinedLastSaved = autoSave.lastSaved && planAutoSave.lastSaved
+    ? new Date(Math.max(autoSave.lastSaved.getTime(), planAutoSave.lastSaved.getTime()))
+    : autoSave.lastSaved || planAutoSave.lastSaved;
+  const combinedError = autoSave.error || planAutoSave.error;
+  const saveLabel = useAutoSaveLabel({
+    saving: combinedSaving,
+    lastSaved: combinedLastSaved,
+    error: combinedError,
+  });
 
   if (loading) {
     return (
@@ -156,7 +189,7 @@ export default function AssumptionsPage() {
             actions={
               saveLabel ? (
                 <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
-                  {autoSave.saving ? (
+                  {combinedSaving ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <Check className="h-3.5 w-3.5 text-emerald-500" />
@@ -171,11 +204,48 @@ export default function AssumptionsPage() {
             <section>
               <div className="space-y-6">
                 <SectionCard
+                  title="Forecast settings"
+                  description="Define the time horizon for your financial model."
+                  icon={<CalendarRange className="h-5 w-5 text-sky-600" />}
+                  iconBg="bg-sky-50"
+                  featured
+                >
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <InputField
+                      label="Forecast start month"
+                      value={planSettings.startMonth}
+                      onChange={(value) =>
+                        setPlanSettings((prev) => ({
+                          ...prev,
+                          startMonth: value || prev.startMonth,
+                        }))
+                      }
+                      helper="The first month of your forecast period."
+                      type="month"
+                    />
+                    <InputField
+                      label="Forecast duration"
+                      value={planSettings.months}
+                      onChange={(value) => {
+                        const n = parseInt(value, 10);
+                        if (!value) return;
+                        setPlanSettings((prev) => ({
+                          ...prev,
+                          months: Math.max(1, Math.min(120, isNaN(n) ? prev.months : n)),
+                        }));
+                      }}
+                      helper="How far into the future to project (1-120). Common values: 12, 24, 36, 60."
+                      suffix="months"
+                      type="number"
+                    />
+                  </div>
+                </SectionCard>
+
+                <SectionCard
                   title="Cash & fundraising"
                   description="Set the cash position and funding targets that define how much room you have to operate."
                   icon={<Wallet className="h-5 w-5 text-indigo-600" />}
                   iconBg="bg-indigo-50"
-                  featured
                 >
                   <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
                     <p className="text-sm font-semibold text-indigo-900">
@@ -352,9 +422,9 @@ export default function AssumptionsPage() {
                   </p>
                 </SectionCard>
 
-                {(error || autoSave.error) && (
+                {(error || combinedError) && (
                   <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
-                    <span>{error || autoSave.error}</span>
+                    <span>{error || combinedError}</span>
                     <button
                       onClick={() => setError(null)}
                       className="text-red-500 hover:text-red-700 font-medium"
@@ -440,6 +510,19 @@ export default function AssumptionsPage() {
                   </h3>
 
                   <div className="mt-5 space-y-5">
+                    <SummaryGroup title="Forecast settings">
+                      <SummaryRow
+                        label="Start month"
+                        value={formatMonth(planSettings.startMonth)}
+                        variant="highlight"
+                      />
+                      <SummaryRow
+                        label="Duration"
+                        value={`${planSettings.months} months`}
+                        variant="highlight"
+                      />
+                    </SummaryGroup>
+
                     <SummaryGroup title="Cash & fundraising">
                       <SummaryRow
                         label="Starting cash"
