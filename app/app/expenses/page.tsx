@@ -34,45 +34,11 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Skeleton, TableRowSkeleton } from "@/components/ui/Skeleton";
+import { fetchJsonEnvelope } from "@/lib/clientFetch";
 
 // ============================================================================
 // Helpers: map between DB and UI types
 // ============================================================================
-
-type ApiSuccess<T> = { success: true; data: T };
-type ApiFail = { success: false; error?: string };
-
-async function fetchJsonEnvelope<T>(
-  input: RequestInfo | URL
-): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
-  const res = await fetch(input);
-  let body: unknown;
-  try {
-    body = await res.json();
-  } catch {
-    return {
-      ok: false,
-      error: res.ok ? "Invalid JSON response" : `Request failed (${res.status})`,
-    };
-  }
-  const b = body as ApiFail | ApiSuccess<T>;
-  if (!res.ok) {
-    const msg =
-      b && typeof b === "object" && "error" in b && typeof b.error === "string"
-        ? b.error
-        : `Request failed (${res.status})`;
-    return { ok: false, error: msg };
-  }
-  if (!b || typeof b !== "object" || !("success" in b)) {
-    return { ok: false, error: "Unexpected response shape" };
-  }
-  if (!b.success) {
-    const msg =
-      typeof b.error === "string" ? b.error : "Request failed";
-    return { ok: false, error: msg };
-  }
-  return { ok: true, data: b.data };
-}
 
 function getCurrentMonth(): string {
   const now = new Date();

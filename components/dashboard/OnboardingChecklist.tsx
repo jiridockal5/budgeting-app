@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, Circle, ArrowRight } from "lucide-react";
+import { useLayoutEffect, useState } from "react";
+import { CheckCircle2, Circle, ArrowRight, Timer } from "lucide-react";
 
 export interface OnboardingStatus {
   hasAssumptions: boolean;
@@ -13,7 +14,7 @@ const steps = [
   {
     key: "hasAssumptions" as const,
     label: "Set your assumptions",
-    description: "Define CAC, churn, ACV, and salary drivers.",
+    description: "Cash, churn, cost drivers, and plan horizon.",
     href: "/app/assumptions",
   },
   {
@@ -30,11 +31,16 @@ const steps = [
   },
 ];
 
-export function OnboardingChecklist({ status }: { status: OnboardingStatus }) {
-  const completedCount = steps.filter((s) => status[s.key]).length;
-  const allDone = completedCount === steps.length;
+function storageKey(planId: string) {
+  return `onboarding-complete-dismissed:${planId}`;
+}
 
-  if (allDone) return null;
+function OnboardingChecklistSteps({
+  status,
+}: {
+  status: OnboardingStatus;
+}) {
+  const completedCount = steps.filter((s) => status[s.key]).length;
 
   return (
     <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm">
@@ -98,4 +104,91 @@ export function OnboardingChecklist({ status }: { status: OnboardingStatus }) {
       </div>
     </div>
   );
+}
+
+export function OnboardingChecklist({
+  status,
+  planId,
+}: {
+  status: OnboardingStatus;
+  planId: string | null;
+}) {
+  const completedCount = steps.filter((s) => status[s.key]).length;
+  const allDone = completedCount === steps.length;
+
+  const [completionReady, setCompletionReady] = useState(false);
+  const [completionDismissed, setCompletionDismissed] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!allDone || !planId) {
+      setCompletionReady(false);
+      setCompletionDismissed(false);
+      return;
+    }
+    const dismissed = localStorage.getItem(storageKey(planId)) === "1";
+    setCompletionDismissed(dismissed);
+    setCompletionReady(true);
+  }, [allDone, planId]);
+
+  const dismissCompletion = () => {
+    if (!planId) return;
+    localStorage.setItem(storageKey(planId), "1");
+    setCompletionDismissed(true);
+  };
+
+  if (!allDone) {
+    return <OnboardingChecklistSteps status={status} />;
+  }
+
+  if (!planId) {
+    return null;
+  }
+
+  if (!completionReady) {
+    return (
+      <div
+        className="h-28 rounded-2xl border border-slate-200 bg-slate-50/80"
+        aria-busy="true"
+        aria-label="Loading completion state"
+      />
+    );
+  }
+
+  if (!completionDismissed) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100">
+              <CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">
+                You&apos;re set up
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                View your runway and burn to see how the numbers come together.
+              </p>
+              <Link
+                href="/app/runway"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+              >
+                <Timer className="h-4 w-4" aria-hidden />
+                View runway
+              </Link>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={dismissCompletion}
+            className="self-start text-sm font-medium text-slate-500 transition hover:text-slate-800"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }

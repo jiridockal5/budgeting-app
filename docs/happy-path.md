@@ -97,8 +97,8 @@ Use this as a **manual test script** (15 minutes):
 |----------|------|-----|--------|
 | P0 | Redefine **`hasRevenue`** for onboarding | Avoid false “done” when only defaults apply. | Done — dashboard now uses `/api/revenue` `isDefault` flag. |
 | P1 | First-time **Assumptions** CTA: “Save to confirm defaults” or wizard step | Clears checklist step 1 without confusion. | Done — “Accept defaults” banner on `/app/assumptions` when `isDefault: true`. |
-| P1 | Dashboard **partial load** handling (same pattern as Expenses page) | Avoid silent empty charts if one API fails. | Pending. |
-| P2 | After checklist complete, **single CTA** “View runway” | Closes the loop to step 4. | Pending. |
+| P1 | Dashboard **partial load** handling (same pattern as Expenses page) | Avoid silent empty charts if one API fails. | Done — shared `fetchJsonEnvelope`, amber warnings, plan-only hard fail. |
+| P2 | After checklist complete, **single CTA** “View runway” | Closes the loop to step 4. | Done — completion card + `localStorage` dismiss per plan. |
 | P2 | **PostHog / milestones** (when ready) | Measure drop-off per step — see `docs/operations.md` for ops; defer PostHog until you want it. | Deferred. |
 
 ---

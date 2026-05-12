@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { formatCurrency } from "@/lib/assumptions";
-import type { ForecastResult, ForecastMonth } from "@/lib/revenueForecast";
+import type { ForecastResult } from "@/lib/revenueForecast";
 
 function formatCompact(value: number): string {
   if (Math.abs(value) >= 1_000_000)
@@ -119,8 +119,15 @@ export default function RunwayPage() {
           />
 
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="shrink-0 font-medium text-red-500 hover:text-red-700"
+              >
+                Dismiss
+              </button>
             </div>
           )}
 

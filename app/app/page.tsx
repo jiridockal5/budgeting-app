@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import type { Expense, Person } from "@prisma/client";
 import { SaasMetricCard } from "@/components/dashboard/SaasMetricCard";
 import { Skeleton, MetricCardSkeleton, ChartCardSkeleton } from "@/components/ui/Skeleton";
 import { ChartCard } from "@/components/dashboard/ChartCard";
@@ -12,6 +13,7 @@ import { PeriodTabs } from "@/components/dashboard/PeriodTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { formatCurrency, normalizeAssumptions, DEFAULT_ASSUMPTIONS, type GlobalAssumptions } from "@/lib/assumptions";
 import { parseApiError } from "@/lib/apiErrorUtils";
+import { fetchJsonEnvelope } from "@/lib/clientFetch";
 import { computeSummary, type ForecastResult, type ForecastMonth, type AssumptionsInput } from "@/lib/revenueForecast";
 
 // ============================================================================
@@ -130,10 +132,12 @@ export default function DashboardPage() {
   const [periodMonths, setPeriodMonths] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadWarnings, setLoadWarnings] = useState<string | null>(null);
+  const [planId, setPlanId] = useState<string | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingStatus>({
-    hasAssumptions: true,
-    hasRevenue: true,
-    hasExpenses: true,
+    hasAssumptions: false,
+    hasRevenue: false,
+    hasExpenses: false,
   });
 
   useEffect(() => {
@@ -141,58 +145,74 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         setError(null);
+        setLoadWarnings(null);
 
-        const planRes = await fetch("/api/plans/current");
-        const planData = await planRes.json();
-        if (!planData.success)
-          throw new Error(planData.error || "Failed to load plan");
+        const planResult = await fetchJsonEnvelope<{
+          id: string;
+          months: number;
+        }>("/api/plans/current");
+        if (!planResult.ok) {
+          throw new Error(planResult.error);
+        }
+        const id = planResult.data.id;
+        setPlanId(id);
+        setTotalMonths(planResult.data.months);
 
-        const planId = planData.data.id;
-        setTotalMonths(planData.data.months);
-
-        const [forecastRes, assumptionsRes, revenueRes, peopleRes, expensesRes] =
-          await Promise.all([
-            fetch(`/api/forecast?planId=${planId}`),
-            fetch(`/api/assumptions?planId=${planId}`),
-            fetch(`/api/revenue?planId=${planId}`),
-            fetch(`/api/people?planId=${planId}`),
-            fetch(`/api/expenses?planId=${planId}`),
-          ]);
-
-        const [
-          forecastData,
-          assumptionsData,
-          revenueData,
-          peopleData,
-          expensesData,
-        ] = await Promise.all([
-          forecastRes.json(),
-          assumptionsRes.json(),
-          revenueRes.json(),
-          peopleRes.json(),
-          expensesRes.json(),
+        const [fr, ar, rr, pr, er] = await Promise.all([
+          fetchJsonEnvelope<ForecastResult>(
+            `/api/forecast?planId=${encodeURIComponent(id)}`
+          ),
+          fetchJsonEnvelope<
+            GlobalAssumptions & { isDefault?: boolean }
+          >(`/api/assumptions?planId=${encodeURIComponent(id)}`),
+          fetchJsonEnvelope<{ isDefault: boolean }>(
+            `/api/revenue?planId=${encodeURIComponent(id)}`
+          ),
+          fetchJsonEnvelope<Person[]>(
+            `/api/people?planId=${encodeURIComponent(id)}`
+          ),
+          fetchJsonEnvelope<Expense[]>(
+            `/api/expenses?planId=${encodeURIComponent(id)}`
+          ),
         ]);
 
-        if (!forecastData.success)
-          throw new Error(forecastData.error || "Failed to compute forecast");
+        const warnings: string[] = [];
 
-        setForecast(forecastData.data);
+        if (fr.ok) {
+          setForecast(fr.data);
+        } else {
+          setForecast(null);
+          warnings.push(`Forecast: ${fr.error}`);
+        }
 
-        if (assumptionsData.success) {
-          setAssumptions(normalizeAssumptions(assumptionsData.data));
+        if (ar.ok) {
+          setAssumptions(normalizeAssumptions(ar.data));
+        } else {
+          setAssumptions(null);
+          warnings.push(`Assumptions: ${ar.error}`);
+        }
+
+        if (!rr.ok) {
+          warnings.push(`Revenue: ${rr.error}`);
+        }
+
+        if (!pr.ok) {
+          warnings.push(`Headcount: ${pr.error}`);
+        }
+        if (!er.ok) {
+          warnings.push(`Operating expenses: ${er.error}`);
         }
 
         setOnboarding({
-          hasAssumptions:
-            assumptionsData.success && !assumptionsData.data.isDefault,
-          // A user has "configured revenue" only when a custom revenue scenario
-          // is saved (not just the built-in DEFAULT_REVENUE_CONFIG).
-          hasRevenue:
-            revenueData.success && revenueData.data.isDefault === false,
+          hasAssumptions: ar.ok && ar.data.isDefault === false,
+          hasRevenue: rr.ok && rr.data.isDefault === false,
           hasExpenses:
-            (peopleData.success && peopleData.data.length > 0) ||
-            (expensesData.success && expensesData.data.length > 0),
+            (pr.ok && pr.data.length > 0) || (er.ok && er.data.length > 0),
         });
+
+        if (warnings.length > 0) {
+          setLoadWarnings(warnings.join(" · "));
+        }
       } catch (err) {
         console.error("Failed to load forecast:", err);
         setError(parseApiError(err));
@@ -244,13 +264,33 @@ export default function DashboardPage() {
 
           {/* Error banner */}
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <span>{error}</span>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="shrink-0 font-medium text-red-500 hover:text-red-700"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {loadWarnings && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <span>Some data could not be loaded: {loadWarnings}</span>
+              <button
+                type="button"
+                onClick={() => setLoadWarnings(null)}
+                className="shrink-0 font-medium text-amber-700 hover:text-amber-900"
+              >
+                Dismiss
+              </button>
             </div>
           )}
 
           {/* Onboarding */}
-          <OnboardingChecklist status={onboarding} />
+          <OnboardingChecklist status={onboarding} planId={planId} />
 
           {/* ── Period Filter ── */}
           <div className="flex items-center justify-between">
@@ -305,24 +345,31 @@ export default function DashboardPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-slate-900">
-                    Add revenue streams and expenses to see real metrics
+                    Complete setup to see metrics and charts
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    Configure your{" "}
+                    Set your{" "}
+                    <Link
+                      href="/app/assumptions"
+                      className="text-indigo-600 hover:underline"
+                    >
+                      assumptions
+                    </Link>
+                    ,{" "}
                     <Link
                       href="/app/revenue"
                       className="text-indigo-600 hover:underline"
                     >
                       revenue streams
-                    </Link>{" "}
-                    and{" "}
+                    </Link>
+                    , and{" "}
                     <Link
                       href="/app/expenses"
                       className="text-indigo-600 hover:underline"
                     >
                       expenses
                     </Link>{" "}
-                    to populate these charts with forecasted data.
+                    — then your dashboard fills in with forecasted data.
                   </p>
                 </div>
               </div>
