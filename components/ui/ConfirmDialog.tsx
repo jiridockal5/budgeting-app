@@ -9,8 +9,10 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmPending?: boolean;
+  confirmPendingLabel?: string;
   variant?: "danger" | "default";
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -20,6 +22,8 @@ export function ConfirmDialog({
   description,
   confirmLabel = "Delete",
   cancelLabel = "Cancel",
+  confirmPending = false,
+  confirmPendingLabel = "Please wait…",
   variant = "danger",
   onConfirm,
   onCancel,
@@ -63,14 +67,15 @@ export function ConfirmDialog({
           </button>
           <button
             type="button"
-            onClick={onConfirm}
-            className={`rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition ${
+            disabled={confirmPending}
+            onClick={() => void onConfirm()}
+            className={`rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
               variant === "danger"
                 ? "bg-red-600 hover:bg-red-500"
                 : "bg-indigo-600 hover:bg-indigo-500"
             }`}
           >
-            {confirmLabel}
+            {confirmPending ? confirmPendingLabel : confirmLabel}
           </button>
         </div>
       </div>

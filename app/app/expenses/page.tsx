@@ -39,9 +39,44 @@ import { Skeleton, TableRowSkeleton } from "@/components/ui/Skeleton";
 // Helpers: map between DB and UI types
 // ============================================================================
 
+type ApiSuccess<T> = { success: true; data: T };
+type ApiFail = { success: false; error?: string };
+
+async function fetchJsonEnvelope<T>(
+  input: RequestInfo | URL
+): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
+  const res = await fetch(input);
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    return {
+      ok: false,
+      error: res.ok ? "Invalid JSON response" : `Request failed (${res.status})`,
+    };
+  }
+  const b = body as ApiFail | ApiSuccess<T>;
+  if (!res.ok) {
+    const msg =
+      b && typeof b === "object" && "error" in b && typeof b.error === "string"
+        ? b.error
+        : `Request failed (${res.status})`;
+    return { ok: false, error: msg };
+  }
+  if (!b || typeof b !== "object" || !("success" in b)) {
+    return { ok: false, error: "Unexpected response shape" };
+  }
+  if (!b.success) {
+    const msg =
+      typeof b.error === "string" ? b.error : "Request failed";
+    return { ok: false, error: msg };
+  }
+  return { ok: true, data: b.data };
+}
+
 function getCurrentMonth(): string {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 function isoToMonth(iso: string | Date): string {
@@ -59,8 +94,10 @@ function mapDbFrequency(
       return "annual";
     case "ONE_TIME":
       return "one_time";
-    default:
+    default: {
+      console.warn("Unknown expense frequency from API:", freq);
       return "monthly";
+    }
   }
 }
 
@@ -109,6 +146,7 @@ export default function ExpensesPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadWarnings, setLoadWarnings] = useState<string | null>(null);
   const [assumptions, setAssumptions] =
     useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
 
@@ -144,7 +182,12 @@ export default function ExpensesPage() {
   >(null);
 
   const { toast } = useToast();
-  const [deleteTarget, setDeleteTarget] = useState<{ type: "headcount" | "expense"; id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: "headcount" | "expense";
+    id: string;
+    name: string;
+  } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   // ── Load plan + data on mount ──
   useEffect(() => {
@@ -152,36 +195,52 @@ export default function ExpensesPage() {
       try {
         setLoading(true);
         setError(null);
+        setLoadWarnings(null);
 
-        // Get or create the current plan
-        const planRes = await fetch("/api/plans/current");
-        const planData = await planRes.json();
-        if (!planData.success)
-          throw new Error(planData.error || "Failed to load plan");
-        const id = planData.data.id;
+        const planResult = await fetchJsonEnvelope<{ id: string }>(
+          "/api/plans/current"
+        );
+        if (!planResult.ok) throw new Error(planResult.error);
+
+        const id = planResult.data.id;
         setPlanId(id);
 
-        // Fetch people, expenses, and assumptions in parallel
         const [peopleRes, expensesRes, assumptionsRes] = await Promise.all([
-          fetch(`/api/people?planId=${id}`),
-          fetch(`/api/expenses?planId=${id}`),
-          fetch(`/api/assumptions?planId=${id}`),
+          fetchJsonEnvelope<Person[]>(
+            `/api/people?planId=${encodeURIComponent(id)}`
+          ),
+          fetchJsonEnvelope<Expense[]>(
+            `/api/expenses?planId=${encodeURIComponent(id)}`
+          ),
+          fetchJsonEnvelope<Partial<GlobalAssumptions>>(
+            `/api/assumptions?planId=${encodeURIComponent(id)}`
+          ),
         ]);
 
-        const [peopleData, expensesData, assumptionsData] = await Promise.all([
-          peopleRes.json(),
-          expensesRes.json(),
-          assumptionsRes.json(),
-        ]);
+        const warnings: string[] = [];
 
-        if (peopleData.success) {
-          setHeadcountRows(peopleData.data.map(mapPersonToRow));
+        if (peopleRes.ok) {
+          setHeadcountRows(peopleRes.data.map(mapPersonToRow));
+        } else {
+          setHeadcountRows([]);
+          warnings.push(peopleRes.error);
         }
-        if (expensesData.success) {
-          setNonHeadcountRows(expensesData.data.map(mapExpenseToRow));
+
+        if (expensesRes.ok) {
+          setNonHeadcountRows(expensesRes.data.map(mapExpenseToRow));
+        } else {
+          setNonHeadcountRows([]);
+          warnings.push(expensesRes.error);
         }
-        if (assumptionsData.success) {
-          setAssumptions(normalizeAssumptions(assumptionsData.data));
+
+        if (assumptionsRes.ok) {
+          setAssumptions(normalizeAssumptions(assumptionsRes.data));
+        } else {
+          warnings.push(assumptionsRes.error);
+        }
+
+        if (warnings.length > 0) {
+          setLoadWarnings(warnings.join(" · "));
         }
       } catch (err) {
         console.error("Failed to load expenses data:", err);
@@ -278,19 +337,28 @@ export default function ExpensesPage() {
     });
   };
 
-  const handleDeleteHeadcount = async (id: string) => {
-    if (!planId) return;
+  const handleDeleteHeadcount = async (id: string): Promise<boolean> => {
+    if (!planId) return false;
     try {
       const res = await fetch(`/api/people/${id}?planId=${planId}`, {
         method: "DELETE",
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Failed to delete");
+      const data = (await res.json()) as { success: boolean; error?: string };
+      if (!res.ok || !data.success) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Failed to delete"
+        );
+      }
       setHeadcountRows((prev) => prev.filter((row) => row.id !== id));
       if (editingHeadcountId === id) handleCancelEditHeadcount();
       toast("Role deleted");
+      return true;
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to delete headcount", "error");
+      toast(
+        err instanceof Error ? err.message : "Failed to delete headcount",
+        "error"
+      );
+      return false;
     }
   };
 
@@ -381,19 +449,28 @@ export default function ExpensesPage() {
     });
   };
 
-  const handleDeleteNonHeadcount = async (id: string) => {
-    if (!planId) return;
+  const handleDeleteNonHeadcount = async (id: string): Promise<boolean> => {
+    if (!planId) return false;
     try {
       const res = await fetch(`/api/expenses/${id}?planId=${planId}`, {
         method: "DELETE",
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Failed to delete");
+      const data = (await res.json()) as { success: boolean; error?: string };
+      if (!res.ok || !data.success) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Failed to delete"
+        );
+      }
       setNonHeadcountRows((prev) => prev.filter((row) => row.id !== id));
       if (editingNonHeadcountId === id) handleCancelEditNonHeadcount();
       toast("Expense deleted");
+      return true;
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Failed to delete expense", "error");
+      toast(
+        err instanceof Error ? err.message : "Failed to delete expense",
+        "error"
+      );
+      return false;
     }
   };
 
@@ -408,12 +485,18 @@ export default function ExpensesPage() {
   }, [headcountRows]);
 
   const nonHeadcountSummary = useMemo(() => {
-    const totalMonthlyEquivalent = nonHeadcountRows.reduce((sum, row) => {
-      if (row.frequency === "annual") return sum + row.amount / 12;
-      if (row.frequency === "one_time") return sum;
-      return sum + row.amount;
-    }, 0);
-    return { count: nonHeadcountRows.length, totalMonthlyEquivalent };
+    let recurringMonthly = 0;
+    let oneTimeTotal = 0;
+    for (const row of nonHeadcountRows) {
+      if (row.frequency === "annual") recurringMonthly += row.amount / 12;
+      else if (row.frequency === "one_time") oneTimeTotal += row.amount;
+      else recurringMonthly += row.amount;
+    }
+    return {
+      count: nonHeadcountRows.length,
+      recurringMonthly,
+      oneTimeTotal,
+    };
   }, [nonHeadcountRows]);
 
   // ── Loading state ──
@@ -431,9 +514,13 @@ export default function ExpensesPage() {
               <Skeleton className="h-6 w-32" />
             </div>
             <div className="p-6">
-              <TableRowSkeleton cols={6} />
-              <TableRowSkeleton cols={6} />
-              <TableRowSkeleton cols={6} />
+              <table className="w-full">
+                <tbody>
+                  <TableRowSkeleton cols={6} />
+                  <TableRowSkeleton cols={6} />
+                  <TableRowSkeleton cols={6} />
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -457,6 +544,21 @@ export default function ExpensesPage() {
               <button
                 onClick={() => setError(null)}
                 className="text-red-500 hover:text-red-700 font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {loadWarnings && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-center justify-between gap-3">
+              <span>
+                Some data could not be loaded: {loadWarnings}
+              </span>
+              <button
+                type="button"
+                onClick={() => setLoadWarnings(null)}
+                className="shrink-0 text-amber-700 hover:text-amber-900 font-medium"
               >
                 Dismiss
               </button>
@@ -516,12 +618,24 @@ export default function ExpensesPage() {
             open={deleteTarget !== null}
             title={`Delete ${deleteTarget?.type === "headcount" ? "role" : "expense"}?`}
             description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
-            onConfirm={() => {
-              if (deleteTarget?.type === "headcount") handleDeleteHeadcount(deleteTarget.id);
-              else if (deleteTarget) handleDeleteNonHeadcount(deleteTarget.id);
-              setDeleteTarget(null);
+            confirmPending={deleteBusy}
+            confirmPendingLabel="Deleting…"
+            onConfirm={async () => {
+              if (!deleteTarget || deleteBusy) return;
+              setDeleteBusy(true);
+              try {
+                const ok =
+                  deleteTarget.type === "headcount"
+                    ? await handleDeleteHeadcount(deleteTarget.id)
+                    : await handleDeleteNonHeadcount(deleteTarget.id);
+                if (ok) setDeleteTarget(null);
+              } finally {
+                setDeleteBusy(false);
+              }
             }}
-            onCancel={() => setDeleteTarget(null)}
+            onCancel={() => {
+              if (!deleteBusy) setDeleteTarget(null);
+            }}
           />
         </div>
       </div>
@@ -893,7 +1007,11 @@ interface NonHeadcountSectionProps {
   onCancelEdit: () => void;
   onDelete: (id: string) => void;
   editingId: string | null;
-  summary: { count: number; totalMonthlyEquivalent: number };
+  summary: {
+    count: number;
+    recurringMonthly: number;
+    oneTimeTotal: number;
+  };
   assumptions: GlobalAssumptions;
 }
 
@@ -933,8 +1051,14 @@ function NonHeadcountSection({
               {summary.count} cost{summary.count !== 1 ? "s" : ""}
             </p>
             <p className="text-sm font-semibold text-slate-900">
-              ~{formatCurrency(summary.totalMonthlyEquivalent)}/mo
+              {formatCurrency(summary.recurringMonthly)}/mo recurring
             </p>
+            {summary.oneTimeTotal > 0 && (
+              <p className="text-xs text-slate-500 mt-0.5 max-w-[240px] ml-auto leading-snug">
+                +{formatCurrency(summary.oneTimeTotal)} one-time (start month
+                only)
+              </p>
+            )}
           </div>
         )}
       </div>

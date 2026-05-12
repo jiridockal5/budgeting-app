@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { getServerUser } from "@/lib/serverUser";
 
 const frequencyEnum = z.enum(["MONTHLY", "ONE_TIME", "YEARLY"]);
@@ -9,7 +10,7 @@ const frequencyEnum = z.enum(["MONTHLY", "ONE_TIME", "YEARLY"]);
 const expenseInputSchema = z.object({
   planId: z.string().min(1),
   name: z.string().min(1),
-  category: z.string().min(1),
+  category: expenseCategorySchema,
   amount: z
     .preprocess((value) => {
       if (typeof value === "string") {

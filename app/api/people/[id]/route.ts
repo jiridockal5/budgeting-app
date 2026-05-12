@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { getServerUser } from "@/lib/serverUser";
 
 const personUpdateSchema = z.object({
@@ -8,7 +9,7 @@ const personUpdateSchema = z.object({
   name: z.string().min(1),
   role: z.string().min(1),
   salary: z.number().positive(),
-  category: z.string().min(1),
+  category: expenseCategorySchema,
   fte: z.number().min(0).max(10),
   startDate: z.string().optional().nullable(),
 });
