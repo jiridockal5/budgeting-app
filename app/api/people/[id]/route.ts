@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import type { Person } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
-import { getServerUser } from "@/lib/serverUser";
+import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
+import { getScopedPlan } from "@/lib/server/planScope";
 
 const personUpdateSchema = z.object({
   planId: z.string().min(1),
@@ -14,12 +16,14 @@ const personUpdateSchema = z.object({
   startDate: z.string().optional().nullable(),
 });
 
-const serializePerson = (person: any) => ({
-  ...person,
-  startDate: person.startDate ? person.startDate.toISOString() : null,
-  createdAt: person.createdAt.toISOString(),
-  updatedAt: person.updatedAt.toISOString(),
-});
+function serializePerson(person: Person) {
+  return {
+    ...person,
+    startDate: person.startDate ? person.startDate.toISOString() : null,
+    createdAt: person.createdAt.toISOString(),
+    updatedAt: person.updatedAt.toISOString(),
+  };
+}
 
 function normalizeDate(value: string): Date {
   const date = new Date(value);
@@ -40,35 +44,19 @@ export async function PUT(request: NextRequest, context: RouteParams) {
     const parsed = personUpdateSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: "Invalid person payload" },
-        { status: 400 }
-      );
+      return jsonErr("Invalid person payload", 400);
     }
 
     const input = parsed.data;
-    const { id: userId } = await getServerUser();
-
-    const plan = await prisma.plan.findFirst({
-      where: { id: input.planId, userId },
-    });
-
-    if (!plan) {
-      return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
-        { status: 404 }
-      );
-    }
+    const scoped = await getScopedPlan(input.planId);
+    if (!scoped.ok) return scoped.response;
 
     const existing = await prisma.person.findFirst({
-      where: { id, planId: plan.id, plan: { userId } },
+      where: { id, planId: scoped.plan.id, plan: { userId: scoped.userId } },
     });
 
     if (!existing) {
-      return NextResponse.json(
-        { success: false, error: "Person not found for this plan" },
-        { status: 404 }
-      );
+      return jsonErr("Person not found for this plan", 404);
     }
 
     const updated = await prisma.person.update({
@@ -83,19 +71,9 @@ export async function PUT(request: NextRequest, context: RouteParams) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: serializePerson(updated),
-    });
+    return jsonOk(serializePerson(updated));
   } catch (error) {
-    console.error("PUT /api/people/[id] error", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 }
-    );
+    return jsonServerError("PUT /api/people/[id]", error);
   }
 }
 
@@ -106,49 +84,26 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
     const planId = searchParams.get("planId");
 
     if (!planId) {
-      return NextResponse.json(
-        { success: false, error: "planId is required" },
-        { status: 400 }
-      );
+      return jsonErr("planId is required", 400);
     }
 
-    const { id: userId } = await getServerUser();
-
-    const plan = await prisma.plan.findFirst({
-      where: { id: planId, userId },
-    });
-
-    if (!plan) {
-      return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
-        { status: 404 }
-      );
-    }
+    const scoped = await getScopedPlan(planId);
+    if (!scoped.ok) return scoped.response;
 
     const existing = await prisma.person.findFirst({
-      where: { id, planId: plan.id, plan: { userId } },
+      where: { id, planId: scoped.plan.id, plan: { userId: scoped.userId } },
     });
 
     if (!existing) {
-      return NextResponse.json(
-        { success: false, error: "Person not found for this plan" },
-        { status: 404 }
-      );
+      return jsonErr("Person not found for this plan", 404);
     }
 
     await prisma.person.delete({
       where: { id: existing.id },
     });
 
-    return NextResponse.json({ success: true });
+    return jsonOk(null);
   } catch (error) {
-    console.error("DELETE /api/people/[id] error", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 }
-    );
+    return jsonServerError("DELETE /api/people/[id]", error);
   }
 }

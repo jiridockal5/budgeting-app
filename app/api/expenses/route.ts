@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
+import type { Expense } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
-import { getServerUser } from "@/lib/serverUser";
+import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
+import { getScopedPlan } from "@/lib/server/planScope";
 
 const frequencyEnum = z.enum(["MONTHLY", "ONE_TIME", "YEARLY"]);
 
@@ -28,17 +30,19 @@ const querySchema = z.object({
   planId: z.string().min(1),
 });
 
-const serializeExpense = (expense: any) => ({
-  ...expense,
-  amount:
-    expense.amount instanceof Prisma.Decimal
-      ? expense.amount.toNumber()
-      : Number(expense.amount),
-  startMonth: expense.startMonth.toISOString(),
-  endMonth: expense.endMonth ? expense.endMonth.toISOString() : null,
-  createdAt: expense.createdAt.toISOString(),
-  updatedAt: expense.updatedAt.toISOString(),
-});
+function serializeExpense(expense: Expense) {
+  return {
+    ...expense,
+    amount:
+      expense.amount instanceof Prisma.Decimal
+        ? expense.amount.toNumber()
+        : Number(expense.amount),
+    startMonth: expense.startMonth.toISOString(),
+    endMonth: expense.endMonth ? expense.endMonth.toISOString() : null,
+    createdAt: expense.createdAt.toISOString(),
+    updatedAt: expense.updatedAt.toISOString(),
+  };
+}
 
 function normalizeMonth(value: string): Date {
   const date = new Date(value);
@@ -56,43 +60,20 @@ export async function GET(request: NextRequest) {
     });
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: "planId is required" },
-        { status: 400 }
-      );
+      return jsonErr("planId is required", 400);
     }
 
-    const { id: userId } = await getServerUser();
-
-    const plan = await prisma.plan.findFirst({
-      where: { id: parsed.data.planId, userId },
-    });
-
-    if (!plan) {
-      return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
-        { status: 404 }
-      );
-    }
+    const scoped = await getScopedPlan(parsed.data.planId);
+    if (!scoped.ok) return scoped.response;
 
     const expenses = await prisma.expense.findMany({
-      where: { planId: plan.id },
+      where: { planId: scoped.plan.id },
       orderBy: { startMonth: "asc" },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: expenses.map(serializeExpense),
-    });
+    return jsonOk(expenses.map(serializeExpense));
   } catch (error) {
-    console.error("GET /api/expenses error", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 }
-    );
+    return jsonServerError("GET /api/expenses", error);
   }
 }
 
@@ -102,29 +83,16 @@ export async function POST(request: NextRequest) {
     const parsed = expenseInputSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: "Invalid expense payload" },
-        { status: 400 }
-      );
+      return jsonErr("Invalid expense payload", 400);
     }
 
     const input = parsed.data;
-    const { id: userId } = await getServerUser();
-
-    const plan = await prisma.plan.findFirst({
-      where: { id: input.planId, userId },
-    });
-
-    if (!plan) {
-      return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
-        { status: 404 }
-      );
-    }
+    const scoped = await getScopedPlan(input.planId);
+    if (!scoped.ok) return scoped.response;
 
     const expense = await prisma.expense.create({
       data: {
-        planId: plan.id,
+        planId: scoped.plan.id,
         name: input.name,
         category: input.category,
         amount: input.amount,
@@ -134,19 +102,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { success: true, data: serializeExpense(expense) },
-      { status: 201 }
-    );
+    return jsonOk(serializeExpense(expense), 201);
   } catch (error) {
-    console.error("POST /api/expenses error", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 }
-    );
+    return jsonServerError("POST /api/expenses", error);
   }
 }
-

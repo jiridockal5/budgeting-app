@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:ci": "eslint app/api/expenses app/api/people lib/revenueForecast.ts lib/__tests__ lib/server --max-warnings 0",
+    "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
     "migrate:forecast": "prisma migrate dev --name add_revenue_forecast_models",
     "migrate:status": "prisma migrate status",

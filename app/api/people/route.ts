@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import type { Person } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
-import { getServerUser } from "@/lib/serverUser";
+import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
+import { getScopedPlan } from "@/lib/server/planScope";
 
 const personInputSchema = z.object({
   planId: z.string().min(1),
@@ -18,12 +20,14 @@ const querySchema = z.object({
   planId: z.string().min(1),
 });
 
-const serializePerson = (person: any) => ({
-  ...person,
-  startDate: person.startDate ? person.startDate.toISOString() : null,
-  createdAt: person.createdAt.toISOString(),
-  updatedAt: person.updatedAt.toISOString(),
-});
+function serializePerson(person: Person) {
+  return {
+    ...person,
+    startDate: person.startDate ? person.startDate.toISOString() : null,
+    createdAt: person.createdAt.toISOString(),
+    updatedAt: person.updatedAt.toISOString(),
+  };
+}
 
 function normalizeDate(value: string): Date {
   const date = new Date(value);
@@ -41,43 +45,20 @@ export async function GET(request: NextRequest) {
     });
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: "planId is required" },
-        { status: 400 }
-      );
+      return jsonErr("planId is required", 400);
     }
 
-    const { id: userId } = await getServerUser();
-
-    const plan = await prisma.plan.findFirst({
-      where: { id: parsed.data.planId, userId },
-    });
-
-    if (!plan) {
-      return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
-        { status: 404 }
-      );
-    }
+    const scoped = await getScopedPlan(parsed.data.planId);
+    if (!scoped.ok) return scoped.response;
 
     const people = await prisma.person.findMany({
-      where: { planId: plan.id },
+      where: { planId: scoped.plan.id },
       orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: people.map(serializePerson),
-    });
+    return jsonOk(people.map(serializePerson));
   } catch (error) {
-    console.error("GET /api/people error", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 }
-    );
+    return jsonServerError("GET /api/people", error);
   }
 }
 
@@ -87,29 +68,16 @@ export async function POST(request: NextRequest) {
     const parsed = personInputSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, error: "Invalid person payload" },
-        { status: 400 }
-      );
+      return jsonErr("Invalid person payload", 400);
     }
 
     const input = parsed.data;
-    const { id: userId } = await getServerUser();
-
-    const plan = await prisma.plan.findFirst({
-      where: { id: input.planId, userId },
-    });
-
-    if (!plan) {
-      return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
-        { status: 404 }
-      );
-    }
+    const scoped = await getScopedPlan(input.planId);
+    if (!scoped.ok) return scoped.response;
 
     const person = await prisma.person.create({
       data: {
-        planId: plan.id,
+        planId: scoped.plan.id,
         name: input.name,
         role: input.role,
         salary: input.salary,
@@ -119,18 +87,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      { success: true, data: serializePerson(person) },
-      { status: 201 }
-    );
+    return jsonOk(serializePerson(person), 201);
   } catch (error) {
-    console.error("POST /api/people error", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 }
-    );
+    return jsonServerError("POST /api/people", error);
   }
 }
