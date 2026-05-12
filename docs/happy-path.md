@@ -93,13 +93,13 @@ Use this as a **manual test script** (15 minutes):
 
 ## Prioritized follow-ups (happy-path quality)
 
-| Priority | Item | Why |
-|----------|------|-----|
-| P0 | Redefine **`hasRevenue`** for onboarding | Avoid false “done” when only defaults apply. |
-| P1 | First-time **Assumptions** CTA: “Save to confirm defaults” or wizard step | Clears checklist step 1 without confusion. |
-| P1 | Dashboard **partial load** handling (same pattern as Expenses page) | Avoid silent empty charts if one API fails. |
-| P2 | After checklist complete, **single CTA** “View runway” | Closes the loop to step 4. |
-| P2 | **PostHog / milestones** (when ready) | Measure drop-off per step — see `docs/operations.md` for ops; defer PostHog until you want it. |
+| Priority | Item | Why | Status |
+|----------|------|-----|--------|
+| P0 | Redefine **`hasRevenue`** for onboarding | Avoid false “done” when only defaults apply. | Done — dashboard now uses `/api/revenue` `isDefault` flag. |
+| P1 | First-time **Assumptions** CTA: “Save to confirm defaults” or wizard step | Clears checklist step 1 without confusion. | Done — “Accept defaults” banner on `/app/assumptions` when `isDefault: true`. |
+| P1 | Dashboard **partial load** handling (same pattern as Expenses page) | Avoid silent empty charts if one API fails. | Pending. |
+| P2 | After checklist complete, **single CTA** “View runway” | Closes the loop to step 4. | Pending. |
+| P2 | **PostHog / milestones** (when ready) | Measure drop-off per step — see `docs/operations.md` for ops; defer PostHog until you want it. | Deferred. |
 
 ---
 

@@ -50,6 +50,8 @@ export default function AssumptionsPage() {
   const [planSettings, setPlanSettings] = useState({ startMonth: "", months: 24 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDefault, setIsDefault] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -80,6 +82,7 @@ export default function AssumptionsPage() {
         }
 
         setAssumptions(normalizeAssumptions(assumptionsData.data));
+        setIsDefault(Boolean(assumptionsData.data?.isDefault));
       } catch (err) {
         console.error("Failed to load assumptions:", err);
         setError(parseApiError(err));
@@ -128,6 +131,25 @@ export default function AssumptionsPage() {
   const autoSave = useAutoSave(assumptions, saveAssumptions, {
     enabled: !loading && !!planId,
   });
+
+  // Once any auto-save lands, the row exists in the DB and is no longer defaults.
+  useEffect(() => {
+    if (autoSave.lastSaved && isDefault) setIsDefault(false);
+  }, [autoSave.lastSaved, isDefault]);
+
+  const handleConfirmDefaults = useCallback(async () => {
+    if (!planId || confirming) return;
+    try {
+      setConfirming(true);
+      await saveAssumptions();
+      setIsDefault(false);
+    } catch (err) {
+      console.error("Failed to confirm defaults:", err);
+      setError(parseApiError(err));
+    } finally {
+      setConfirming(false);
+    }
+  }, [planId, confirming, saveAssumptions]);
 
   const savePlanSettings = useCallback(async () => {
     if (!planId) return;
@@ -200,6 +222,33 @@ export default function AssumptionsPage() {
               ) : null
             }
           />
+
+          {isDefault && (
+            <div className="flex flex-col gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  These are the starter defaults
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Edit any field to tailor them, or accept them to continue setup.
+                  Edits auto-save.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleConfirmDefaults}
+                disabled={confirming || !planId}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {confirming ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                {confirming ? "Saving…" : "Accept defaults"}
+              </button>
+            </div>
+          )}
 
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
             <section>

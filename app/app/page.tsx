@@ -150,21 +150,28 @@ export default function DashboardPage() {
         const planId = planData.data.id;
         setTotalMonths(planData.data.months);
 
-        const [forecastRes, assumptionsRes, peopleRes, expensesRes] =
+        const [forecastRes, assumptionsRes, revenueRes, peopleRes, expensesRes] =
           await Promise.all([
             fetch(`/api/forecast?planId=${planId}`),
             fetch(`/api/assumptions?planId=${planId}`),
+            fetch(`/api/revenue?planId=${planId}`),
             fetch(`/api/people?planId=${planId}`),
             fetch(`/api/expenses?planId=${planId}`),
           ]);
 
-        const [forecastData, assumptionsData, peopleData, expensesData] =
-          await Promise.all([
-            forecastRes.json(),
-            assumptionsRes.json(),
-            peopleRes.json(),
-            expensesRes.json(),
-          ]);
+        const [
+          forecastData,
+          assumptionsData,
+          revenueData,
+          peopleData,
+          expensesData,
+        ] = await Promise.all([
+          forecastRes.json(),
+          assumptionsRes.json(),
+          revenueRes.json(),
+          peopleRes.json(),
+          expensesRes.json(),
+        ]);
 
         if (!forecastData.success)
           throw new Error(forecastData.error || "Failed to compute forecast");
@@ -178,9 +185,10 @@ export default function DashboardPage() {
         setOnboarding({
           hasAssumptions:
             assumptionsData.success && !assumptionsData.data.isDefault,
-          hasRevenue: forecastData.data.months.some(
-            (m: ForecastMonth) => m.totalMrr > 0
-          ),
+          // A user has "configured revenue" only when a custom revenue scenario
+          // is saved (not just the built-in DEFAULT_REVENUE_CONFIG).
+          hasRevenue:
+            revenueData.success && revenueData.data.isDefault === false,
           hasExpenses:
             (peopleData.success && peopleData.data.length > 0) ||
             (expensesData.success && expensesData.data.length > 0),
