@@ -12,6 +12,7 @@ import {
   type ExpenseInput,
   type AssumptionsInput,
 } from "@/lib/revenueForecast";
+import { parseCostModel } from "@/lib/expenses";
 
 const querySchema = z.object({
   planId: z.string().min(1),
@@ -104,10 +105,12 @@ export async function GET(request: NextRequest) {
     const expenseInput: ExpenseInput = {
       headcount: dbPeople.map((p) => ({
         role: p.role,
+        type: p.type,
         category: p.category,
         baseSalary: p.salary,
         fte: p.fte,
         startMonth: p.startDate ? dateToMonth(p.startDate) : dateToMonth(plan.startMonth),
+        endMonth: p.endDate ? dateToMonth(p.endDate) : undefined,
       })),
       nonHeadcount: dbExpenses.map((e) => ({
         name: e.name,
@@ -116,6 +119,7 @@ export async function GET(request: NextRequest) {
         frequency: mapFrequency(e.frequency),
         startMonth: dateToMonth(e.startMonth),
         endMonth: e.endMonth ? dateToMonth(e.endMonth) : undefined,
+        config: parseCostModel(e.config),
       })),
     };
 

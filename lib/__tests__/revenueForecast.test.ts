@@ -242,6 +242,229 @@ describe("buildForecast", () => {
     expect(result.summary.projectedArr).toBe(0);
   });
 
+  it("does not apply employer tax to contractors", () => {
+    const employee: ExpenseInput = {
+      headcount: [{ role: "Dev", type: "employee", category: "rnd", baseSalary: 5000, fte: 1, startMonth: "2025-01" }],
+      nonHeadcount: [],
+    };
+    const contractor: ExpenseInput = {
+      headcount: [{ role: "Dev", type: "contractor", category: "rnd", baseSalary: 5000, fte: 1, startMonth: "2025-01" }],
+      nonHeadcount: [],
+    };
+    const noInflation = { ...defaultAssumptions, salaryGrowthRate: 0, salaryTaxRate: 35 };
+
+    const emp = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, employee, noInflation);
+    const con = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, contractor, noInflation);
+
+    expect(emp.months[0].headcountExpense).toBeCloseTo(5000 * 1.35, 2);
+    expect(con.months[0].headcountExpense).toBeCloseTo(5000, 2);
+  });
+
+  it("excludes people after their end month", () => {
+    const expenses: ExpenseInput = {
+      headcount: [
+        { role: "Dev", category: "rnd", baseSalary: 5000, fte: 1, startMonth: "2025-01", endMonth: "2025-02" },
+      ],
+      nonHeadcount: [],
+    };
+    const result = buildForecast(4, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    expect(result.months[1].headcountExpense).toBeGreaterThan(0); // Feb: active
+    expect(result.months[2].headcountExpense).toBe(0); // Mar: departed
+  });
+});
+
+// ============================================================================
+// Flexible cost model
+// ============================================================================
+
+const zeroRevenue: RevenueConfig = {
+  plg: { monthlyTrials: 0, trialConversionRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+  sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+  partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+};
+
+const noGrowthAssumptions: AssumptionsInput = {
+  ...defaultAssumptions,
+  inflationRate: 0,
+  salaryGrowthRate: 0,
+};
+
+function nonHeadcount(expenses: ExpenseInput["nonHeadcount"]): ExpenseInput {
+  return { headcount: [], nonHeadcount: expenses };
+}
+
+describe("flexible cost model", () => {
+  it("fixed (no config) behaves like a plain monthly cost", () => {
+    const result = buildForecast(
+      3,
+      "2025-01",
+      zeroRevenue,
+      nonHeadcount([{ name: "AWS", category: "ops", amount: 1000, frequency: "monthly", startMonth: "2025-01" }]),
+      noGrowthAssumptions
+    );
+    expect(result.months[0].nonHeadcountExpense).toBe(1000);
+    expect(result.months[2].nonHeadcountExpense).toBe(1000);
+  });
+
+  it("growing applies a per-line annual compound rate from the line start", () => {
+    const result = buildForecast(
+      13,
+      "2025-01",
+      zeroRevenue,
+      nonHeadcount([
+        {
+          name: "Marketing",
+          category: "gtm",
+          amount: 1000,
+          frequency: "monthly",
+          startMonth: "2025-01",
+          config: { method: "growing", growthRate: 10, growthPeriod: "year", growthMode: "compound" },
+        },
+      ]),
+      noGrowthAssumptions
+    );
+    expect(result.months[0].nonHeadcountExpense).toBeCloseTo(1000, 2); // year 0
+    expect(result.months[12].nonHeadcountExpense).toBeCloseTo(1100, 2); // year 1: +10%
+  });
+
+  it("percentOfRevenue scales with total MRR", () => {
+    const revenue: RevenueConfig = {
+      ...DEFAULT_REVENUE_CONFIG,
+    };
+    const result = buildForecast(
+      1,
+      "2025-01",
+      revenue,
+      nonHeadcount([
+        {
+          name: "COS",
+          category: "cos",
+          amount: 0,
+          frequency: "monthly",
+          startMonth: "2025-01",
+          config: { method: "percentOfRevenue", percent: 20, revenueBase: "total" },
+        },
+      ]),
+      noGrowthAssumptions
+    );
+    const mrr = result.months[0].totalMrr;
+    expect(mrr).toBeGreaterThan(0);
+    expect(result.months[0].nonHeadcountExpense).toBeCloseTo(mrr * 0.2, 2);
+  });
+
+  it("perCustomer scales with active customer count", () => {
+    const result = buildForecast(
+      1,
+      "2025-01",
+      DEFAULT_REVENUE_CONFIG,
+      nonHeadcount([
+        {
+          name: "Support",
+          category: "cs",
+          amount: 0,
+          frequency: "monthly",
+          startMonth: "2025-01",
+          config: { method: "perCustomer", amountPerUnit: 10, customerBasis: "active", stream: "total" },
+        },
+      ]),
+      noGrowthAssumptions
+    );
+    const customers = result.months[0].totalCustomers;
+    expect(customers).toBeGreaterThan(0);
+    expect(result.months[0].nonHeadcountExpense).toBeCloseTo(customers * 10, 2);
+  });
+
+  it("perEmployee scales with FTE", () => {
+    const expenses: ExpenseInput = {
+      headcount: [
+        { role: "A", category: "rnd", baseSalary: 5000, fte: 1, startMonth: "2025-01" },
+        { role: "B", category: "gtm", baseSalary: 5000, fte: 0.5, startMonth: "2025-01" },
+      ],
+      nonHeadcount: [
+        {
+          name: "Laptops",
+          category: "ops",
+          amount: 0,
+          frequency: "monthly",
+          startMonth: "2025-01",
+          config: { method: "perEmployee", amountPerUnit: 100, employeeBasis: "fte" },
+        },
+      ],
+    };
+    const result = buildForecast(1, "2025-01", zeroRevenue, expenses, noGrowthAssumptions);
+    expect(result.months[0].nonHeadcountExpense).toBeCloseTo(1.5 * 100, 2); // 1 + 0.5 FTE
+  });
+
+  it("per-month override takes precedence over the formula", () => {
+    const result = buildForecast(
+      3,
+      "2025-01",
+      zeroRevenue,
+      nonHeadcount([
+        {
+          name: "Rent",
+          category: "ops",
+          amount: 1000,
+          frequency: "monthly",
+          startMonth: "2025-01",
+          config: { method: "fixed", overrides: { "2025-02": 5000 } },
+        },
+      ]),
+      noGrowthAssumptions
+    );
+    expect(result.months[0].nonHeadcountExpense).toBe(1000);
+    expect(result.months[1].nonHeadcountExpense).toBe(5000); // override
+    expect(result.months[2].nonHeadcountExpense).toBe(1000);
+  });
+
+  it("scheduled step changes the base amount from its month onward", () => {
+    const result = buildForecast(
+      4,
+      "2025-01",
+      zeroRevenue,
+      nonHeadcount([
+        {
+          name: "Rent",
+          category: "ops",
+          amount: 1000,
+          frequency: "monthly",
+          startMonth: "2025-01",
+          config: { method: "fixed", steps: [{ month: "2025-03", amount: 2000 }] },
+        },
+      ]),
+      noGrowthAssumptions
+    );
+    expect(result.months[1].nonHeadcountExpense).toBe(1000); // Feb
+    expect(result.months[2].nonHeadcountExpense).toBe(2000); // Mar onward
+    expect(result.months[3].nonHeadcountExpense).toBe(2000);
+  });
+
+  it("respects start and end months for flexible costs", () => {
+    const result = buildForecast(
+      4,
+      "2025-01",
+      zeroRevenue,
+      nonHeadcount([
+        {
+          name: "Trial tool",
+          category: "ops",
+          amount: 500,
+          frequency: "monthly",
+          startMonth: "2025-02",
+          endMonth: "2025-03",
+          config: { method: "growing", growthRate: 5, growthPeriod: "month", growthMode: "compound" },
+        },
+      ]),
+      noGrowthAssumptions
+    );
+    expect(result.months[0].nonHeadcountExpense).toBe(0); // Jan: before start
+    expect(result.months[1].nonHeadcountExpense).toBeCloseTo(500, 2); // Feb: start
+    expect(result.months[2].nonHeadcountExpense).toBeCloseTo(525, 2); // Mar: +5%
+    expect(result.months[3].nonHeadcountExpense).toBe(0); // Apr: after end
+  });
+});
+
+describe("buildForecast headcount scaling", () => {
   it("FTE scaling works", () => {
     const fullTimeExpenses: ExpenseInput = {
       headcount: [

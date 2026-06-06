@@ -11,6 +11,7 @@ import {
   type ExpenseInput,
   type AssumptionsInput,
 } from "@/lib/revenueForecast";
+import { parseCostModel } from "@/lib/expenses";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -98,12 +99,14 @@ export async function GET(_request: NextRequest, context: RouteParams) {
     const expenseInput: ExpenseInput = {
       headcount: plan.people.map((p) => ({
         role: p.role,
+        type: p.type,
         category: p.category,
         baseSalary: p.salary,
         fte: p.fte,
         startMonth: p.startDate
           ? dateToMonth(p.startDate)
           : dateToMonth(plan.startMonth),
+        endMonth: p.endDate ? dateToMonth(p.endDate) : undefined,
       })),
       nonHeadcount: plan.expenses.map((e) => ({
         name: e.name,
@@ -112,6 +115,7 @@ export async function GET(_request: NextRequest, context: RouteParams) {
         frequency: mapFrequency(e.frequency),
         startMonth: dateToMonth(e.startMonth),
         endMonth: e.endMonth ? dateToMonth(e.endMonth) : undefined,
+        config: parseCostModel(e.config),
       })),
     };
 

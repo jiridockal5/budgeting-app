@@ -175,6 +175,7 @@ model Expense {
   frequency  ExpenseFrequency  @default(MONTHLY)
   startMonth DateTime
   endMonth   DateTime?
+  config     Json?             // Optional flexible cost model (growth, % of revenue, per-unit, steps, overrides)
 
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
@@ -193,10 +194,13 @@ model Person {
   id        String   @id @default(cuid())
   name      String
   role      String
+  type      String   @default("employee") // employee | contractor | advisor
   salary    Float
   category  String   @default("rnd")
   fte       Float    @default(1.0)
   startDate DateTime?
+  endDate   DateTime?                       // Last active month (departures)
+  config    Json?                           // Optional flexible cost model (raises, steps, overrides)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -5,6 +5,14 @@
  * expenses, and global assumptions for SaaS businesses.
  */
 
+import {
+  type CostModel,
+  type CostStep,
+  type RevenueBase,
+  parseCostModel,
+  personTypeHasEmployerTax,
+} from "./expenses";
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -40,10 +48,12 @@ export interface RevenueConfig {
 
 export interface HeadcountInput {
   role: string;
+  type?: string; // employee | contractor | advisor (default employee)
   category: string;
   baseSalary: number; // monthly gross
   fte: number;
   startMonth: string; // "YYYY-MM"
+  endMonth?: string; // last active month "YYYY-MM"
 }
 
 export interface NonHeadcountInput {
@@ -53,6 +63,7 @@ export interface NonHeadcountInput {
   frequency: "monthly" | "annual" | "one_time";
   startMonth: string; // "YYYY-MM"
   endMonth?: string; // "YYYY-MM"
+  config?: CostModel | null; // optional flexible cost model
 }
 
 export interface ExpenseInput {
@@ -185,6 +196,153 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/** Whole months between two "YYYY-MM" strings (to - from); negative if to < from. */
+export function monthDiff(from: string, to: string): number {
+  const [fy, fm] = from.split("-").map(Number);
+  const [ty, tm] = to.split("-").map(Number);
+  return (ty - fy) * 12 + (tm - fm);
+}
+
+// ============================================================================
+// Flexible cost resolution
+// ============================================================================
+
+/**
+ * Per-month inputs available to revenue-/usage-linked cost models. Built by the
+ * engine after revenue and people costs for the month are known (costs can
+ * depend on revenue and headcount, never the reverse).
+ */
+export interface MonthContext {
+  date: string; // "YYYY-MM"
+  monthIndex: number;
+  inflationGrowth: number; // global inflation factor for the current year
+  mrr: { total: number; plg: number; sales: number; partners: number };
+  activeCustomers: {
+    total: number;
+    plg: number;
+    sales: number;
+    partners: number;
+  };
+  newCustomers: { total: number; plg: number; sales: number; partners: number };
+  people: {
+    totalFte: number;
+    totalCount: number;
+    fteByCategory: Record<string, number>;
+    countByCategory: Record<string, number>;
+  };
+}
+
+function mrrFor(ctx: MonthContext, base: RevenueBase): number {
+  switch (base) {
+    case "plg":
+      return ctx.mrr.plg;
+    case "sales":
+      return ctx.mrr.sales;
+    case "partners":
+      return ctx.mrr.partners;
+    default:
+      return ctx.mrr.total;
+  }
+}
+
+function customersFor(
+  pool: MonthContext["activeCustomers"],
+  base: RevenueBase
+): number {
+  switch (base) {
+    case "plg":
+      return pool.plg;
+    case "sales":
+      return pool.sales;
+    case "partners":
+      return pool.partners;
+    default:
+      return pool.total;
+  }
+}
+
+/** Latest step whose month is on/before `date`, if any. */
+function effectiveStep(steps: CostStep[] | undefined, date: string): CostStep | undefined {
+  if (!steps?.length) return undefined;
+  let best: CostStep | undefined;
+  for (const step of steps) {
+    if (step.month <= date && (!best || step.month > best.month)) best = step;
+  }
+  return best;
+}
+
+/**
+ * Resolve the cost of a single non-people expense for one month.
+ *
+ * Precedence: outside [start, end] -> 0; explicit per-month override; otherwise
+ * the selected method applied to the effective base (latest step, else amount).
+ * A null/absent config behaves exactly like the legacy fixed-amount path.
+ */
+export function resolveExpenseMonth(
+  expense: NonHeadcountInput,
+  ctx: MonthContext
+): number {
+  const { date } = ctx;
+  if (date < expense.startMonth) return 0;
+  if (expense.endMonth && date > expense.endMonth) return 0;
+
+  const model = parseCostModel(expense.config ?? null);
+
+  // 1. Explicit per-month override always wins.
+  const override = model?.overrides?.[date];
+  if (override != null) return override;
+
+  // 2. Effective base amount (scheduled step overrides the line amount).
+  const step = effectiveStep(model?.steps, date);
+  const base = step ? step.amount : expense.amount;
+
+  const method = model?.method ?? "fixed";
+
+  switch (method) {
+    case "growing": {
+      const m = model as Extract<CostModel, { method: "growing" }>;
+      const elapsed = Math.max(0, monthDiff(expense.startMonth, date));
+      const periods =
+        m.growthPeriod === "month" ? elapsed : Math.floor(elapsed / 12);
+      const r = m.growthRate / 100;
+      const factor =
+        m.growthMode === "linear" ? 1 + r * periods : Math.pow(1 + r, periods);
+      return base * factor;
+    }
+    case "percentOfRevenue": {
+      const m = model as Extract<CostModel, { method: "percentOfRevenue" }>;
+      return mrrFor(ctx, m.revenueBase) * (m.percent / 100);
+    }
+    case "perCustomer": {
+      const m = model as Extract<CostModel, { method: "perCustomer" }>;
+      const pool =
+        m.customerBasis === "new" ? ctx.newCustomers : ctx.activeCustomers;
+      return customersFor(pool, m.stream ?? "total") * m.amountPerUnit;
+    }
+    case "perEmployee": {
+      const m = model as Extract<CostModel, { method: "perEmployee" }>;
+      if (m.employeeBasis === "count") {
+        const count = m.employeeCategory
+          ? ctx.people.countByCategory[m.employeeCategory] ?? 0
+          : ctx.people.totalCount;
+        return count * m.amountPerUnit;
+      }
+      const fte = m.employeeCategory
+        ? ctx.people.fteByCategory[m.employeeCategory] ?? 0
+        : ctx.people.totalFte;
+      return fte * m.amountPerUnit;
+    }
+    case "fixed":
+    default: {
+      const adjusted = base * ctx.inflationGrowth;
+      if (expense.frequency === "annual") return adjusted / 12;
+      if (expense.frequency === "one_time")
+        return date === expense.startMonth ? adjusted : 0;
+      return adjusted; // monthly
+    }
+  }
+}
+
 // ============================================================================
 // Forecast Engine
 // ============================================================================
@@ -300,37 +458,66 @@ export function buildForecast(
       yearIndex
     );
 
+    // People costs (employees, contractors, advisors)
     let headcountExpense = 0;
     let gtmHeadcountExpense = 0;
+    let totalFte = 0;
+    let totalHeadcount = 0;
+    const fteByCategory: Record<string, number> = {};
+    const countByCategory: Record<string, number> = {};
     for (const person of expenses.headcount) {
-      if (date >= person.startMonth) {
-        const adjusted = person.baseSalary * salaryGrowth;
-        const withTax = adjusted * (1 + assumptions.salaryTaxRate / 100);
-        const cost = withTax * person.fte;
-        headcountExpense += cost;
-        if (person.category === "gtm") gtmHeadcountExpense += cost;
-      }
+      if (date < person.startMonth) continue;
+      if (person.endMonth && date > person.endMonth) continue;
+
+      const adjusted = person.baseSalary * salaryGrowth;
+      const taxed = personTypeHasEmployerTax(person.type ?? "employee")
+        ? adjusted * (1 + assumptions.salaryTaxRate / 100)
+        : adjusted;
+      const cost = taxed * person.fte;
+
+      headcountExpense += cost;
+      if (person.category === "gtm") gtmHeadcountExpense += cost;
+
+      totalFte += person.fte;
+      totalHeadcount += 1;
+      fteByCategory[person.category] =
+        (fteByCategory[person.category] ?? 0) + person.fte;
+      countByCategory[person.category] =
+        (countByCategory[person.category] ?? 0) + 1;
     }
 
+    // Context for revenue-/usage-linked non-people costs
+    const monthContext: MonthContext = {
+      date,
+      monthIndex: i,
+      inflationGrowth,
+      mrr: { total: totalMrr, plg: plgMrr, sales: salesMrr, partners: partnerMrr },
+      activeCustomers: {
+        total: totalCustomers,
+        plg: plgCustomers,
+        sales: salesCustomers,
+        partners: partnerCustomers,
+      },
+      newCustomers: {
+        total: newPlgCustomers + newSalesCustomers + newPartnerCustomers,
+        plg: newPlgCustomers,
+        sales: newSalesCustomers,
+        partners: newPartnerCustomers,
+      },
+      people: {
+        totalFte,
+        totalCount: totalHeadcount,
+        fteByCategory,
+        countByCategory,
+      },
+    };
+
+    // Non-people costs (flexible cost model; fixed-amount fallback)
     let nonHeadcountExpense = 0;
     let gtmNonHeadcountExpense = 0;
     for (const expense of expenses.nonHeadcount) {
-      if (date < expense.startMonth) continue;
-      if (expense.endMonth && date > expense.endMonth) continue;
-
-      const adjusted = expense.amount * inflationGrowth;
-      let monthCost = 0;
-
-      if (expense.frequency === "monthly") {
-        monthCost = adjusted;
-      } else if (expense.frequency === "annual") {
-        monthCost = adjusted / 12;
-      } else if (expense.frequency === "one_time") {
-        if (date === expense.startMonth) {
-          monthCost = adjusted;
-        }
-      }
-
+      const monthCost = resolveExpenseMonth(expense, monthContext);
+      if (monthCost === 0) continue;
       nonHeadcountExpense += monthCost;
       if (expense.category === "gtm") gtmNonHeadcountExpense += monthCost;
     }

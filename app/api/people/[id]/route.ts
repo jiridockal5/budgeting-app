@@ -10,16 +10,19 @@ const personUpdateSchema = z.object({
   planId: z.string().min(1),
   name: z.string().min(1),
   role: z.string().min(1),
+  type: z.enum(["employee", "contractor", "advisor"]).optional(),
   salary: z.number().positive(),
   category: expenseCategorySchema,
   fte: z.number().min(0).max(10),
   startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
 });
 
 function serializePerson(person: Person) {
   return {
     ...person,
     startDate: person.startDate ? person.startDate.toISOString() : null,
+    endDate: person.endDate ? person.endDate.toISOString() : null,
     createdAt: person.createdAt.toISOString(),
     updatedAt: person.updatedAt.toISOString(),
   };
@@ -64,10 +67,12 @@ export async function PUT(request: NextRequest, context: RouteParams) {
       data: {
         name: input.name,
         role: input.role,
+        type: input.type ?? "employee",
         salary: input.salary,
         category: input.category,
         fte: input.fte,
         startDate: input.startDate ? normalizeDate(input.startDate) : null,
+        endDate: input.endDate ? normalizeDate(input.endDate) : null,
       },
     });
 

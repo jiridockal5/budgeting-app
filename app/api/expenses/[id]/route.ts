@@ -4,6 +4,7 @@ import type { Expense } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
+import { costModelSchema } from "@/lib/schemas/costModel";
 import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
 import { getScopedPlan } from "@/lib/server/planScope";
 
@@ -24,6 +25,7 @@ const expenseUpdateSchema = z.object({
   frequency: frequencyEnum,
   startMonth: z.string().min(1),
   endMonth: z.string().optional().nullable(),
+  config: costModelSchema.optional().nullable(),
 });
 
 function serializeExpense(expense: Expense) {
@@ -33,6 +35,7 @@ function serializeExpense(expense: Expense) {
       expense.amount instanceof Prisma.Decimal
         ? expense.amount.toNumber()
         : Number(expense.amount),
+    config: expense.config ?? null,
     startMonth: expense.startMonth.toISOString(),
     endMonth: expense.endMonth ? expense.endMonth.toISOString() : null,
     createdAt: expense.createdAt.toISOString(),
@@ -83,6 +86,10 @@ export async function PUT(request: NextRequest, context: RouteParams) {
         frequency: input.frequency,
         startMonth: normalizeMonth(input.startMonth),
         endMonth: input.endMonth ? normalizeMonth(input.endMonth) : null,
+        config:
+          input.config === undefined
+            ? undefined
+            : input.config ?? Prisma.DbNull,
       },
     });
 
