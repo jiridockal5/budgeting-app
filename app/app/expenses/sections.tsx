@@ -549,6 +549,13 @@ export function NonHeadcountSection({
       else next.add(id);
       return next;
     });
+  const formMethod = form.config?.method ?? "fixed";
+  const canSubmitForm =
+    form.name.trim().length > 0 &&
+    (formMethod === "percentOfRevenue" ||
+      formMethod === "perCustomer" ||
+      formMethod === "perEmployee" ||
+      form.amount > 0);
   return (
     <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       {/* Section Header */}
@@ -874,7 +881,7 @@ export function NonHeadcountSection({
               <button
                 type="button"
                 onClick={onAdd}
-                disabled={!form.name.trim()}
+                disabled={!canSubmitForm}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Update
@@ -891,7 +898,7 @@ export function NonHeadcountSection({
             <button
               type="button"
               onClick={onAdd}
-              disabled={!form.name.trim()}
+              disabled={!canSubmitForm}
               className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="h-4 w-4 shrink-0" />

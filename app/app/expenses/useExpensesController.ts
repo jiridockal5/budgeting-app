@@ -121,6 +121,13 @@ function scaleRowPrimary(
   return { ...row, amount: round(row.amount * factor) };
 }
 
+function nonHeadcountNeedsBaseAmount(
+  row: Omit<NonHeadcountExpenseRow, "id">
+): boolean {
+  const method = row.config?.method ?? "fixed";
+  return method === "fixed" || method === "growing";
+}
+
 export function useExpensesController() {
   // ── Plan & loading state ──
   const [planId, setPlanId] = useState<string | null>(null);
@@ -361,8 +368,13 @@ export function useExpensesController() {
   // ── Non-headcount handlers ──
 
   const handleAddNonHeadcount = async () => {
-    if (!nonHeadcountForm.name.trim() || nonHeadcountForm.amount <= 0 || !planId)
+    if (!nonHeadcountForm.name.trim() || !planId) return;
+    if (
+      nonHeadcountNeedsBaseAmount(nonHeadcountForm) &&
+      nonHeadcountForm.amount <= 0
+    ) {
       return;
+    }
 
     try {
       if (editingNonHeadcountId) {
