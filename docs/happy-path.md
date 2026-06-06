@@ -69,7 +69,8 @@ From `config/navItems.ts` — typical exploration after the path above:
 
 - **Dashboard** `/app` — summary metrics, waterfall, expenses stack, onboarding checklist.  
 - **Assumptions** `/app/assumptions` — global model drivers.  
-- **Metrics** `/app/metrics` — deeper SaaS metrics (after core model exists).  
+- **Metrics** `/app/metrics/saas` — SaaS KPIs (growth, retention, unit economics, efficiency).  
+- **Financial Metrics** `/app/metrics/financial` — functional P&L (revenue, gross margin, OpEx, EBIT).  
 - **Revenue** `/app/revenue` — PLG / sales / partners.  
 - **Expenses** `/app/expenses` — headcount + non-headcount.  
 - **Runway** `/app/runway` — cash runway narrative.  

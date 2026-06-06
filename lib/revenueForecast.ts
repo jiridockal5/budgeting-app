@@ -8,7 +8,9 @@
 import {
   type CostModel,
   type CostStep,
+  type ExpenseCategory,
   type RevenueBase,
+  EXPENSE_CATEGORIES,
   parseCostModel,
   personTypeHasEmployerTax,
 } from "./expenses";
@@ -123,16 +125,33 @@ export interface ForecastMonth {
   existingCustomerCashIn: number;
   totalCashIn: number;
 
-  // Expenses by category
+  // Expenses by category (headcount + non-headcount combined)
   headcountExpense: number;
   nonHeadcountExpense: number;
+  cosExpense: number;
   gtmExpense: number;
+  rndExpense: number;
+  csExpense: number;
+  opsExpense: number;
   totalExpense: number;
+
+  // P&L (accrual, MRR basis)
+  grossProfit: number;
+  grossMarginPct: number;
+  operatingExpenses: number;
+  ebit: number;
+  ebitMarginPct: number;
 
   // Burn & Runway
   netBurn: number; // positive = burning cash
   cumulativeBurn: number;
   cashRemaining: number;
+}
+
+export interface NetNewArrMix {
+  newPct: number;
+  expansionPct: number;
+  churnPct: number;
 }
 
 export interface ForecastSummary {
@@ -142,6 +161,7 @@ export interface ForecastSummary {
   annualGrr: number;
   cac: number;
   cacPaybackMonths: number;
+  ltv: number;
   ltvCacRatio: number;
   monthlyBurn: number;
   burnMultiple: number;
@@ -150,6 +170,25 @@ export interface ForecastSummary {
   ruleOf40: number;
   cashOnHand: number;
   runwayMonths: number;
+  // SaaS metrics
+  mrrGrowthRate: number;
+  arrGrowthRate: number;
+  arpa: number;
+  quickRatio: number;
+  salesEfficiency: number;
+  magicNumber: number | null;
+  rndPctOfRevenue: number;
+  netNewArrMix: NetNewArrMix;
+  totalNewMrr: number;
+  totalExpansionMrr: number;
+  totalChurnedMrr: number;
+  // Financial / P&L (end of period)
+  grossProfit: number;
+  grossMarginPct: number;
+  ebit: number;
+  ebitMarginPct: number;
+  operatingExpenses: number;
+  expenseByCategory: Record<ExpenseCategory, number>;
 }
 
 export interface ForecastResult {
@@ -620,11 +659,17 @@ export function buildForecast(
 
     // People costs (employees, contractors, advisors)
     let headcountExpense = 0;
-    let gtmHeadcountExpense = 0;
     let totalFte = 0;
     let totalHeadcount = 0;
     const fteByCategory: Record<string, number> = {};
     const countByCategory: Record<string, number> = {};
+    const headcountByCategory: Record<ExpenseCategory, number> = {
+      cos: 0,
+      gtm: 0,
+      rnd: 0,
+      cs: 0,
+      ops: 0,
+    };
     for (const person of expenses.headcount) {
       if (date < person.startMonth) continue;
       if (person.endMonth && date > person.endMonth) continue;
@@ -636,7 +681,10 @@ export function buildForecast(
       const cost = taxed * person.fte;
 
       headcountExpense += cost;
-      if (person.category === "gtm") gtmHeadcountExpense += cost;
+      const cat = person.category as ExpenseCategory;
+      if (EXPENSE_CATEGORIES.includes(cat)) {
+        headcountByCategory[cat] += cost;
+      }
 
       totalFte += person.fte;
       totalHeadcount += 1;
@@ -674,17 +722,36 @@ export function buildForecast(
 
     // Non-people costs (flexible cost model; fixed-amount fallback)
     let nonHeadcountExpense = 0;
-    let gtmNonHeadcountExpense = 0;
+    const nonHeadcountByCategory: Record<ExpenseCategory, number> = {
+      cos: 0,
+      gtm: 0,
+      rnd: 0,
+      cs: 0,
+      ops: 0,
+    };
     for (const expense of expenses.nonHeadcount) {
       const monthCost = resolveExpenseMonth(expense, monthContext);
       if (monthCost === 0) continue;
       nonHeadcountExpense += monthCost;
-      if (expense.category === "gtm") gtmNonHeadcountExpense += monthCost;
+      const cat = expense.category as ExpenseCategory;
+      if (EXPENSE_CATEGORIES.includes(cat)) {
+        nonHeadcountByCategory[cat] += monthCost;
+      }
     }
 
-    const gtmExpense = gtmHeadcountExpense + gtmNonHeadcountExpense;
+    const cosExpense = headcountByCategory.cos + nonHeadcountByCategory.cos;
+    const gtmExpense = headcountByCategory.gtm + nonHeadcountByCategory.gtm;
+    const rndExpense = headcountByCategory.rnd + nonHeadcountByCategory.rnd;
+    const csExpense = headcountByCategory.cs + nonHeadcountByCategory.cs;
+    const opsExpense = headcountByCategory.ops + nonHeadcountByCategory.ops;
 
     const totalExpense = headcountExpense + nonHeadcountExpense;
+    const grossProfit = totalMrr - cosExpense;
+    const grossMarginPct =
+      totalMrr > 0 ? (grossProfit / totalMrr) * 100 : 0;
+    const operatingExpenses = gtmExpense + rndExpense + csExpense + opsExpense;
+    const ebit = grossProfit - operatingExpenses;
+    const ebitMarginPct = totalMrr > 0 ? (ebit / totalMrr) * 100 : 0;
     const netBurn = totalExpense - totalCashIn;
 
     let raiseInjection = 0;
@@ -723,8 +790,17 @@ export function buildForecast(
       totalCashIn: round2(totalCashIn),
       headcountExpense: round2(headcountExpense),
       nonHeadcountExpense: round2(nonHeadcountExpense),
+      cosExpense: round2(cosExpense),
       gtmExpense: round2(gtmExpense),
+      rndExpense: round2(rndExpense),
+      csExpense: round2(csExpense),
+      opsExpense: round2(opsExpense),
       totalExpense: round2(totalExpense),
+      grossProfit: round2(grossProfit),
+      grossMarginPct: round2(grossMarginPct),
+      operatingExpenses: round2(operatingExpenses),
+      ebit: round2(ebit),
+      ebitMarginPct: round2(ebitMarginPct),
       netBurn: round2(netBurn),
       cumulativeBurn: round2(cumulativeBurn),
       cashRemaining: round2(cashRemaining),
@@ -739,27 +815,53 @@ export function buildForecast(
 // Summary Metrics
 // ============================================================================
 
+function emptyExpenseByCategory(): Record<ExpenseCategory, number> {
+  return { cos: 0, gtm: 0, rnd: 0, cs: 0, ops: 0 };
+}
+
+function emptyForecastSummary(assumptions: AssumptionsInput): ForecastSummary {
+  return {
+    projectedArr: 0,
+    projectedMrr: 0,
+    annualNrr: 100,
+    annualGrr: 100,
+    cac: 0,
+    cacPaybackMonths: 0,
+    ltv: 0,
+    ltvCacRatio: 0,
+    monthlyBurn: 0,
+    burnMultiple: 0,
+    netNewArr: 0,
+    totalCustomers: 0,
+    ruleOf40: 0,
+    cashOnHand: assumptions.cashOnHand,
+    runwayMonths: assumptions.cashOnHand > 0 ? 999 : 0,
+    mrrGrowthRate: 0,
+    arrGrowthRate: 0,
+    arpa: 0,
+    quickRatio: 0,
+    salesEfficiency: 0,
+    magicNumber: null,
+    rndPctOfRevenue: 0,
+    netNewArrMix: { newPct: 0, expansionPct: 0, churnPct: 0 },
+    totalNewMrr: 0,
+    totalExpansionMrr: 0,
+    totalChurnedMrr: 0,
+    grossProfit: 0,
+    grossMarginPct: 0,
+    ebit: 0,
+    ebitMarginPct: 0,
+    operatingExpenses: 0,
+    expenseByCategory: emptyExpenseByCategory(),
+  };
+}
+
 export function computeSummary(
   months: ForecastMonth[],
   assumptions: AssumptionsInput
 ): ForecastSummary {
   if (months.length === 0) {
-    return {
-      projectedArr: 0,
-      projectedMrr: 0,
-      annualNrr: 100,
-      annualGrr: 100,
-      cac: 0,
-      cacPaybackMonths: 0,
-      ltvCacRatio: 0,
-      monthlyBurn: 0,
-      burnMultiple: 0,
-      netNewArr: 0,
-      totalCustomers: 0,
-      ruleOf40: 0,
-      cashOnHand: assumptions.cashOnHand,
-      runwayMonths: assumptions.cashOnHand > 0 ? Infinity : 0,
-    };
+    return emptyForecastSummary(assumptions);
   }
 
   const last = months[months.length - 1];
@@ -781,21 +883,18 @@ export function computeSummary(
   );
   const cac = totalNewCustomers > 0 ? totalGtmSpend / totalNewCustomers : 0;
 
-  // Average MRR per customer
-  const avgMrrPerCustomer =
+  // Average MRR per customer (ARPA)
+  const arpa =
     last.totalCustomers > 0
       ? last.totalMrr / last.totalCustomers
       : assumptions.baseAcv / 12;
 
   // CAC payback in months
-  const cacPayback =
-    avgMrrPerCustomer > 0 ? cac / avgMrrPerCustomer : 0;
+  const cacPayback = arpa > 0 ? cac / arpa : 0;
 
   // LTV = ARPA / monthly churn, then LTV / CAC
   const ltv =
-    monthlyChurn > 0
-      ? avgMrrPerCustomer / monthlyChurn
-      : avgMrrPerCustomer * 60;
+    monthlyChurn > 0 ? arpa / monthlyChurn : arpa * 60;
   const ltvCac = cac > 0 ? ltv / cac : 0;
 
   // Monthly burn (last month)
@@ -808,18 +907,80 @@ export function computeSummary(
   const annualBurn = Math.abs(monthlyBurn) * 12;
   const burnMultiple = netNewArr > 0 ? annualBurn / netNewArr : 0;
 
-  // Rule of 40: annualized MRR growth % + profit margin %
+  // MRR growth rate over the selected period
   const mrrGrowthRate =
     months.length > 1 && first.totalMrr > 0
       ? ((last.totalMrr - first.totalMrr) / first.totalMrr) * 100
       : last.totalMrr > 0
         ? 100
         : 0;
-  const profitMargin =
-    last.totalMrr > 0
-      ? ((last.totalMrr - last.totalExpense) / last.totalMrr) * 100
-      : -100;
-  const ruleOf40 = mrrGrowthRate + profitMargin;
+
+  // Annualized ARR growth rate
+  const arrGrowthRate =
+    months.length >= 12 && months[0].totalMrr > 0
+      ? ((months[11].totalMrr - months[0].totalMrr) / months[0].totalMrr) * 100
+      : months.length > 1 && first.totalMrr > 0
+        ? (Math.pow(last.totalMrr / first.totalMrr, 12 / months.length) - 1) *
+          100
+        : 0;
+
+  // Rule of 40: MRR growth % + EBIT margin %
+  const ebitMargin =
+    last.totalMrr > 0 ? (last.ebit / last.totalMrr) * 100 : -100;
+  const ruleOf40 = mrrGrowthRate + ebitMargin;
+
+  // Period MRR movement totals for mix and quick ratio
+  const totalNewMrr = months.reduce((sum, m) => sum + m.newMrr, 0);
+  const totalExpansionMrr = months.reduce((sum, m) => sum + m.expansionMrr, 0);
+  const totalChurnedMrr = months.reduce((sum, m) => sum + m.churnedMrr, 0);
+  const mixDenominator = totalNewMrr + totalExpansionMrr + totalChurnedMrr;
+  const netNewArrMix: NetNewArrMix =
+    mixDenominator > 0
+      ? {
+          newPct: (totalNewMrr / mixDenominator) * 100,
+          expansionPct: (totalExpansionMrr / mixDenominator) * 100,
+          churnPct: (totalChurnedMrr / mixDenominator) * 100,
+        }
+      : { newPct: 0, expansionPct: 0, churnPct: 0 };
+
+  const quickRatio =
+    totalChurnedMrr > 0
+      ? (totalNewMrr + totalExpansionMrr) / totalChurnedMrr
+      : totalNewMrr + totalExpansionMrr > 0
+        ? 999
+        : 0;
+
+  // Sales efficiency: GTM spend / net new ARR (over period)
+  const salesEfficiency =
+    netNewArr > 0 ? totalGtmSpend / netNewArr : 0;
+
+  // Magic number: net new ARR in last quarter / GTM spend in prior quarter
+  let magicNumber: number | null = null;
+  if (months.length >= 6) {
+    const q2StartIdx = Math.max(0, months.length - 3);
+    const q1EndIdx = q2StartIdx;
+    const q1StartIdx = Math.max(0, q1EndIdx - 3);
+    const q2StartArr =
+      q2StartIdx > 0 ? months[q2StartIdx - 1].totalArr : months[0].totalArr;
+    const q2NetNewArr = last.totalArr - q2StartArr;
+    const q1GtmSpend = months
+      .slice(q1StartIdx, q1EndIdx)
+      .reduce((sum, m) => sum + m.gtmExpense, 0);
+    if (q1GtmSpend > 0) {
+      magicNumber = q2NetNewArr / q1GtmSpend;
+    }
+  }
+
+  const rndPctOfRevenue =
+    last.totalMrr > 0 ? (last.rndExpense / last.totalMrr) * 100 : 0;
+
+  const expenseByCategory: Record<ExpenseCategory, number> = {
+    cos: last.cosExpense,
+    gtm: last.gtmExpense,
+    rnd: last.rndExpense,
+    cs: last.csExpense,
+    ops: last.opsExpense,
+  };
 
   const runwayIdx = months.findIndex((m) => m.cashRemaining <= 0);
   const runwayMonths =
@@ -836,6 +997,7 @@ export function computeSummary(
     annualGrr: round2(annualGrr),
     cac: round2(cac),
     cacPaybackMonths: round2(cacPayback),
+    ltv: round2(ltv),
     ltvCacRatio: round2(ltvCac),
     monthlyBurn: round2(monthlyBurn),
     burnMultiple: round2(Math.abs(burnMultiple)),
@@ -844,5 +1006,32 @@ export function computeSummary(
     ruleOf40: round2(ruleOf40),
     cashOnHand: assumptions.cashOnHand,
     runwayMonths: round2(runwayMonths === Infinity ? 999 : runwayMonths),
+    mrrGrowthRate: round2(mrrGrowthRate),
+    arrGrowthRate: round2(arrGrowthRate),
+    arpa: round2(arpa),
+    quickRatio: round2(quickRatio === 999 ? 999 : quickRatio),
+    salesEfficiency: round2(salesEfficiency),
+    magicNumber: magicNumber !== null ? round2(magicNumber) : null,
+    rndPctOfRevenue: round2(rndPctOfRevenue),
+    netNewArrMix: {
+      newPct: round2(netNewArrMix.newPct),
+      expansionPct: round2(netNewArrMix.expansionPct),
+      churnPct: round2(netNewArrMix.churnPct),
+    },
+    totalNewMrr: round2(totalNewMrr),
+    totalExpansionMrr: round2(totalExpansionMrr),
+    totalChurnedMrr: round2(totalChurnedMrr),
+    grossProfit: round2(last.grossProfit),
+    grossMarginPct: round2(last.grossMarginPct),
+    ebit: round2(last.ebit),
+    ebitMarginPct: round2(last.ebitMarginPct),
+    operatingExpenses: round2(last.operatingExpenses),
+    expenseByCategory: {
+      cos: round2(expenseByCategory.cos),
+      gtm: round2(expenseByCategory.gtm),
+      rnd: round2(expenseByCategory.rnd),
+      cs: round2(expenseByCategory.cs),
+      ops: round2(expenseByCategory.ops),
+    },
   };
 }

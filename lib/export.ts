@@ -23,9 +23,19 @@ export function exportForecastCSV(forecast: ForecastResult) {
     "Total Cash In",
     "Churned MRR",
     "Expansion MRR",
+    "COS Expense",
+    "GTM Expense",
+    "R&D Expense",
+    "CS Expense",
+    "Ops Expense",
     "Headcount Expense",
     "Non-Headcount Expense",
     "Total Expense",
+    "Gross Profit",
+    "Gross Margin %",
+    "Operating Expenses",
+    "EBIT",
+    "EBIT Margin %",
     "Net Burn",
     "Cumulative Burn",
     "Cash Remaining",
@@ -45,29 +55,51 @@ export function exportForecastCSV(forecast: ForecastResult) {
     m.totalCashIn.toFixed(2),
     m.churnedMrr.toFixed(2),
     m.expansionMrr.toFixed(2),
+    m.cosExpense.toFixed(2),
+    m.gtmExpense.toFixed(2),
+    m.rndExpense.toFixed(2),
+    m.csExpense.toFixed(2),
+    m.opsExpense.toFixed(2),
     m.headcountExpense.toFixed(2),
     m.nonHeadcountExpense.toFixed(2),
     m.totalExpense.toFixed(2),
+    m.grossProfit.toFixed(2),
+    m.grossMarginPct.toFixed(1),
+    m.operatingExpenses.toFixed(2),
+    m.ebit.toFixed(2),
+    m.ebitMarginPct.toFixed(1),
     m.netBurn.toFixed(2),
     m.cumulativeBurn.toFixed(2),
     m.cashRemaining.toFixed(2),
   ]);
 
+  const s = forecast.summary;
   const summaryRows = [
     [],
     ["Summary"],
-    ["Projected ARR", forecast.summary.projectedArr.toFixed(2)],
-    ["Projected MRR", forecast.summary.projectedMrr.toFixed(2)],
-    ["Net New ARR", forecast.summary.netNewArr.toFixed(2)],
-    ["NRR (annual)", `${forecast.summary.annualNrr.toFixed(1)}%`],
-    ["GRR (annual)", `${forecast.summary.annualGrr.toFixed(1)}%`],
-    ["CAC", forecast.summary.cac.toFixed(2)],
-    ["CAC Payback (months)", forecast.summary.cacPaybackMonths.toFixed(1)],
-    ["LTV/CAC", `${forecast.summary.ltvCacRatio.toFixed(1)}x`],
-    ["Monthly Burn", forecast.summary.monthlyBurn.toFixed(2)],
-    ["Burn Multiple", `${forecast.summary.burnMultiple.toFixed(1)}x`],
-    ["Rule of 40", `${forecast.summary.ruleOf40.toFixed(1)}%`],
-    ["Runway (months)", forecast.summary.runwayMonths >= 999 ? "∞" : forecast.summary.runwayMonths.toFixed(0)],
+    ["Projected ARR", s.projectedArr.toFixed(2)],
+    ["Projected MRR", s.projectedMrr.toFixed(2)],
+    ["Net New ARR", s.netNewArr.toFixed(2)],
+    ["MRR Growth Rate", `${s.mrrGrowthRate.toFixed(1)}%`],
+    ["ARR Growth (annualized)", `${s.arrGrowthRate.toFixed(1)}%`],
+    ["NRR (annual)", `${s.annualNrr.toFixed(1)}%`],
+    ["GRR (annual)", `${s.annualGrr.toFixed(1)}%`],
+    ["Quick Ratio", s.quickRatio >= 999 ? "∞" : `${s.quickRatio.toFixed(1)}x`],
+    ["CAC", s.cac.toFixed(2)],
+    ["CAC Payback (months)", s.cacPaybackMonths.toFixed(1)],
+    ["LTV", s.ltv.toFixed(2)],
+    ["LTV/CAC", `${s.ltvCacRatio.toFixed(1)}x`],
+    ["ARPA", s.arpa.toFixed(2)],
+    ["Sales Efficiency", s.salesEfficiency > 0 ? `${s.salesEfficiency.toFixed(2)}x` : "—"],
+    ["Magic Number", s.magicNumber !== null ? `${s.magicNumber.toFixed(2)}x` : "—"],
+    ["R&D % of Revenue", `${s.rndPctOfRevenue.toFixed(1)}%`],
+    ["Gross Margin", `${s.grossMarginPct.toFixed(1)}%`],
+    ["EBIT", s.ebit.toFixed(2)],
+    ["EBIT Margin", `${s.ebitMarginPct.toFixed(1)}%`],
+    ["Monthly Burn", s.monthlyBurn.toFixed(2)],
+    ["Burn Multiple", `${s.burnMultiple.toFixed(1)}x`],
+    ["Rule of 40", `${s.ruleOf40.toFixed(1)}%`],
+    ["Runway (months)", s.runwayMonths >= 999 ? "∞" : s.runwayMonths.toFixed(0)],
   ];
 
   const csv = [
@@ -121,7 +153,21 @@ export function exportSummaryPDF(forecast: ForecastResult) {
 <table>
 <tr><td>CAC</td><td class="value">${formatCompact(s.cac)}</td></tr>
 <tr><td>CAC Payback</td><td class="value">${s.cacPaybackMonths.toFixed(0)} months</td></tr>
+<tr><td>LTV</td><td class="value">${formatCompact(s.ltv)}</td></tr>
 <tr><td>LTV / CAC</td><td class="value">${s.ltvCacRatio.toFixed(1)}x</td></tr>
+<tr><td>ARPA</td><td class="value">${formatCompact(s.arpa)}</td></tr>
+<tr><td>Quick Ratio</td><td class="value">${s.quickRatio >= 999 ? "∞" : `${s.quickRatio.toFixed(1)}x`}</td></tr>
+</table>
+
+<h2>Financial P&L (End of Period)</h2>
+<table>
+<tr><td>Revenue (MRR)</td><td class="value">${last ? formatCompact(last.totalMrr) : "—"}</td></tr>
+<tr><td>Cost of Sales</td><td class="value">${last ? formatCompact(last.cosExpense) : "—"}</td></tr>
+<tr><td>Gross Profit</td><td class="value">${formatCompact(s.grossProfit)}</td></tr>
+<tr><td>Gross Margin</td><td class="value ${s.grossMarginPct >= 70 ? "highlight" : ""}">${s.grossMarginPct.toFixed(1)}%</td></tr>
+<tr><td>Operating Expenses</td><td class="value">${formatCompact(s.operatingExpenses)}</td></tr>
+<tr><td>EBIT</td><td class="value ${s.ebit >= 0 ? "highlight" : "warn"}">${formatCompact(s.ebit)}</td></tr>
+<tr><td>EBIT Margin</td><td class="value">${s.ebitMarginPct.toFixed(1)}%</td></tr>
 </table>
 
 <h2>Burn & Runway</h2>

@@ -58,6 +58,12 @@ function buildMetrics(summary: ForecastResult["summary"]) {
       helper: "Gross revenue retention. Excludes expansion; target > 90%.",
     },
     {
+      id: "gross-margin",
+      name: "Gross Margin",
+      value: formatPct(summary.grossMarginPct),
+      helper: "Revenue minus cost of sales. Tag COS expenses for accuracy.",
+    },
+    {
       id: "cac",
       name: "CAC",
       value: formatCompact(summary.cac),
@@ -85,7 +91,7 @@ function buildMetrics(summary: ForecastResult["summary"]) {
       id: "rule-of-40",
       name: "Rule of 40",
       value: formatPct(summary.ruleOf40),
-      helper: "Growth rate + profit margin. Target ≥ 40%.",
+      helper: "Growth rate + EBIT margin. Target ≥ 40%.",
     },
     {
       id: "net-new-arr",

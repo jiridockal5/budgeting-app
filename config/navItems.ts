@@ -26,7 +26,15 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard },
   { href: "/app/assumptions", label: "Assumptions", icon: Settings2 },
-  { href: "/app/metrics", label: "Metrics", icon: BarChart3 },
+  {
+    href: "/app/metrics",
+    label: "Metrics",
+    icon: BarChart3,
+    children: [
+      { href: "/app/metrics/saas", label: "SaaS Metrics" },
+      { href: "/app/metrics/financial", label: "Financial Metrics" },
+    ],
+  },
   { href: "/app/revenue", label: "Revenue", icon: TrendingUp },
   {
     href: "/app/expenses",

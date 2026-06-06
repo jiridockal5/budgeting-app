@@ -534,3 +534,85 @@ describe("buildForecast headcount scaling", () => {
     );
   });
 });
+
+describe("category expense rollups and P&L", () => {
+  it("rolls up all five expense categories and they sum to total expense", () => {
+    const expenses: ExpenseInput = {
+      headcount: [
+        { role: "Eng", category: "rnd", baseSalary: 5000, fte: 1, startMonth: "2025-01" },
+        { role: "AE", category: "gtm", baseSalary: 4000, fte: 1, startMonth: "2025-01" },
+      ],
+      nonHeadcount: [
+        { name: "Hosting", category: "cos", amount: 1000, frequency: "monthly", startMonth: "2025-01" },
+        { name: "Support", category: "cs", amount: 500, frequency: "monthly", startMonth: "2025-01" },
+        { name: "Office", category: "ops", amount: 300, frequency: "monthly", startMonth: "2025-01" },
+      ],
+    };
+    const result = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const m = result.months[0];
+    const categorySum =
+      m.cosExpense + m.gtmExpense + m.rndExpense + m.csExpense + m.opsExpense;
+    expect(categorySum).toBeCloseTo(m.totalExpense, 0);
+    expect(m.cosExpense).toBeGreaterThan(0);
+    expect(m.gtmExpense).toBeGreaterThan(0);
+    expect(m.rndExpense).toBeGreaterThan(0);
+  });
+
+  it("computes gross margin from COS-tagged expenses", () => {
+    const expenses: ExpenseInput = {
+      headcount: [],
+      nonHeadcount: [
+        { name: "Hosting", category: "cos", amount: 2000, frequency: "monthly", startMonth: "2025-01" },
+      ],
+    };
+    const result = buildForecast(3, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const last = result.months[2];
+    expect(last.totalMrr).toBeGreaterThan(0);
+    expect(last.grossProfit).toBeCloseTo(last.totalMrr - last.cosExpense, 2);
+    expect(last.grossMarginPct).toBeCloseTo(
+      (last.grossProfit / last.totalMrr) * 100,
+      1
+    );
+    expect(result.summary.grossMarginPct).toBeCloseTo(last.grossMarginPct, 1);
+  });
+
+  it("computes EBIT as gross profit minus operating expenses", () => {
+    const expenses: ExpenseInput = {
+      headcount: [
+        { role: "Eng", category: "rnd", baseSalary: 8000, fte: 1, startMonth: "2025-01" },
+        { role: "AE", category: "gtm", baseSalary: 6000, fte: 1, startMonth: "2025-01" },
+      ],
+      nonHeadcount: [
+        { name: "Hosting", category: "cos", amount: 1000, frequency: "monthly", startMonth: "2025-01" },
+      ],
+    };
+    const result = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const m = result.months[0];
+    const expectedOpEx = m.gtmExpense + m.rndExpense + m.csExpense + m.opsExpense;
+    expect(m.operatingExpenses).toBeCloseTo(expectedOpEx, 2);
+    expect(m.ebit).toBeCloseTo(m.grossProfit - m.operatingExpenses, 2);
+    expect(result.summary.ebit).toBeCloseTo(m.ebit, 2);
+  });
+
+  it("computes quick ratio and sales efficiency in summary", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      DEFAULT_REVENUE_CONFIG,
+      {
+        headcount: [
+          { role: "AE", category: "gtm", baseSalary: 5000, fte: 1, startMonth: "2025-01" },
+        ],
+        nonHeadcount: [],
+      },
+      defaultAssumptions
+    );
+    expect(result.summary.quickRatio).toBeGreaterThan(0);
+    expect(result.summary.ltv).toBeGreaterThan(0);
+    expect(result.summary.arpa).toBeGreaterThan(0);
+    if (result.summary.netNewArr > 0) {
+      expect(result.summary.salesEfficiency).toBeGreaterThan(0);
+    }
+    expect(result.summary.netNewArrMix.newPct).toBeGreaterThanOrEqual(0);
+  });
+});
