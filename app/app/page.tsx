@@ -115,7 +115,7 @@ function buildBurnChartData(months: ForecastMonth[]) {
     .filter((_, i) => i % step === 0 || i === months.length - 1)
     .map((m) => ({
       date: m.date,
-      revenue: Math.round(m.totalMrr),
+      revenue: Math.round(m.totalCashIn),
       expenses: Math.round(m.totalExpense),
       netBurn: Math.round(m.netBurn),
     }));
@@ -412,12 +412,12 @@ export default function DashboardPage() {
               />
               <ChartCard
                 title="Revenue vs. Expenses"
-                description="Model burn rate and path to profitability."
+                description="Model cash burn and path to profitability."
                 data={burnChartData}
                 series={[
                   {
                     dataKey: "revenue",
-                    name: "MRR",
+                    name: "Cash In",
                     color: "#10b981",
                   },
                   {

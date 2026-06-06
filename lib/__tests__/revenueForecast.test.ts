@@ -107,6 +107,30 @@ describe("buildForecast", () => {
     expect(result.months[0].plgMrr).toBe(7500);
   });
 
+  it("tracks customer cash in separately from recognized MRR", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 10,
+        trialConversionRate: 100,
+        avgAcv: 12000,
+        monthlyDealShare: 50,
+        monthlyArpa: 500,
+        churnRate: 0,
+        expansionRate: 0,
+      },
+      sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const assumptions = { ...defaultAssumptions, paymentTimingDays: 0 };
+
+    const result = buildForecast(2, "2025-01", revenue, emptyExpenses, assumptions);
+
+    expect(result.months[0].totalMrr).toBe(7500);
+    expect(result.months[0].newCustomerCashIn).toBe(62500);
+    expect(result.months[0].existingCustomerCashIn).toBe(0);
+    expect(result.months[1].existingCustomerCashIn).toBe(2500);
+  });
+
   it("expenses are calculated correctly", () => {
     const expenses: ExpenseInput = {
       headcount: [

@@ -18,6 +18,9 @@ export function exportForecastCSV(forecast: ForecastResult) {
     "Partner MRR",
     "Total Customers",
     "New MRR",
+    "New Customer Cash In",
+    "Existing Customer Cash In",
+    "Total Cash In",
     "Churned MRR",
     "Expansion MRR",
     "Headcount Expense",
@@ -37,6 +40,9 @@ export function exportForecastCSV(forecast: ForecastResult) {
     m.partnerMrr.toFixed(2),
     m.totalCustomers,
     m.newMrr.toFixed(2),
+    m.newCustomerCashIn.toFixed(2),
+    m.existingCustomerCashIn.toFixed(2),
+    m.totalCashIn.toFixed(2),
     m.churnedMrr.toFixed(2),
     m.expansionMrr.toFixed(2),
     m.headcountExpense.toFixed(2),
@@ -121,10 +127,17 @@ export function exportSummaryPDF(forecast: ForecastResult) {
 <h2>Burn & Runway</h2>
 <table>
 <tr><td>Cash on Hand</td><td class="value">${formatCompact(s.cashOnHand)}</td></tr>
-<tr><td>Monthly Burn</td><td class="value ${s.monthlyBurn > 0 ? "warn" : "highlight"}">${formatCompact(s.monthlyBurn)}</td></tr>
+<tr><td>Monthly Burn (cash basis)</td><td class="value ${s.monthlyBurn > 0 ? "warn" : "highlight"}">${formatCompact(s.monthlyBurn)}</td></tr>
 <tr><td>Burn Multiple</td><td class="value">${s.burnMultiple.toFixed(1)}x</td></tr>
 <tr><td>Rule of 40</td><td class="value ${s.ruleOf40 >= 40 ? "highlight" : ""}">${s.ruleOf40.toFixed(1)}%</td></tr>
 <tr><td>Runway</td><td class="value ${s.runwayMonths <= 12 && s.runwayMonths < 999 ? "warn" : "highlight"}">${runway}</td></tr>
+</table>
+
+<h2>Cash In (End of Period Month)</h2>
+<table>
+<tr><td>New Customer Cash In</td><td class="value">${last ? formatCompact(last.newCustomerCashIn) : "—"}</td></tr>
+<tr><td>Existing Customer Cash In</td><td class="value">${last ? formatCompact(last.existingCustomerCashIn) : "—"}</td></tr>
+<tr><td>Total Cash In</td><td class="value">${last ? formatCompact(last.totalCashIn) : "—"}</td></tr>
 </table>
 
 <h2>Revenue by Channel (End of Period)</h2>

@@ -119,6 +119,9 @@ export interface ForecastMonth {
   churnedMrr: number;
   expansionMrr: number;
   newMrr: number;
+  newCustomerCashIn: number;
+  existingCustomerCashIn: number;
+  totalCashIn: number;
 
   // Expenses by category
   headcountExpense: number;
@@ -208,16 +211,133 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-function blendedMonthlyRevenuePerCustomer(config: {
+type BillingMixConfig = {
   avgAcv: number;
   monthlyDealShare?: number;
   monthlyArpa?: number;
-}): number {
-  const monthlyShare = Math.min(Math.max(config.monthlyDealShare ?? 0, 0), 100) / 100;
-  const yearlyShare = 1 - monthlyShare;
+};
+
+type YearlyRevenueCohort = {
+  startIndex: number;
+  customers: number;
+  mrr: number;
+};
+
+type RevenueStreamState = {
+  monthlyCustomers: number;
+  yearlyCustomers: number;
+  monthlyMrr: number;
+  yearlyMrr: number;
+  yearlyCohorts: YearlyRevenueCohort[];
+};
+
+function emptyRevenueStreamState(): RevenueStreamState {
+  return {
+    monthlyCustomers: 0,
+    yearlyCustomers: 0,
+    monthlyMrr: 0,
+    yearlyMrr: 0,
+    yearlyCohorts: [],
+  };
+}
+
+function totalStreamCustomers(state: RevenueStreamState): number {
+  return state.monthlyCustomers + state.yearlyCustomers;
+}
+
+function totalStreamMrr(state: RevenueStreamState): number {
+  return state.monthlyMrr + state.yearlyMrr;
+}
+
+function splitNewCustomers(
+  newCustomers: number,
+  config: BillingMixConfig,
+  netRevenueFactor = 1
+) {
+  const monthlyShare =
+    Math.min(Math.max(config.monthlyDealShare ?? 0, 0), 100) / 100;
+  const monthlyCustomers = newCustomers * monthlyShare;
+  const yearlyCustomers = newCustomers - monthlyCustomers;
+  const monthlyArpa = config.monthlyArpa ?? config.avgAcv / 12;
   const yearlyMrr = config.avgAcv / 12;
-  const monthlyMrr = config.monthlyArpa ?? yearlyMrr;
-  return monthlyShare * monthlyMrr + yearlyShare * yearlyMrr;
+
+  return {
+    monthlyCustomers,
+    yearlyCustomers,
+    monthlyMrr: monthlyCustomers * monthlyArpa * netRevenueFactor,
+    yearlyMrr: yearlyCustomers * yearlyMrr * netRevenueFactor,
+    monthlyCash: monthlyCustomers * monthlyArpa * netRevenueFactor,
+    yearlyCash: yearlyCustomers * config.avgAcv * netRevenueFactor,
+  };
+}
+
+function advanceExistingRevenue(
+  state: RevenueStreamState,
+  monthIndex: number,
+  churnRate: number,
+  expansionRate: number
+) {
+  const totalCustomersBefore = totalStreamCustomers(state);
+  const totalMrrBefore = totalStreamMrr(state);
+  const churnedCustomers =
+    totalCustomersBefore > 0
+      ? Math.round(totalCustomersBefore * (churnRate / 100))
+      : 0;
+  const customerFactor =
+    totalCustomersBefore > 0
+      ? Math.max(0, (totalCustomersBefore - churnedCustomers) / totalCustomersBefore)
+      : 1;
+  const mrrFactor = Math.max(0, 1 - churnRate / 100 + expansionRate / 100);
+
+  state.monthlyCustomers *= customerFactor;
+  state.yearlyCustomers *= customerFactor;
+  state.monthlyMrr *= mrrFactor;
+  state.yearlyMrr *= mrrFactor;
+  state.yearlyCohorts = state.yearlyCohorts
+    .map((cohort) => ({
+      ...cohort,
+      customers: cohort.customers * customerFactor,
+      mrr: cohort.mrr * mrrFactor,
+    }))
+    .filter((cohort) => cohort.customers > 0 && cohort.mrr > 0);
+
+  const yearlyRenewalCash = state.yearlyCohorts.reduce((sum, cohort) => {
+    const ageMonths = monthIndex - cohort.startIndex;
+    if (ageMonths > 0 && ageMonths % 12 === 0) return sum + cohort.mrr * 12;
+    return sum;
+  }, 0);
+
+  return {
+    churnedCustomers,
+    churnedMrr: totalMrrBefore * (churnRate / 100),
+    expansionMrr: totalMrrBefore * (expansionRate / 100),
+    existingCash: state.monthlyMrr + yearlyRenewalCash,
+  };
+}
+
+function addNewRevenue(
+  state: RevenueStreamState,
+  monthIndex: number,
+  newCustomers: number,
+  config: BillingMixConfig,
+  netRevenueFactor = 1
+) {
+  const split = splitNewCustomers(newCustomers, config, netRevenueFactor);
+  state.monthlyCustomers += split.monthlyCustomers;
+  state.yearlyCustomers += split.yearlyCustomers;
+  state.monthlyMrr += split.monthlyMrr;
+  state.yearlyMrr += split.yearlyMrr;
+  if (split.yearlyCustomers > 0 && split.yearlyMrr > 0) {
+    state.yearlyCohorts.push({
+      startIndex: monthIndex,
+      customers: split.yearlyCustomers,
+      mrr: split.yearlyMrr,
+    });
+  }
+  return {
+    newMrr: split.monthlyMrr + split.yearlyMrr,
+    newCash: split.monthlyCash + split.yearlyCash,
+  };
 }
 
 /** Whole months between two "YYYY-MM" strings (to - from); negative if to < from. */
@@ -392,16 +512,19 @@ export function buildForecast(
 
   // TODO: Apply minCashBuffer and targetRunwayMonths to summary recommendations
   // (suggested raise needed, cash-out warnings).
-  // TODO: Apply paymentTimingDays and priceUplift to cash collection timing and pricing.
+  // TODO: Apply priceUplift to pricing.
   // TODO: Use commissionRate as a default for incentive-based roles when role-level logic exists.
 
-  let plgCustomers = 0;
-  let salesCustomers = 0;
-  let partnerCustomers = 0;
-  let plgMrr = 0;
-  let salesMrr = 0;
-  let partnerMrr = 0;
+  const plgState = emptyRevenueStreamState();
+  const salesState = emptyRevenueStreamState();
+  const partnerState = emptyRevenueStreamState();
   let cumulativeBurn = 0;
+  const collectionLagMonths = Math.max(
+    0,
+    Math.round(assumptions.paymentTimingDays / 30)
+  );
+  const pendingNewCustomerCash: number[] = Array(numMonths).fill(0);
+  const pendingExistingCustomerCash: number[] = Array(numMonths).fill(0);
 
   for (let i = 0; i < numMonths; i++) {
     const date = addMonths(startMonth, i);
@@ -417,61 +540,72 @@ export function buildForecast(
       revenue.partners.monthlyReferrals * (revenue.partners.closeRate / 100)
     );
 
-    // ── New MRR from new customers ──
-    const newPlgMrr =
-      newPlgCustomers * blendedMonthlyRevenuePerCustomer(revenue.plg);
-    const newSalesMrr =
-      newSalesCustomers * blendedMonthlyRevenuePerCustomer(revenue.sales);
-    const newPartnerMrr =
-      newPartnerCustomers *
-      blendedMonthlyRevenuePerCustomer(revenue.partners) *
-      (1 - revenue.partners.commissionRate / 100);
-
-    // ── Churn on existing MRR ──
-    const plgChurn = plgMrr * (revenue.plg.churnRate / 100);
-    const salesChurn = salesMrr * (revenue.sales.churnRate / 100);
-    const partnerChurn = partnerMrr * (assumptions.churnRate / 100);
-
-    // ── Expansion on existing MRR ──
-    const plgExpansion = plgMrr * (revenue.plg.expansionRate / 100);
-    const salesExpansion = salesMrr * (revenue.sales.expansionRate / 100);
-
-    // ── Update MRR ──
-    plgMrr = Math.max(0, plgMrr - plgChurn + plgExpansion + newPlgMrr);
-    salesMrr = Math.max(0, salesMrr - salesChurn + salesExpansion + newSalesMrr);
-    partnerMrr = Math.max(0, partnerMrr - partnerChurn + newPartnerMrr);
-
-    // ── Update customer counts ──
-    const plgChurnedCust =
-      plgCustomers > 0
-        ? Math.round(plgCustomers * (revenue.plg.churnRate / 100))
-        : 0;
-    const salesChurnedCust =
-      salesCustomers > 0
-        ? Math.round(salesCustomers * (revenue.sales.churnRate / 100))
-        : 0;
-    const partnerChurnedCust =
-      partnerCustomers > 0
-        ? Math.round(partnerCustomers * (assumptions.churnRate / 100))
-        : 0;
-
-    plgCustomers = Math.max(0, plgCustomers + newPlgCustomers - plgChurnedCust);
-    salesCustomers = Math.max(
-      0,
-      salesCustomers + newSalesCustomers - salesChurnedCust
+    // ── Existing revenue, churn, expansion, and cash collection ──
+    const plgExisting = advanceExistingRevenue(
+      plgState,
+      i,
+      revenue.plg.churnRate,
+      revenue.plg.expansionRate
     );
-    partnerCustomers = Math.max(
-      0,
-      partnerCustomers + newPartnerCustomers - partnerChurnedCust
+    const salesExisting = advanceExistingRevenue(
+      salesState,
+      i,
+      revenue.sales.churnRate,
+      revenue.sales.expansionRate
+    );
+    const partnerExisting = advanceExistingRevenue(
+      partnerState,
+      i,
+      assumptions.churnRate,
+      0
     );
 
+    // ── New MRR and cash from new customers ──
+    const newPlg = addNewRevenue(plgState, i, newPlgCustomers, revenue.plg);
+    const newSales = addNewRevenue(
+      salesState,
+      i,
+      newSalesCustomers,
+      revenue.sales
+    );
+    const newPartner = addNewRevenue(
+      partnerState,
+      i,
+      newPartnerCustomers,
+      revenue.partners,
+      1 - revenue.partners.commissionRate / 100
+    );
+
+    const cashCollectionMonth = i + collectionLagMonths;
+    if (cashCollectionMonth < numMonths) {
+      pendingNewCustomerCash[cashCollectionMonth] +=
+        newPlg.newCash + newSales.newCash + newPartner.newCash;
+      pendingExistingCustomerCash[cashCollectionMonth] +=
+        plgExisting.existingCash +
+        salesExisting.existingCash +
+        partnerExisting.existingCash;
+    }
+
+    const plgMrr = totalStreamMrr(plgState);
+    const salesMrr = totalStreamMrr(salesState);
+    const partnerMrr = totalStreamMrr(partnerState);
+    const plgCustomers = Math.round(totalStreamCustomers(plgState));
+    const salesCustomers = Math.round(totalStreamCustomers(salesState));
+    const partnerCustomers = Math.round(totalStreamCustomers(partnerState));
     const totalMrr = plgMrr + salesMrr + partnerMrr;
     const totalArr = totalMrr * 12;
     const totalCustomers = plgCustomers + salesCustomers + partnerCustomers;
 
-    const churnedMrr = plgChurn + salesChurn + partnerChurn;
-    const expansionMrr = plgExpansion + salesExpansion;
-    const newMrr = newPlgMrr + newSalesMrr + newPartnerMrr;
+    const churnedMrr =
+      plgExisting.churnedMrr +
+      salesExisting.churnedMrr +
+      partnerExisting.churnedMrr;
+    const expansionMrr =
+      plgExisting.expansionMrr + salesExisting.expansionMrr;
+    const newMrr = newPlg.newMrr + newSales.newMrr + newPartner.newMrr;
+    const newCustomerCashIn = pendingNewCustomerCash[i] ?? 0;
+    const existingCustomerCashIn = pendingExistingCustomerCash[i] ?? 0;
+    const totalCashIn = newCustomerCashIn + existingCustomerCashIn;
 
     // ── Expenses ──
     const yearIndex = Math.floor(i / 12);
@@ -551,7 +685,7 @@ export function buildForecast(
     const gtmExpense = gtmHeadcountExpense + gtmNonHeadcountExpense;
 
     const totalExpense = headcountExpense + nonHeadcountExpense;
-    const netBurn = totalExpense - totalMrr;
+    const netBurn = totalExpense - totalCashIn;
 
     let raiseInjection = 0;
     if (
@@ -584,6 +718,9 @@ export function buildForecast(
       churnedMrr: round2(churnedMrr),
       expansionMrr: round2(expansionMrr),
       newMrr: round2(newMrr),
+      newCustomerCashIn: round2(newCustomerCashIn),
+      existingCustomerCashIn: round2(existingCustomerCashIn),
+      totalCashIn: round2(totalCashIn),
       headcountExpense: round2(headcountExpense),
       nonHeadcountExpense: round2(nonHeadcountExpense),
       gtmExpense: round2(gtmExpense),

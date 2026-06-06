@@ -253,6 +253,30 @@ export default function MetricsPage() {
                 />
               </MetricSection>
 
+              {/* ── Cash In ── */}
+              <MetricSection
+                title="Cash In"
+                icon={<DollarSign className="h-5 w-5 text-emerald-600" />}
+                iconBg="bg-emerald-50"
+              >
+                <MetricRow
+                  label="Cash collected (end of period month)"
+                  value={formatCompact(last.totalCashIn)}
+                />
+                <MetricRow
+                  label="From new customers"
+                  value={formatCompact(last.newCustomerCashIn)}
+                />
+                <MetricRow
+                  label="From existing customers & renewals"
+                  value={formatCompact(last.existingCustomerCashIn)}
+                />
+                <MetricRow
+                  label="Recognized MRR (same month)"
+                  value={formatCompact(last.totalMrr)}
+                />
+              </MetricSection>
+
               {/* ── Revenue by Channel ── */}
               <MetricSection
                 title="Revenue by Channel"
@@ -334,7 +358,7 @@ export default function MetricsPage() {
                 />
                 <div className="border-t border-slate-100 my-2" />
                 <MetricRow
-                  label="Monthly Net Burn"
+                  label="Monthly Net Burn (cash basis)"
                   value={formatCompact(summary.monthlyBurn)}
                   negative={summary.monthlyBurn > 0}
                 />
@@ -450,6 +474,15 @@ function MonthlyForecastTable({ months }: { months: ForecastMonth[] }) {
                 ARR
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                New Cash
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Existing Cash
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Cash In
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Customers
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -471,6 +504,15 @@ function MonthlyForecastTable({ months }: { months: ForecastMonth[] }) {
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-slate-700 tabular-nums">
                   {formatCompact(m.totalArr)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-slate-700 tabular-nums">
+                  {formatCompact(m.newCustomerCashIn)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-slate-700 tabular-nums">
+                  {formatCompact(m.existingCustomerCashIn)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-right font-medium text-emerald-700 tabular-nums">
+                  {formatCompact(m.totalCashIn)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-slate-700 tabular-nums">
                   {m.totalCustomers}

@@ -97,7 +97,7 @@ export default function RunwayPage() {
       date: m.date,
       cash: Math.round(Math.max(0, m.cashRemaining)),
       expenses: Math.round(m.totalExpense),
-      revenue: Math.round(m.totalMrr),
+      revenue: Math.round(m.totalCashIn),
     }));
 
   return (
@@ -219,11 +219,11 @@ export default function RunwayPage() {
           {/* Cash over time chart */}
           <ChartCard
             title="Cash Balance Over Time"
-            description="Projected cash remaining based on your current forecast."
+            description="Projected cash remaining based on collected cash and expenses."
             data={cashChartData}
             series={[
               { dataKey: "cash", name: "Cash Remaining", color: "#6366f1" },
-              { dataKey: "revenue", name: "Monthly Revenue", color: "#10b981" },
+              { dataKey: "revenue", name: "Cash In", color: "#10b981" },
               { dataKey: "expenses", name: "Monthly Expenses", color: "#ef4444" },
             ]}
           />
