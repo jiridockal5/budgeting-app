@@ -6,18 +6,23 @@ import { useState } from "react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { navItems } from "@/config/navItems";
 
-export function Sidebar() {
-  const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
+function isPathActive(pathname: string, href: string) {
+  if (href === "/app") {
+    return pathname === "/app";
+  }
+  return pathname.startsWith(href);
+}
 
-  const isActive = (href: string) => {
-    if (href === "/app") {
-      return pathname === "/app";
-    }
-    return pathname.startsWith(href);
-  };
+function NavContent({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string;
+  onNavigate: () => void;
+}) {
+  const isActive = (href: string) => isPathActive(pathname, href);
 
-  const NavContent = () => (
+  return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 px-4 pb-4 pt-6">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-700">
@@ -31,34 +36,70 @@ export function Sidebar() {
 
       <nav className="mt-1 flex-1 space-y-1 px-3">
         {navItems.map((item) => {
-          const active = isActive(item.href);
+          const childActive =
+            item.children?.some((child) => isActive(child.href)) ?? false;
+          const active = isActive(item.href) || childActive;
+          const expanded = active && Boolean(item.children?.length);
           const Icon = item.icon;
 
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                active
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              {active && (
-                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-indigo-500" />
-              )}
-              <Icon
-                className={`h-4 w-4 ${
-                  active ? "text-slate-900" : "text-slate-500 group-hover:text-slate-600"
+            <div key={item.href}>
+              <Link
+                href={item.href}
+                onClick={onNavigate}
+                aria-expanded={item.children?.length ? expanded : undefined}
+                className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  active
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100"
                 }`}
-              />
-              <span>{item.label}</span>
+              >
+                {active && (
+                  <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-indigo-500" />
+                )}
+                {Icon && (
+                  <Icon
+                    className={`h-4 w-4 ${
+                      active
+                        ? "text-slate-900"
+                        : "text-slate-500 group-hover:text-slate-600"
+                    }`}
+                  />
+                )}
+                <span>{item.label}</span>
 
-              {active && (
-                <ChevronRight className="ml-auto h-4 w-4 text-indigo-400" />
+                {active && (
+                  <ChevronRight className="ml-auto h-4 w-4 text-indigo-400" />
+                )}
+              </Link>
+
+              {expanded && item.children && (
+                <div className="mt-1 space-y-1">
+                  {item.children.map((child) => {
+                    const childIsActive = isActive(child.href);
+
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={onNavigate}
+                        aria-current={childIsActive ? "page" : undefined}
+                        className={`group relative flex items-center rounded-lg py-2 pl-9 pr-3 text-sm font-medium transition ${
+                          childIsActive
+                            ? "bg-white text-slate-900 shadow-sm"
+                            : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                        }`}
+                      >
+                        {childIsActive && (
+                          <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-indigo-500" />
+                        )}
+                        <span>{child.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               )}
-            </Link>
+            </div>
           );
         })}
       </nav>
@@ -73,6 +114,13 @@ export function Sidebar() {
       </div>
     </div>
   );
+}
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const closeMobileMenu = () => setMobileOpen(false);
 
   return (
     <>
@@ -106,12 +154,12 @@ export function Sidebar() {
         >
           <X className="h-5 w-5" />
         </button>
-        <NavContent />
+        <NavContent pathname={pathname} onNavigate={closeMobileMenu} />
       </aside>
 
       {/* Desktop sidebar */}
       <aside className="hidden h-screen w-64 flex-shrink-0 flex-col border-r border-slate-200 bg-slate-50 lg:flex">
-        <NavContent />
+        <NavContent pathname={pathname} onNavigate={closeMobileMenu} />
       </aside>
     </>
   );

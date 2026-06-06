@@ -15,7 +15,8 @@ import {
 export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  children?: NavItem[];
 }
 
 /**
@@ -27,7 +28,15 @@ export const navItems: NavItem[] = [
   { href: "/app/assumptions", label: "Assumptions", icon: Settings2 },
   { href: "/app/metrics", label: "Metrics", icon: BarChart3 },
   { href: "/app/revenue", label: "Revenue", icon: TrendingUp },
-  { href: "/app/expenses", label: "Expenses", icon: TrendingDown },
+  {
+    href: "/app/expenses",
+    label: "Expenses",
+    icon: TrendingDown,
+    children: [
+      { href: "/app/expenses/people", label: "People Costs" },
+      { href: "/app/expenses/non-people", label: "Non-People Costs" },
+    ],
+  },
   { href: "/app/actuals", label: "Actuals", icon: ClipboardCheck },
   { href: "/app/scenarios", label: "Scenarios", icon: GitCompareArrows },
   { href: "/app/runway", label: "Runway", icon: Timer },
