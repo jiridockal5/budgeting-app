@@ -5,9 +5,8 @@ import Link from "next/link";
 import { ArrowRight, Banknote, AlertTriangle, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
-import { ChartCard } from "@/components/dashboard/ChartCard";
 import { formatCurrency } from "@/lib/assumptions";
-import type { ForecastResult } from "@/lib/revenueForecast";
+import type { ForecastMonth, ForecastResult } from "@/lib/revenueForecast";
 
 function formatCompact(value: number): string {
   if (Math.abs(value) >= 1_000_000)
@@ -83,22 +82,6 @@ export default function RunwayPage() {
       : runwayMonths > 12
         ? "border-amber-200 bg-amber-50"
         : "border-red-200 bg-red-50";
-
-  const cashChartData = months
-    .filter(
-      (_, i) =>
-        i %
-          (months.length > 24
-            ? Math.ceil(months.length / 24)
-            : 1) ===
-          0 || i === months.length - 1
-    )
-    .map((m) => ({
-      date: m.date,
-      cash: Math.round(Math.max(0, m.cashRemaining)),
-      expenses: Math.round(m.totalExpense),
-      revenue: Math.round(m.totalCashIn),
-    }));
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -216,17 +199,7 @@ export default function RunwayPage() {
             </div>
           )}
 
-          {/* Cash over time chart */}
-          <ChartCard
-            title="Cash Balance Over Time"
-            description="Projected cash remaining based on collected cash and expenses."
-            data={cashChartData}
-            series={[
-              { dataKey: "cash", name: "Cash Remaining", color: "#6366f1" },
-              { dataKey: "revenue", name: "Cash In", color: "#10b981" },
-              { dataKey: "expenses", name: "Monthly Expenses", color: "#ef4444" },
-            ]}
-          />
+          <MonthlyCashflowTable months={months} />
 
           {cashOnHand === 0 && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
@@ -250,6 +223,73 @@ export default function RunwayPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="border-b border-slate-200 bg-slate-50/50 px-6 py-4">
+        <h2 className="text-lg font-semibold text-slate-900">
+          Monthly Cashflow
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Cash inflows, outflows, burn, and ending cash balance by month.
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Month
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Cash inflows
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Cash outflows
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Cash burn
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Cash balance
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 bg-white">
+            {months.map((month) => {
+              const cashBurn = month.totalCashIn - month.totalExpense;
+              return (
+                <tr key={month.date} className="hover:bg-slate-50/60">
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">
+                    {month.date}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-700 tabular-nums">
+                    {formatCurrency(month.totalCashIn)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-700 tabular-nums">
+                    {formatCurrency(month.totalExpense)}
+                  </td>
+                  <td
+                    className={`whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums ${
+                      cashBurn >= 0 ? "text-emerald-600" : "text-rose-600"
+                    }`}
+                  >
+                    {cashBurn >= 0 ? "+" : "-"}
+                    {formatCurrency(Math.abs(cashBurn))}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-900 tabular-nums">
+                    {formatCurrency(month.cashRemaining)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
