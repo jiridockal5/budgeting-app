@@ -227,6 +227,11 @@ export default function RunwayPage() {
 }
 
 function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
+  const firstMonth = months[0];
+  const startingCash = firstMonth
+    ? firstMonth.cashRemaining + firstMonth.totalExpense - firstMonth.totalCashIn
+    : 0;
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="border-b border-slate-200 bg-slate-50/50 px-6 py-4">
@@ -259,6 +264,25 @@ function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 bg-white">
+            {firstMonth && (
+              <tr className="bg-slate-50/70">
+                <td className="whitespace-nowrap px-4 py-3 text-sm font-semibold text-slate-900">
+                  Starting balance
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-500 tabular-nums">
+                  {formatCurrency(0)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-500 tabular-nums">
+                  {formatCurrency(0)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-500 tabular-nums">
+                  {formatCurrency(0)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-900 tabular-nums">
+                  {formatCurrency(startingCash)}
+                </td>
+              </tr>
+            )}
             {months.map((month) => {
               const cashBurn = month.totalCashIn - month.totalExpense;
               return (
