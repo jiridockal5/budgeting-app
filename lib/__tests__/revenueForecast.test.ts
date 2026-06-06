@@ -86,6 +86,27 @@ describe("buildForecast", () => {
     );
   });
 
+  it("blends monthly and yearly deal revenue", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 10,
+        trialConversionRate: 100,
+        avgAcv: 12000,
+        monthlyDealShare: 50,
+        monthlyArpa: 500,
+        churnRate: 0,
+        expansionRate: 0,
+      },
+      sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+
+    const result = buildForecast(1, "2025-01", revenue, emptyExpenses, defaultAssumptions);
+
+    // 10 customers: half monthly at €500 MRR, half yearly at €12k ACV / 12 = €1k MRR.
+    expect(result.months[0].plgMrr).toBe(7500);
+  });
+
   it("expenses are calculated correctly", () => {
     const expenses: ExpenseInput = {
       headcount: [

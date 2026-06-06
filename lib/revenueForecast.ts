@@ -21,6 +21,8 @@ export interface PlgConfig {
   monthlyTrials: number;
   trialConversionRate: number; // percentage (8 = 8%)
   avgAcv: number; // annual contract value
+  monthlyDealShare?: number; // percentage of new customers on monthly billing
+  monthlyArpa?: number; // monthly revenue per monthly-billed customer
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
 }
@@ -29,6 +31,8 @@ export interface SalesConfig {
   monthlySqls: number;
   closeRate: number; // percentage
   avgAcv: number; // annual contract value
+  monthlyDealShare?: number; // percentage of new customers on monthly billing
+  monthlyArpa?: number; // monthly revenue per monthly-billed customer
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
 }
@@ -37,6 +41,8 @@ export interface PartnersConfig {
   monthlyReferrals: number;
   closeRate: number; // percentage
   avgAcv: number; // annual contract value
+  monthlyDealShare?: number; // percentage of new customers on monthly billing
+  monthlyArpa?: number; // monthly revenue per monthly-billed customer
   commissionRate: number; // percentage
 }
 
@@ -157,6 +163,8 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
     monthlyTrials: 500,
     trialConversionRate: 8,
     avgAcv: 12000,
+    monthlyDealShare: 0,
+    monthlyArpa: 1000,
     churnRate: 3,
     expansionRate: 5,
   },
@@ -164,6 +172,8 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
     monthlySqls: 50,
     closeRate: 25,
     avgAcv: 12000,
+    monthlyDealShare: 0,
+    monthlyArpa: 1000,
     churnRate: 3,
     expansionRate: 5,
   },
@@ -171,6 +181,8 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
     monthlyReferrals: 20,
     closeRate: 40,
     avgAcv: 12000,
+    monthlyDealShare: 0,
+    monthlyArpa: 1000,
     commissionRate: 20,
   },
 };
@@ -194,6 +206,18 @@ export function dateToMonth(date: Date | string): string {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function blendedMonthlyRevenuePerCustomer(config: {
+  avgAcv: number;
+  monthlyDealShare?: number;
+  monthlyArpa?: number;
+}): number {
+  const monthlyShare = Math.min(Math.max(config.monthlyDealShare ?? 0, 0), 100) / 100;
+  const yearlyShare = 1 - monthlyShare;
+  const yearlyMrr = config.avgAcv / 12;
+  const monthlyMrr = config.monthlyArpa ?? yearlyMrr;
+  return monthlyShare * monthlyMrr + yearlyShare * yearlyMrr;
 }
 
 /** Whole months between two "YYYY-MM" strings (to - from); negative if to < from. */
@@ -394,11 +418,13 @@ export function buildForecast(
     );
 
     // ── New MRR from new customers ──
-    const newPlgMrr = newPlgCustomers * (revenue.plg.avgAcv / 12);
-    const newSalesMrr = newSalesCustomers * (revenue.sales.avgAcv / 12);
+    const newPlgMrr =
+      newPlgCustomers * blendedMonthlyRevenuePerCustomer(revenue.plg);
+    const newSalesMrr =
+      newSalesCustomers * blendedMonthlyRevenuePerCustomer(revenue.sales);
     const newPartnerMrr =
       newPartnerCustomers *
-      (revenue.partners.avgAcv / 12) *
+      blendedMonthlyRevenuePerCustomer(revenue.partners) *
       (1 - revenue.partners.commissionRate / 100);
 
     // ── Churn on existing MRR ──

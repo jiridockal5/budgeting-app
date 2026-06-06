@@ -364,6 +364,72 @@ function SnapshotMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
+type BillingMixConfig = {
+  avgAcv: number;
+  monthlyDealShare?: number;
+  monthlyArpa?: number;
+};
+
+function getMonthlyDealShare(config: BillingMixConfig): number {
+  return config.monthlyDealShare ?? 0;
+}
+
+function getYearlyDealShare(config: BillingMixConfig): number {
+  return 100 - getMonthlyDealShare(config);
+}
+
+function getMonthlyArpa(config: BillingMixConfig): number {
+  return config.monthlyArpa ?? config.avgAcv / 12;
+}
+
+function getBlendedMrr(config: BillingMixConfig): number {
+  const monthlyShare = getMonthlyDealShare(config) / 100;
+  const yearlyShare = 1 - monthlyShare;
+  return monthlyShare * getMonthlyArpa(config) + yearlyShare * (config.avgAcv / 12);
+}
+
+function BillingMixFields({
+  config,
+  onChange,
+  annualLabel,
+  annualHelper,
+  monthlyLabel,
+  monthlyHelper,
+}: {
+  config: BillingMixConfig;
+  onChange: (patch: Partial<BillingMixConfig>) => void;
+  annualLabel: string;
+  annualHelper: string;
+  monthlyLabel: string;
+  monthlyHelper: string;
+}) {
+  return (
+    <>
+      <StreamInputField
+        label="Monthly deal share"
+        value={getMonthlyDealShare(config)}
+        onChange={(v) => onChange({ monthlyDealShare: parseFloat(v) || 0 })}
+        helper={`Yearly deals are ${formatPercentage(getYearlyDealShare(config))} of new customers`}
+        suffix="%"
+      />
+      <StreamInputField
+        label={monthlyLabel}
+        value={getMonthlyArpa(config)}
+        onChange={(v) => onChange({ monthlyArpa: parseFloat(v) || 0 })}
+        helper={monthlyHelper}
+        prefix="€"
+      />
+      <StreamInputField
+        label={annualLabel}
+        value={config.avgAcv}
+        onChange={(v) => onChange({ avgAcv: parseFloat(v) || 0 })}
+        helper={annualHelper}
+        prefix="€"
+      />
+    </>
+  );
+}
+
 // ============================================================================
 // PLG Stream Form
 // ============================================================================
@@ -405,12 +471,13 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
           helper="Percentage of trials that convert to paid"
           suffix="%"
         />
-        <StreamInputField
-          label="Average self-service ACV"
-          value={config.avgAcv}
-          onChange={(v) => updateField("avgAcv", v)}
-          helper="Annual contract value for self-service customers"
-          prefix="€"
+        <BillingMixFields
+          config={config}
+          onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
+          annualLabel="Average yearly ACV"
+          annualHelper="Annual contract value for yearly self-service deals"
+          monthlyLabel="Average monthly ARPA"
+          monthlyHelper="Monthly recurring revenue for monthly self-service deals"
         />
         <StreamInputField
           label="PLG churn rate"
@@ -435,12 +502,14 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
         <span className="font-semibold text-emerald-700">{newCustomers}</span>{" "}
         new customers / month at{" "}
         <span className="font-semibold text-emerald-700">
-          {formatCurrency(config.avgAcv)}
+          {formatCurrency(getBlendedMrr(config))}
         </span>{" "}
-        ACV
+        blended MRR
         <span className="text-slate-500">
           {" "}
-          (using {formatPercentage(config.churnRate)} churn,{" "}
+          ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
+          {formatPercentage(getYearlyDealShare(config))} yearly, using{" "}
+          {formatPercentage(config.churnRate)} churn,{" "}
           {formatPercentage(config.expansionRate)} expansion)
         </span>
       </StreamPreview>
@@ -493,12 +562,13 @@ function SalesStreamForm({
           helper="Percentage of demos that result in closed deals"
           suffix="%"
         />
-        <StreamInputField
-          label="Average sales ACV"
-          value={config.avgAcv}
-          onChange={(v) => updateField("avgAcv", v)}
-          helper="Annual contract value for sales-led customers"
-          prefix="€"
+        <BillingMixFields
+          config={config}
+          onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
+          annualLabel="Average yearly ACV"
+          annualHelper="Annual contract value for yearly sales-led deals"
+          monthlyLabel="Average monthly ARPA"
+          monthlyHelper="Monthly recurring revenue for monthly sales-led deals"
         />
         <StreamInputField
           label="Sales churn rate"
@@ -523,12 +593,14 @@ function SalesStreamForm({
         <span className="font-semibold text-blue-700">{newCustomers}</span> new
         customers / month at{" "}
         <span className="font-semibold text-blue-700">
-          {formatCurrency(config.avgAcv)}
+          {formatCurrency(getBlendedMrr(config))}
         </span>{" "}
-        ACV
+        blended MRR
         <span className="text-slate-500">
           {" "}
-          (using {formatPercentage(config.churnRate)} churn,{" "}
+          ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
+          {formatPercentage(getYearlyDealShare(config))} yearly, using{" "}
+          {formatPercentage(config.churnRate)} churn,{" "}
           {formatPercentage(config.expansionRate)} expansion)
         </span>
       </StreamPreview>
@@ -581,12 +653,13 @@ function PartnersStreamForm({
           helper="Percentage of partner referrals that close"
           suffix="%"
         />
-        <StreamInputField
-          label="Average partner ACV"
-          value={config.avgAcv}
-          onChange={(v) => updateField("avgAcv", v)}
-          helper="Annual contract value for partner-sourced customers"
-          prefix="€"
+        <BillingMixFields
+          config={config}
+          onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
+          annualLabel="Average yearly ACV"
+          annualHelper="Annual contract value for yearly partner-sourced deals"
+          monthlyLabel="Average monthly ARPA"
+          monthlyHelper="Monthly recurring revenue for monthly partner-sourced deals"
         />
         <StreamInputField
           label="Commission rate"
@@ -604,12 +677,14 @@ function PartnersStreamForm({
         <span className="font-semibold text-violet-700">{newCustomers}</span>{" "}
         new customers / month at{" "}
         <span className="font-semibold text-violet-700">
-          {formatCurrency(config.avgAcv)}
+          {formatCurrency(getBlendedMrr(config))}
         </span>{" "}
-        ACV
+        blended MRR
         <span className="text-slate-500">
           {" "}
-          ({formatPercentage(config.commissionRate)} partner commission)
+          ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
+          {formatPercentage(getYearlyDealShare(config))} yearly,{" "}
+          {formatPercentage(config.commissionRate)} partner commission)
         </span>
       </StreamPreview>
     </div>
