@@ -29,8 +29,8 @@ function NavContent({
           B
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-900">Budgeting App</p>
-          <p className="text-xs text-slate-500">SaaS forecasting</p>
+          <p className="text-sm font-semibold text-slate-900">Burnlytics</p>
+          <p className="text-xs text-slate-500">Runway & burn analytics</p>
         </div>
       </div>
 

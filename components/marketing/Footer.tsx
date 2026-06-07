@@ -46,13 +46,13 @@ export function Footer() {
               className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-white"
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-xs font-bold text-neutral-900">
-                R
+                B
               </span>
-              Runway
+              Burnlytics
             </Link>
             <p className="mt-4 text-[13px] leading-6 text-neutral-400">
-              Runway forecasting for early-stage SaaS. Simple inputs, clear
-              outputs.
+              Runway and burn analytics for early-stage SaaS. Simple inputs,
+              clear outputs.
             </p>
           </div>
 
@@ -83,7 +83,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-neutral-800 pt-8 md:flex-row">
           <p className="text-[12px] text-neutral-500">
-            © {currentYear} Runway Forecast. All rights reserved.
+            © {currentYear} Burnlytics. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link

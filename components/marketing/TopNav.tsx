@@ -46,9 +46,9 @@ export function TopNav({ showAppLink = false }: TopNavProps) {
             className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-neutral-900"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-900 text-xs font-bold text-white">
-              R
+              B
             </span>
-            Runway
+            Burnlytics
           </Link>
 
           {/* Desktop Navigation */}

@@ -11,18 +11,18 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Runway Forecast | SaaS Budgeting & Runway Planning",
+  title: "Burnlytics | Runway & burn forecasts for early-stage SaaS",
   description:
     "An opinionated budgeting tool for early-stage SaaS. Model revenue, hiring, and burn with simple inputs — and see runway and investor metrics instantly.",
   openGraph: {
-    title: "Runway Forecast | SaaS Budgeting & Runway Planning",
+    title: "Burnlytics | Runway & burn forecasts for early-stage SaaS",
     description:
       "An opinionated budgeting tool for early-stage SaaS. Model revenue, hiring, and burn with simple inputs — and see runway and investor metrics instantly.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Runway Forecast | SaaS Budgeting & Runway Planning",
+    title: "Burnlytics | Runway & burn forecasts for early-stage SaaS",
     description:
       "An opinionated budgeting tool for early-stage SaaS. Model revenue, hiring, and burn with simple inputs — and see runway and investor metrics instantly.",
   },
