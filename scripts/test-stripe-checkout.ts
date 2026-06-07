@@ -39,7 +39,7 @@ function requireEnv(name: string): string {
 }
 
 const key = requireEnv("STRIPE_SECRET_KEY");
-const monthlyPriceId = requireEnv("STRIPE_GROWTH_MONTHLY_PRICE_ID");
+const monthlyPriceId = requireEnv("STRIPE_GROWTH_MONTHLY_EUR_PRICE_ID");
 
 const stripe = new Stripe(key);
 

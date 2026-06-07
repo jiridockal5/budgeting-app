@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { requireAppAccess } from "@/lib/requireAppAccess";
 
 const inviteSchema = z.object({
   organizationId: z.string().min(1),
@@ -22,6 +23,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
     const input = parsed.data;
 
     const org = await prisma.organization.findFirst({
@@ -102,6 +105,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const org = await prisma.organization.findFirst({
       where: { id: organizationId },

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { requireAppAccess } from "@/lib/requireAppAccess";
 import { checkScenarioLimit } from "@/lib/planGating";
 
 const createSchema = z.object({
@@ -31,6 +32,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const plan = await prisma.plan.findFirst({
       where: { id: parsed.data.planId, userId },
@@ -82,6 +85,8 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const plan = await prisma.plan.findFirst({
       where: { id: input.planId, userId },
@@ -99,12 +104,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: `Scenario limit reached (${scenarioLimit.currentCount}/${scenarioLimit.maxAllowed}). ${
-            scenarioLimit.tier === "free"
-              ? "Upgrade to Growth for more scenarios."
-              : "Maximum scenarios reached."
-          }`,
-          upgrade: scenarioLimit.tier === "free",
+          error: "Subscription required. Your trial has ended.",
+          upgrade: true,
         },
         { status: 403 }
       );

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { requireAppAccess } from "@/lib/requireAppAccess";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -27,6 +28,8 @@ export async function PUT(request: NextRequest, context: RouteParams) {
     }
 
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const scenario = await prisma.forecastScenario.findFirst({
       where: { id },
@@ -68,6 +71,8 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
   try {
     const { id } = await context.params;
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const scenario = await prisma.forecastScenario.findFirst({
       where: { id },

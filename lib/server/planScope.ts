@@ -2,6 +2,7 @@ import type { Plan } from "@prisma/client";
 import type { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonErr } from "@/lib/server/apiEnvelope";
+import { requireAppAccess } from "@/lib/requireAppAccess";
 import { getServerUser } from "@/lib/serverUser";
 
 export type ScopedPlan =
@@ -14,6 +15,10 @@ export type ScopedPlan =
  */
 export async function getScopedPlan(planId: string): Promise<ScopedPlan> {
   const { id: userId } = await getServerUser();
+  const denied = await requireAppAccess(userId);
+  if (denied) {
+    return { ok: false, response: denied };
+  }
   const plan = await prisma.plan.findFirst({
     where: { id: planId, userId },
   });

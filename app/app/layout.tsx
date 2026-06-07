@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Sidebar from "@/components/layout/Sidebar";
+import { AccessGate, TrialBanner } from "@/components/billing/AccessGate";
 
 type Session = Awaited<
   ReturnType<typeof supabase.auth.getSession>
@@ -16,6 +17,8 @@ type Session = Awaited<
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isSubscribeOnly = pathname.startsWith("/app/subscribe");
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -64,11 +67,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const email = session?.user.email ?? "Unknown user";
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      <Sidebar />
+    <AccessGate>
+      <div className="flex min-h-screen bg-slate-50 text-slate-900">
+        {!isSubscribeOnly && <Sidebar />}
 
-      <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+        <div className="flex flex-1 flex-col">
+          {!isSubscribeOnly && <TrialBanner />}
+          {!isSubscribeOnly && (
+          <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="flex items-center justify-end gap-4 pl-14 pr-6 py-4 lg:pl-6 lg:px-8">
             <div className="hidden text-right md:block">
               <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
@@ -84,10 +90,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
+          )}
 
         <div className="flex-1 overflow-y-auto bg-slate-50">{children}</div>
       </div>
     </div>
+    </AccessGate>
   );
 }
 

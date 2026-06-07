@@ -17,6 +17,7 @@ model User {
   email     String   @unique
   name      String?
   stripeCustomerId String?  @unique
+  growthTrialEndsAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

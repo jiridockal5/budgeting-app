@@ -3,6 +3,7 @@ import { GlobalAssumptions as DbGlobalAssumptions, Prisma } from "@prisma/client
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
 
 // Validation schema for assumptions input
@@ -104,6 +105,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     // Verify plan belongs to user
     const plan = await prisma.plan.findFirst({
@@ -171,6 +174,8 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     // Verify plan belongs to user
     const plan = await prisma.plan.findFirst({

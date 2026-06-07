@@ -29,7 +29,12 @@ const faqs = [
   {
     question: "Can I run multiple scenarios?",
     answer:
-      "Yes. All registered users get unlimited scenarios. Compare different growth, hiring, or pricing strategies side by side.",
+      "Yes. Your trial and subscription include unlimited scenarios. Compare different growth, hiring, or pricing strategies side by side.",
+  },
+  {
+    question: "What happens after my free trial?",
+    answer:
+      "You get 7 days of full access when you sign up — no credit card required. After that, subscribe to keep using Burnlytics. Your data stays saved when you upgrade.",
   },
   {
     question: "Is my data private?",

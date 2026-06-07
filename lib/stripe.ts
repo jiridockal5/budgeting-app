@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { PLAN_FEATURES, PLAN_NAME } from "@/config/plans";
 
 let _stripe: Stripe | null = null;
 
@@ -13,32 +14,21 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
+export const SUBSCRIPTION_PLAN = {
+  name: PLAN_NAME,
+  maxPlans: Infinity,
+  maxScenarios: Infinity,
+  features: [...PLAN_FEATURES],
+} as const;
+
+/** @deprecated Use SUBSCRIPTION_PLAN */
 export const PLANS = {
-  free: {
-    name: "Free",
-    maxPlans: Infinity,
-    maxScenarios: Infinity,
-    features: [
-      "Unlimited forecasting",
-      "Unlimited plans",
-      "Unlimited scenarios",
-      "PDF & CSV export",
-      "Community support",
-    ],
-  },
-  growth: {
-    name: "Growth",
-    maxPlans: Infinity,
-    maxScenarios: Infinity,
-    features: [
-      "Unlimited forecasting",
-      "Unlimited plans",
-      "Unlimited scenarios",
-      "PDF & CSV export",
-      "Priority support",
-    ],
-    priceMonthly: process.env.STRIPE_GROWTH_MONTHLY_PRICE_ID,
-    priceYearly: process.env.STRIPE_GROWTH_YEARLY_PRICE_ID,
+  growth: SUBSCRIPTION_PLAN,
+  locked: {
+    name: "Locked",
+    maxPlans: 0,
+    maxScenarios: 0,
+    features: [] as string[],
   },
 } as const;
 

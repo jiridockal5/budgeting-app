@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { requireAppAccess } from "@/lib/requireAppAccess";
 
 const createSchema = z.object({
   name: z.string().min(1).max(100),
@@ -10,6 +11,8 @@ const createSchema = z.object({
 export async function GET() {
   try {
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const orgs = await prisma.organization.findMany({
       where: {
@@ -58,6 +61,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { id: userId, email } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const org = await prisma.organization.create({
       data: {

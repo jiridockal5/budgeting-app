@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
-import { PLANS, type PlanTier } from "@/lib/stripe";
+import { getUserAccessInfo } from "@/lib/planGating";
 
 export async function GET() {
   try {
@@ -19,20 +19,13 @@ export async function GET() {
       );
     }
 
+    const access = await getUserAccessInfo(userId);
     const sub = user.subscription;
-    const isActive =
-      sub &&
-      (sub.status === "ACTIVE" || sub.status === "TRIALING") &&
-      new Date(sub.currentPeriodEnd) > new Date();
-
-    const tier: PlanTier = isActive ? "growth" : "free";
-    const plan = PLANS[tier];
 
     return NextResponse.json({
       success: true,
       data: {
-        tier,
-        plan,
+        ...access,
         subscription: sub
           ? {
               id: sub.id,

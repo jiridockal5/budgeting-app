@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
-import { getUserTier } from "@/lib/planGating";
+import { requireAppAccess } from "@/lib/requireAppAccess";
+import { getUserAccessInfo, getTrialEndDate } from "@/lib/planGating";
 
 const patchSchema = z.object({
   months: z.number().int().min(1).max(120).optional(),
@@ -19,7 +20,9 @@ export async function GET() {
 
     // First, ensure we have a user in our database that matches the Supabase user
     let user = await prisma.user.findFirst({
-      where: { email: email ?? undefined },
+      where: {
+        OR: [{ id: supabaseUserId }, { email: email ?? undefined }],
+      },
     });
 
     // If no user exists, create one
@@ -29,6 +32,7 @@ export async function GET() {
           id: supabaseUserId,
           email: email ?? "unknown@example.com",
           name: email?.split("@")[0] ?? "User",
+          growthTrialEndsAt: getTrialEndDate(),
         },
       });
     }
@@ -41,6 +45,9 @@ export async function GET() {
 
     // If no plan exists, create a default one
     if (!plan) {
+      const denied = await requireAppAccess(user.id);
+      if (denied) return denied;
+
       plan = await prisma.plan.create({
         data: {
           userId: user.id,
@@ -52,7 +59,11 @@ export async function GET() {
       });
     }
 
-    const tier = await getUserTier(user.id);
+    const access = await getUserAccessInfo(user.id);
+    if (!access.hasAppAccess) {
+      const denied = await requireAppAccess(user.id);
+      if (denied) return denied;
+    }
 
     return NextResponse.json({
       success: true,
@@ -62,7 +73,8 @@ export async function GET() {
         currency: plan.currency,
         startMonth: plan.startMonth.toISOString(),
         months: plan.months,
-        tier,
+        accessState: access.state,
+        tier: access.state === "locked" ? "locked" : "growth",
         createdAt: plan.createdAt.toISOString(),
         updatedAt: plan.updatedAt.toISOString(),
       },
@@ -97,6 +109,9 @@ export async function PATCH(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    const denied = await requireAppAccess(user.id);
+    if (denied) return denied;
 
     const plan = await prisma.plan.findFirst({
       where: { userId: user.id },
@@ -136,7 +151,7 @@ export async function PATCH(request: NextRequest) {
       data: updates,
     });
 
-    const tier = await getUserTier(user.id);
+    const access = await getUserAccessInfo(user.id);
 
     return NextResponse.json({
       success: true,
@@ -146,7 +161,8 @@ export async function PATCH(request: NextRequest) {
         currency: updated.currency,
         startMonth: updated.startMonth.toISOString(),
         months: updated.months,
-        tier,
+        accessState: access.state,
+        tier: access.state === "locked" ? "locked" : "growth",
         createdAt: updated.createdAt.toISOString(),
         updatedAt: updated.updatedAt.toISOString(),
       },

@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
 import {
   buildForecast,
@@ -39,6 +40,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     // 1. Fetch plan
     const plan = await prisma.plan.findFirst({

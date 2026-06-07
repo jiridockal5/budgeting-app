@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 
 const revenueConfigSchema = z.object({
@@ -59,6 +60,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const plan = await prisma.plan.findFirst({
       where: { id: parsed.data.planId, userId },
@@ -124,6 +127,8 @@ export async function POST(request: NextRequest) {
 
     const input = parsed.data;
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const plan = await prisma.plan.findFirst({
       where: { id: input.planId, userId },

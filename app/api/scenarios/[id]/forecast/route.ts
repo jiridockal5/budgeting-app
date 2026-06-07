@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
 import {
   buildForecast,
@@ -36,6 +37,8 @@ export async function GET(_request: NextRequest, context: RouteParams) {
   try {
     const { id } = await context.params;
     const { id: userId } = await getServerUser();
+    const denied = await requireAppAccess(userId);
+    if (denied) return denied;
 
     const scenario = await prisma.forecastScenario.findFirst({
       where: { id },

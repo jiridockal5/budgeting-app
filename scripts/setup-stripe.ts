@@ -1,5 +1,5 @@
 /**
- * Creates the Growth plan product and prices in your Stripe sandbox.
+ * Creates Burnlytics subscription prices in your Stripe sandbox (EUR + USD).
  * Run locally after adding STRIPE_SECRET_KEY to .env.local — never commit keys.
  *
  *   npm run setup:stripe
@@ -35,22 +35,23 @@ if (!key) {
 
 const stripe = new Stripe(key);
 
-async function findOrCreateGrowthProduct(): Promise<Stripe.Product> {
+async function findOrCreateProduct(): Promise<Stripe.Product> {
   const existing = await stripe.products.search({
     query: 'metadata["app"]:"saas-forecast"',
   });
-  const match = existing.data.find((p) => p.name === "Growth");
+  const match = existing.data.find((p) => p.name === "Burnlytics");
   if (match) return match;
 
   return stripe.products.create({
-    name: "Growth",
-    description: "For SaaS teams preparing for fundraising.",
+    name: "Burnlytics",
+    description: "SaaS forecasting — runway, metrics, and investor-ready exports.",
     metadata: { app: "saas-forecast", tier: "growth" },
   });
 }
 
 async function findOrCreatePrice(
   productId: string,
+  currency: "eur" | "usd",
   interval: "month" | "year",
   unitAmount: number
 ): Promise<Stripe.Price> {
@@ -64,36 +65,44 @@ async function findOrCreatePrice(
     (p) =>
       p.recurring?.interval === interval &&
       p.unit_amount === unitAmount &&
-      p.currency === "eur"
+      p.currency === currency
   );
   if (match) return match;
 
   return stripe.prices.create({
     product: productId,
-    currency: "eur",
+    currency,
     unit_amount: unitAmount,
     recurring: { interval },
-    metadata: { tier: "growth", interval },
+    metadata: { tier: "growth", interval, currency },
   });
 }
 
 async function main() {
-  console.log("Setting up Stripe Growth plan in sandbox...\n");
+  console.log("Setting up Stripe Burnlytics prices in sandbox...\n");
 
-  const product = await findOrCreateGrowthProduct();
-  console.log(`Product: ${product.name} (${product.id})`);
+  const product = await findOrCreateProduct();
+  console.log(`Product: ${product.name} (${product.id})\n`);
 
-  const monthly = await findOrCreatePrice(product.id, "month", 2900);
-  const yearly = await findOrCreatePrice(product.id, "year", 29900);
+  const monthlyEur = await findOrCreatePrice(product.id, "eur", "month", 9900);
+  const annualEur = await findOrCreatePrice(product.id, "eur", "year", 94800);
+  const monthlyUsd = await findOrCreatePrice(product.id, "usd", "month", 10900);
+  const annualUsd = await findOrCreatePrice(product.id, "usd", "year", 106800);
 
-  console.log(`Monthly price: ${monthly.id} (€29/mo)`);
-  console.log(`Yearly price:  ${yearly.id} (€299/yr)`);
+  console.log(`Monthly EUR: ${monthlyEur.id} (€99/mo)`);
+  console.log(`Annual EUR:  ${annualEur.id} (€948/yr)`);
+  console.log(`Monthly USD: ${monthlyUsd.id} ($109/mo)`);
+  console.log(`Annual USD:  ${annualUsd.id} ($1,068/yr)`);
 
   console.log("\nAdd these lines to .env.local:\n");
-  console.log(`STRIPE_GROWTH_MONTHLY_PRICE_ID=${monthly.id}`);
-  console.log(`STRIPE_GROWTH_YEARLY_PRICE_ID=${yearly.id}`);
-  console.log(`NEXT_PUBLIC_STRIPE_GROWTH_MONTHLY_PRICE_ID=${monthly.id}`);
-  console.log(`NEXT_PUBLIC_STRIPE_GROWTH_YEARLY_PRICE_ID=${yearly.id}`);
+  console.log(`STRIPE_GROWTH_MONTHLY_EUR_PRICE_ID=${monthlyEur.id}`);
+  console.log(`STRIPE_GROWTH_ANNUAL_EUR_PRICE_ID=${annualEur.id}`);
+  console.log(`STRIPE_GROWTH_MONTHLY_USD_PRICE_ID=${monthlyUsd.id}`);
+  console.log(`STRIPE_GROWTH_ANNUAL_USD_PRICE_ID=${annualUsd.id}`);
+  console.log(`NEXT_PUBLIC_STRIPE_GROWTH_MONTHLY_EUR_PRICE_ID=${monthlyEur.id}`);
+  console.log(`NEXT_PUBLIC_STRIPE_GROWTH_ANNUAL_EUR_PRICE_ID=${annualEur.id}`);
+  console.log(`NEXT_PUBLIC_STRIPE_GROWTH_MONTHLY_USD_PRICE_ID=${monthlyUsd.id}`);
+  console.log(`NEXT_PUBLIC_STRIPE_GROWTH_ANNUAL_USD_PRICE_ID=${annualUsd.id}`);
   console.log("\nFor webhooks locally, run:");
   console.log(
     "  stripe listen --forward-to localhost:3001/api/webhooks/stripe"

@@ -3,57 +3,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Reveal, RevealGroup, RevealItem } from "./Reveal";
+import { Reveal } from "./Reveal";
 import { Check, Sparkles } from "lucide-react";
-
-type BillingPeriod = "monthly" | "annual";
-
-interface Plan {
-  name: string;
-  monthlyPrice: number;
-  annualPrice: number;
-  tagline: string;
-  description: string;
-  features: string[];
-  cta: string;
-  popular?: boolean;
-}
-
-const plans: Plan[] = [
-  {
-    name: "Free",
-    monthlyPrice: 0,
-    annualPrice: 0,
-    tagline: "For founders validating their first budget.",
-    description: "",
-    features: [
-      "Unlimited plans & scenarios",
-      "Advanced SaaS metrics (CAC, LTV/CAC, NRR, burn multiple)",
-      "PDF & CSV export",
-      "Community support",
-    ],
-    cta: "Get started for free",
-  },
-  {
-    name: "Growth",
-    monthlyPrice: 29,
-    annualPrice: 299,
-    tagline: "For SaaS teams preparing for fundraising.",
-    description: "Billed monthly. Cancel anytime.",
-    features: [
-      "Unlimited plans & scenarios",
-      "Advanced SaaS metrics (CAC, LTV/CAC, NRR, burn multiple)",
-      "Priority support",
-      "Ready for investors & board reporting",
-    ],
-    cta: "Upgrade to Growth",
-    popular: true,
-  },
-];
+import {
+  type BillingCurrency,
+  type BillingInterval,
+  formatPrice,
+  getCurrencySymbol,
+  PLAN_FEATURES,
+  PLAN_NAME,
+  TRIAL_DAYS,
+} from "@/config/plans";
 
 export function PricingSection() {
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
+  const [billingPeriod, setBillingPeriod] = useState<BillingInterval>("monthly");
+  const [currency, setCurrency] = useState<BillingCurrency>("eur");
   const prefersReducedMotion = useReducedMotion();
+
+  const price = formatPrice(currency, billingPeriod);
+  const symbol = getCurrencySymbol(currency);
 
   return (
     <section id="pricing" className="relative py-10 md:py-12 lg:py-14">
@@ -64,17 +32,32 @@ export function PricingSection() {
               Pricing
             </p>
             <h2 className="mt-3 text-[1.75rem] font-semibold tracking-tight text-neutral-900 md:text-[2rem]">
-              Simple pricing. Two plans.
+              One plan. Full access.
             </h2>
             <p className="mt-3 text-[14px] text-neutral-500">
-              Start for free and upgrade when you&apos;re ready to scale.
+              {TRIAL_DAYS}-day free trial on signup. No credit card required.
             </p>
           </div>
         </Reveal>
 
-        {/* Billing toggle */}
         <Reveal delay={0.1}>
-          <div className="mt-6 flex items-center justify-center gap-4">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+            <div className="inline-flex rounded-full border border-neutral-200 bg-white p-1">
+              {(["eur", "usd"] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCurrency(c)}
+                  className={`rounded-full px-4 py-2 text-[13px] font-medium uppercase transition-colors ${
+                    currency === c
+                      ? "bg-neutral-900 text-white"
+                      : "text-neutral-600 hover:text-neutral-900"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
             <div className="inline-flex rounded-full border border-neutral-200 bg-white p-1">
               <button
                 onClick={() => setBillingPeriod("monthly")}
@@ -100,33 +83,89 @@ export function PricingSection() {
             <AnimatePresence mode="wait">
               {billingPeriod === "annual" && (
                 <motion.span
-                  initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.9 }}
+                  initial={
+                    prefersReducedMotion
+                      ? { opacity: 1 }
+                      : { opacity: 0, scale: 0.9 }
+                  }
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+                  exit={
+                    prefersReducedMotion
+                      ? { opacity: 0 }
+                      : { opacity: 0, scale: 0.9 }
+                  }
                   className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1 text-[12px] font-medium text-neutral-600"
                 >
                   <Sparkles className="h-3 w-3" />
-                  Save 2 months
+                  Save ~20%
                 </motion.span>
               )}
             </AnimatePresence>
           </div>
         </Reveal>
 
-        {/* Pricing cards */}
-        <RevealGroup className="mt-8 grid gap-5 md:mt-10 md:grid-cols-2 md:gap-6">
-          {plans.map((plan) => (
-            <RevealItem key={plan.name}>
-              <PricingCard
-                plan={plan}
-                billingPeriod={billingPeriod}
-                prefersReducedMotion={prefersReducedMotion}
-              />
-            </RevealItem>
-          ))}
-        </RevealGroup>
+        <Reveal delay={0.15}>
+          <div className="mx-auto mt-8 max-w-md md:mt-10">
+            <div className="relative flex flex-col rounded-2xl border border-neutral-300 bg-white p-6 md:p-8">
+              <div className="absolute -top-3 left-6">
+                <span className="flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold text-neutral-700">
+                  <Sparkles className="h-3 w-3" />
+                  {TRIAL_DAYS}-day free trial
+                </span>
+              </div>
 
-        {/* Contact note */}
+              <h3 className="text-lg font-semibold text-neutral-900">
+                {PLAN_NAME}
+              </h3>
+              <p className="mt-1 text-[14px] text-neutral-500">
+                For founders building investor-ready forecasts.
+              </p>
+
+              <div className="mt-4 flex items-baseline gap-1">
+                <motion.span
+                  key={`${currency}-${billingPeriod}`}
+                  initial={
+                    prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }
+                  }
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-4xl font-bold tracking-tight text-neutral-900"
+                >
+                  {symbol}
+                  {price.amount}
+                </motion.span>
+                <span className="text-[14px] text-neutral-500">
+                  {price.period}
+                </span>
+              </div>
+              {billingPeriod === "annual" && price.effectiveMonthly && (
+                <p className="mt-1 text-[13px] text-neutral-600">
+                  {symbol}
+                  {price.effectiveMonthly}/mo billed annually
+                </p>
+              )}
+
+              <ul className="mt-6 flex-1 space-y-3">
+                {PLAN_FEATURES.map((feature) => (
+                  <li
+                    key={feature}
+                    className="flex items-start gap-3 text-[14px] text-neutral-600"
+                  >
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href="/signup"
+                className="mt-8 flex items-center justify-center rounded-full bg-neutral-900 px-6 py-3 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800"
+              >
+                Start free trial
+              </Link>
+            </div>
+          </div>
+        </Reveal>
+
         <Reveal delay={0.3}>
           <p className="mt-6 text-center text-[13px] text-neutral-500">
             Need a demo or help with your model?{" "}
@@ -139,99 +178,3 @@ export function PricingSection() {
     </section>
   );
 }
-
-function PricingCard({
-  plan,
-  billingPeriod,
-  prefersReducedMotion,
-}: {
-  plan: Plan;
-  billingPeriod: BillingPeriod;
-  prefersReducedMotion: boolean | null;
-}) {
-  const price =
-    billingPeriod === "monthly" ? plan.monthlyPrice : plan.annualPrice;
-  const isFree = plan.monthlyPrice === 0;
-  const periodLabel = isFree ? "" : billingPeriod === "monthly" ? "/month" : "/year";
-  
-  // Dynamic description for Growth plan based on billing period
-  const description = plan.name === "Growth" 
-    ? billingPeriod === "monthly" 
-      ? "Billed monthly. Cancel anytime."
-      : "Billed yearly. Save 2 months compared to monthly."
-    : plan.description;
-
-  return (
-    <div
-      className={`relative flex flex-col rounded-2xl border p-5 transition-colors md:p-6 ${
-        plan.popular
-          ? "border-neutral-300 bg-white"
-          : "border-neutral-200 bg-white hover:border-neutral-300"
-      }`}
-    >
-      {/* Recommended badge */}
-      {plan.popular && (
-        <div className="absolute -top-3 left-6">
-          <span className="flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-3 py-1 text-[11px] font-semibold text-neutral-700">
-            <Sparkles className="h-3 w-3" />
-            Recommended
-          </span>
-        </div>
-      )}
-
-      {/* Plan name */}
-      <h3 className="text-lg font-semibold text-neutral-900">{plan.name}</h3>
-
-      {/* Price */}
-      <div className="mt-3 flex items-baseline gap-1">
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={`${plan.name}-${billingPeriod}`}
-            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-            className="text-4xl font-bold tracking-tight text-neutral-900"
-          >
-            €{price}
-          </motion.span>
-        </AnimatePresence>
-        <span className="text-[14px] text-neutral-500">{periodLabel}</span>
-      </div>
-
-      {/* Tagline & description */}
-      <div className="mt-4 space-y-1">
-        <p className="text-[14px] font-medium text-neutral-900">{plan.tagline}</p>
-        {description && (
-          <p className="text-[13px] text-neutral-500">{description}</p>
-        )}
-      </div>
-
-      {/* Features */}
-      <ul className="mt-5 flex-1 space-y-3">
-        {plan.features.map((feature) => (
-          <li
-            key={feature}
-            className="flex items-start gap-3 text-[14px] text-neutral-600"
-          >
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
-            <span>{feature}</span>
-          </li>
-        ))}
-      </ul>
-
-      {/* CTA */}
-      <Link
-        href="/signup"
-        className={`mt-8 flex items-center justify-center rounded-full px-6 py-3 text-[14px] font-medium transition-colors ${
-          plan.popular
-            ? "bg-neutral-900 text-white hover:bg-neutral-800"
-            : "border border-neutral-200 bg-white text-neutral-900 hover:border-neutral-300 hover:bg-neutral-50"
-        }`}
-      >
-        {plan.cta}
-      </Link>
-    </div>
-  );
-}
-

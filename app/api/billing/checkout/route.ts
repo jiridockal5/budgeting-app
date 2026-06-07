@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { getAllAllowedPriceIds } from "@/config/plans";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 
 const checkoutSchema = z.object({
   priceId: z.string().min(1),
-  annual: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -17,6 +17,14 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: "Invalid payload" },
+        { status: 400 }
+      );
+    }
+
+    const allowedIds = getAllAllowedPriceIds();
+    if (allowedIds.length > 0 && !allowedIds.includes(parsed.data.priceId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid price ID" },
         { status: 400 }
       );
     }
@@ -55,7 +63,7 @@ export async function POST(request: NextRequest) {
       mode: "subscription",
       line_items: [{ price: parsed.data.priceId, quantity: 1 }],
       success_url: `${origin}/app/settings/billing?success=true`,
-      cancel_url: `${origin}/app/settings/billing?cancelled=true`,
+      cancel_url: `${origin}/app/subscribe?cancelled=true`,
       metadata: { userId: user.id },
     });
 

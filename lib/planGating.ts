@@ -1,42 +1,114 @@
+import { TRIAL_DAYS, type AccessState } from "@/config/plans";
 import { prisma } from "./prisma";
-import { PLANS, type PlanTier } from "./stripe";
+import { SUBSCRIPTION_PLAN } from "./stripe";
 
-export async function getUserTier(userId: string): Promise<PlanTier> {
+export type { AccessState };
+
+export interface UserAccessInfo {
+  state: AccessState;
+  hasAppAccess: boolean;
+  isOnTrial: boolean;
+  isPaid: boolean;
+  trialEndsAt: string | null;
+  trialDaysLeft: number | null;
+  plan: typeof SUBSCRIPTION_PLAN;
+}
+
+function isActiveSubscription(sub: {
+  status: string;
+  currentPeriodEnd: Date;
+} | null): boolean {
+  if (!sub) return false;
+  return (
+    (sub.status === "ACTIVE" || sub.status === "TRIALING") &&
+    sub.currentPeriodEnd > new Date()
+  );
+}
+
+function trialDaysLeft(trialEndsAt: Date | null): number | null {
+  if (!trialEndsAt) return null;
+  const ms = trialEndsAt.getTime() - Date.now();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
+}
+
+export function computeAccessState(input: {
+  growthTrialEndsAt: Date | null;
+  subscription: { status: string; currentPeriodEnd: Date } | null;
+}): AccessState {
+  if (isActiveSubscription(input.subscription)) {
+    return "paid";
+  }
+  if (input.growthTrialEndsAt && input.growthTrialEndsAt > new Date()) {
+    return "trial";
+  }
+  return "locked";
+}
+
+export async function getUserAccessInfo(userId: string): Promise<UserAccessInfo> {
   try {
-    const sub = await prisma.subscription.findFirst({
-      where: { userId },
+    const user = await prisma.user.findFirst({
+      where: { id: userId },
+      include: { subscription: true },
     });
 
-    if (!sub) return "free";
+    if (!user) {
+      return {
+        state: "locked",
+        hasAppAccess: false,
+        isOnTrial: false,
+        isPaid: false,
+        trialEndsAt: null,
+        trialDaysLeft: null,
+        plan: SUBSCRIPTION_PLAN,
+      };
+    }
 
-    const isActive =
-      (sub.status === "ACTIVE" || sub.status === "TRIALING") &&
-      new Date(sub.currentPeriodEnd) > new Date();
+    const state = computeAccessState({
+      growthTrialEndsAt: user.growthTrialEndsAt,
+      subscription: user.subscription,
+    });
 
-    return isActive ? "growth" : "free";
+    const daysLeft = trialDaysLeft(user.growthTrialEndsAt);
+
+    return {
+      state,
+      hasAppAccess: state !== "locked",
+      isOnTrial: state === "trial",
+      isPaid: state === "paid",
+      trialEndsAt: user.growthTrialEndsAt?.toISOString() ?? null,
+      trialDaysLeft: state === "trial" ? daysLeft : null,
+      plan: SUBSCRIPTION_PLAN,
+    };
   } catch {
-    return "free";
+    return {
+      state: "locked",
+      hasAppAccess: false,
+      isOnTrial: false,
+      isPaid: false,
+      trialEndsAt: null,
+      trialDaysLeft: null,
+      plan: SUBSCRIPTION_PLAN,
+    };
   }
+}
+
+export function getTrialEndDate(from: Date = new Date()): Date {
+  return new Date(from.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
 }
 
 export async function checkPlanLimit(userId: string): Promise<{
   allowed: boolean;
-  tier: PlanTier;
   currentCount: number;
   maxAllowed: number;
 }> {
-  const tier = await getUserTier(userId);
-  const limits = PLANS[tier];
-
-  const currentCount = await prisma.plan.count({
-    where: { userId },
-  });
+  const { hasAppAccess } = await getUserAccessInfo(userId);
+  const currentCount = await prisma.plan.count({ where: { userId } });
 
   return {
-    allowed: currentCount < limits.maxPlans,
-    tier,
+    allowed: hasAppAccess,
     currentCount,
-    maxAllowed: limits.maxPlans,
+    maxAllowed: SUBSCRIPTION_PLAN.maxPlans,
   };
 }
 
@@ -45,25 +117,19 @@ export async function checkScenarioLimit(
   planId: string
 ): Promise<{
   allowed: boolean;
-  tier: PlanTier;
   currentCount: number;
   maxAllowed: number;
 }> {
-  const tier = await getUserTier(userId);
-  const limits = PLANS[tier];
-
-  const currentCount = await prisma.forecastScenario.count({
-    where: { planId },
-  });
+  const { hasAppAccess } = await getUserAccessInfo(userId);
+  const currentCount = await prisma.forecastScenario.count({ where: { planId } });
 
   return {
-    allowed: currentCount < limits.maxScenarios,
-    tier,
+    allowed: hasAppAccess,
     currentCount,
-    maxAllowed: limits.maxScenarios,
+    maxAllowed: SUBSCRIPTION_PLAN.maxScenarios,
   };
 }
 
-export function canExport(_tier: PlanTier): boolean {
-  return true;
+export function canExport(hasAppAccess: boolean): boolean {
+  return hasAppAccess;
 }
