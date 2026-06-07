@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Menu, X, ArrowRight } from "lucide-react";
+import { TurquoiseBrandGlow } from "./TurquoiseGlow";
 
 const navLinks = [
   { href: "#product", label: "Product" },
@@ -33,10 +34,10 @@ export function TopNav({ showAppLink = false }: TopNavProps) {
   return (
     <>
       <header
-        className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
+        className={`fixed left-0 right-0 top-0 z-50 transition-[background-color,box-shadow,border-color] duration-300 ${
           isScrolled
-            ? "border-b border-neutral-200/60 bg-white/80 backdrop-blur-xl"
-            : "bg-transparent"
+            ? "border-b border-neutral-200/40 bg-[#fafafa]/90 shadow-[0_1px_0_0_rgba(0,0,0,0.03)] backdrop-blur-xl"
+            : "border-b border-transparent bg-[#fafafa]/50 backdrop-blur-md"
         }`}
       >
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -44,7 +45,7 @@ export function TopNav({ showAppLink = false }: TopNavProps) {
             href="/"
             className="text-[19px] font-semibold tracking-tight text-neutral-900 transition-colors hover:text-neutral-700"
           >
-            Burnlytics
+            <TurquoiseBrandGlow>Burnlytics</TurquoiseBrandGlow>
           </Link>
 
           {/* Desktop Navigation */}

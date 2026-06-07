@@ -10,6 +10,7 @@ import {
   BarChart3,
   RefreshCw,
 } from "lucide-react";
+import { TurquoiseIconBadge } from "./TurquoiseGlow";
 
 const features = [
   {
@@ -95,9 +96,9 @@ export function FeatureBento() {
               <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white p-5 transition-colors hover:border-neutral-300">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+                  <TurquoiseIconBadge>
                     <feature.icon className="h-5 w-5" />
-                  </div>
+                  </TurquoiseIconBadge>
                   <div className="flex flex-wrap gap-1.5">
                     {feature.chips.map((chip) => (
                       <span

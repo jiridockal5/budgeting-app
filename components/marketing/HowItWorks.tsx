@@ -2,6 +2,7 @@
 
 import { Reveal, RevealGroup, RevealItem } from "./Reveal";
 import { Settings2, Sparkles, Share2 } from "lucide-react";
+import { TurquoiseIconBadge } from "./TurquoiseGlow";
 
 const steps = [
   {
@@ -58,9 +59,9 @@ export function HowItWorks() {
                   </span>
 
                   {/* Icon */}
-                  <div className="mt-4 flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
+                  <TurquoiseIconBadge className="mt-4">
                     <step.icon className="h-5 w-5" />
-                  </div>
+                  </TurquoiseIconBadge>
 
                   {/* Content */}
                   <h3 className="mt-4 text-[15px] font-semibold text-neutral-900">

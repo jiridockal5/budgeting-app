@@ -3,11 +3,28 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "./Reveal";
+import { HeroMeshGradient } from "./HeroMeshGradient";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pt-20 pb-8 md:pt-24 md:pb-10 lg:pt-28 lg:pb-12">
-      <div className="mx-auto max-w-6xl px-6">
+    <section className="relative isolate pt-20 pb-8 md:pt-24 md:pb-10 lg:pt-28 lg:pb-12">
+      {/* Orbs stay inside hero; soft mask fades bottom edge on scroll */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        aria-hidden="true"
+        style={{
+          maskImage:
+            "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 18%, black 38%), linear-gradient(to bottom, black 0%, black 88%, rgba(0,0,0,0.4) 94%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.35) 18%, black 38%), linear-gradient(to bottom, black 0%, black 88%, rgba(0,0,0,0.4) 94%, transparent 100%)",
+          maskComposite: "intersect",
+          WebkitMaskComposite: "source-in",
+        }}
+      >
+        <HeroMeshGradient />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-3xl text-center">
           {/* Kicker */}
           <Reveal>
