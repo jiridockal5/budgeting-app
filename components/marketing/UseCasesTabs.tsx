@@ -55,7 +55,7 @@ const useCases = [
     headline: "Monthly board reporting",
     bullets: [
       "Export key metrics and narrative for board decks",
-      "Track actuals vs forecast over time",
+      "Export PDF and CSV metrics for board-ready reporting",
     ],
     ui: {
       title: "Dec Board Deck",

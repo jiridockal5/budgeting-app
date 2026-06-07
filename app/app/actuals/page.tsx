@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { LAUNCH_V1 } from "@/config/launch";
 import {
   ClipboardCheck,
   Upload,
@@ -125,7 +127,14 @@ function confidenceColor(confidence: number): string {
 // ============================================================================
 
 export default function ActualsPage() {
+  const router = useRouter();
   const [hasUploadedFile, setHasUploadedFile] = useState(false);
+
+  useEffect(() => {
+    if (!LAUNCH_V1.actuals) router.replace("/app");
+  }, [router]);
+
+  if (!LAUNCH_V1.actuals) return null;
 
   return (
     <main className="min-h-screen bg-slate-50">

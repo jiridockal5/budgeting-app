@@ -11,6 +11,7 @@ import {
   Users,
   LucideIcon,
 } from "lucide-react";
+import { LAUNCH_V1 } from "./launch";
 
 export interface NavItem {
   href: string;
@@ -45,9 +46,13 @@ export const navItems: NavItem[] = [
       { href: "/app/expenses/non-people", label: "Non-People Costs" },
     ],
   },
-  { href: "/app/actuals", label: "Actuals", icon: ClipboardCheck },
+  ...(LAUNCH_V1.actuals
+    ? [{ href: "/app/actuals", label: "Actuals", icon: ClipboardCheck }]
+    : []),
   { href: "/app/scenarios", label: "Scenarios", icon: GitCompareArrows },
   { href: "/app/runway", label: "Runway", icon: Timer },
   { href: "/app/settings/billing", label: "Billing", icon: DollarSign },
-  { href: "/app/settings/team", label: "Team", icon: Users },
+  ...(LAUNCH_V1.team
+    ? [{ href: "/app/settings/team", label: "Team", icon: Users }]
+    : []),
 ];

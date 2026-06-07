@@ -74,7 +74,10 @@ From `config/navItems.ts` — typical exploration after the path above:
 - **Revenue** `/app/revenue` — PLG / sales / partners.  
 - **Expenses** `/app/expenses` — headcount + non-headcount.  
 - **Runway** `/app/runway` — cash runway narrative.  
-- **Scenarios / Actuals / Billing / Team** — advanced; **not** part of the minimal happy path.
+- **Scenarios** `/app/scenarios` — compare forecast paths side by side.  
+- **Billing** `/app/settings/billing` — subscription and upgrade.  
+
+**v1 launch (Option A):** Actuals and Team are deferred — hidden from nav and routes redirect to Dashboard. Re-enable via `config/launch.ts` when ready.
 
 ---
 

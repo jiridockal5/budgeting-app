@@ -29,17 +29,17 @@ function loadEnvFile(filename: string) {
 loadEnvFile(".env.local");
 loadEnvFile(".env");
 
-const key = process.env.STRIPE_SECRET_KEY;
-const monthlyPriceId = process.env.STRIPE_GROWTH_MONTHLY_PRICE_ID;
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    console.error(`FAIL: ${name} missing`);
+    process.exit(1);
+  }
+  return value;
+}
 
-if (!key) {
-  console.error("FAIL: STRIPE_SECRET_KEY missing");
-  process.exit(1);
-}
-if (!monthlyPriceId) {
-  console.error("FAIL: STRIPE_GROWTH_MONTHLY_PRICE_ID missing");
-  process.exit(1);
-}
+const key = requireEnv("STRIPE_SECRET_KEY");
+const monthlyPriceId = requireEnv("STRIPE_GROWTH_MONTHLY_PRICE_ID");
 
 const stripe = new Stripe(key);
 

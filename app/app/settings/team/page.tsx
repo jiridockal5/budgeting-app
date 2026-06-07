@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { LAUNCH_V1 } from "@/config/launch";
 import {
   Users,
   UserPlus,
@@ -56,6 +58,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function TeamPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [orgs, setOrgs] = useState<Org[]>([]);
@@ -75,6 +78,10 @@ export default function TeamPage() {
     orgId: string;
     email: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (!LAUNCH_V1.team) router.replace("/app");
+  }, [router]);
 
   const fetchOrgs = useCallback(async () => {
     try {
@@ -171,6 +178,8 @@ export default function TeamPage() {
       setDeleteTarget(null);
     }
   }
+
+  if (!LAUNCH_V1.team) return null;
 
   if (loading) {
     return (
