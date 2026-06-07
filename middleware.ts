@@ -46,6 +46,11 @@ export async function middleware(req: NextRequest) {
 
   const isApiRoute = req.nextUrl.pathname.startsWith("/api");
 
+  // Stripe webhooks use signature verification, not session auth
+  if (req.nextUrl.pathname === "/api/webhooks/stripe") {
+    return response;
+  }
+
   if (!user) {
     if (isApiRoute) {
       return NextResponse.json(
