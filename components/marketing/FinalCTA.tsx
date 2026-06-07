@@ -7,7 +7,7 @@ import { DotGrid, RadialGradient, NoiseTexture } from "./Textures";
 
 export function FinalCTA() {
   return (
-    <section className="relative overflow-hidden py-16 md:py-20 lg:py-24">
+    <section className="relative overflow-hidden py-10 md:py-12 lg:py-14">
       {/* Background with textures */}
       <div className="absolute inset-0 bg-neutral-100">
         <DotGrid className="opacity-50" />
@@ -22,7 +22,7 @@ export function FinalCTA() {
               Stop guessing runway. Build a plan you can defend.
             </h2>
 
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <Link
                 href="/signup"
                 className="group flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 px-6 py-3 text-[14px] font-medium text-white transition-colors hover:bg-neutral-800 sm:w-auto"

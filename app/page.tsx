@@ -3,8 +3,6 @@ import { createServerClient } from "@supabase/ssr";
 import {
   TopNav,
   Hero,
-  ScreenshotFrame,
-  LogoRow,
   HowItWorks,
   FeatureBento,
   MetricsGrid,
@@ -79,12 +77,6 @@ export default async function HomePage() {
       <main className="relative">
         {/* Hero Section */}
         <Hero />
-
-        {/* App Screenshot */}
-        <ScreenshotFrame />
-
-        {/* Social Proof */}
-        <LogoRow />
 
         {/* How it Works */}
         <HowItWorks />

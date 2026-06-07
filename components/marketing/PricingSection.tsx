@@ -56,7 +56,7 @@ export function PricingSection() {
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <section id="pricing" className="relative py-16 md:py-20 lg:py-24">
+    <section id="pricing" className="relative py-10 md:py-12 lg:py-14">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div className="text-center">
@@ -74,7 +74,7 @@ export function PricingSection() {
 
         {/* Billing toggle */}
         <Reveal delay={0.1}>
-          <div className="mt-8 flex items-center justify-center gap-4">
+          <div className="mt-6 flex items-center justify-center gap-4">
             <div className="inline-flex rounded-full border border-neutral-200 bg-white p-1">
               <button
                 onClick={() => setBillingPeriod("monthly")}
@@ -114,7 +114,7 @@ export function PricingSection() {
         </Reveal>
 
         {/* Pricing cards */}
-        <RevealGroup className="mt-10 grid gap-6 md:mt-12 md:grid-cols-2 md:gap-8">
+        <RevealGroup className="mt-8 grid gap-5 md:mt-10 md:grid-cols-2 md:gap-6">
           {plans.map((plan) => (
             <RevealItem key={plan.name}>
               <PricingCard
@@ -128,7 +128,7 @@ export function PricingSection() {
 
         {/* Contact note */}
         <Reveal delay={0.3}>
-          <p className="mt-8 text-center text-[13px] text-neutral-500">
+          <p className="mt-6 text-center text-[13px] text-neutral-500">
             Need a demo or help with your model?{" "}
             <button className="font-medium text-neutral-700 underline underline-offset-2 transition-colors hover:text-neutral-900">
               Contact us
@@ -163,7 +163,7 @@ function PricingCard({
 
   return (
     <div
-      className={`relative flex flex-col rounded-2xl border p-6 transition-colors md:p-8 ${
+      className={`relative flex flex-col rounded-2xl border p-5 transition-colors md:p-6 ${
         plan.popular
           ? "border-neutral-300 bg-white"
           : "border-neutral-200 bg-white hover:border-neutral-300"

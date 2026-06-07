@@ -66,7 +66,7 @@ const metrics = [
 
 export function MetricsGrid() {
   return (
-    <section id="metrics" className="relative py-16 md:py-20 lg:py-24">
+    <section id="metrics" className="relative py-10 md:py-12 lg:py-14">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div className="text-center">
@@ -84,7 +84,7 @@ export function MetricsGrid() {
 
         {/* Category chips */}
         <Reveal delay={0.1}>
-          <div className="mt-8 flex flex-wrap justify-center gap-2">
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
             {categories.map((cat) => (
               <span
                 key={cat.id}
@@ -97,7 +97,7 @@ export function MetricsGrid() {
         </Reveal>
 
         {/* Metrics grid */}
-        <RevealGroup className="mt-10 grid grid-cols-2 gap-3 md:mt-12 md:grid-cols-5 md:gap-4">
+        <RevealGroup className="mt-8 grid grid-cols-2 gap-3 md:mt-10 md:grid-cols-5 md:gap-4">
           {metrics.map((metric) => (
             <RevealItem key={metric.name}>
               <div className="group relative rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300">

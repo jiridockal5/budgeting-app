@@ -29,7 +29,7 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="product" className="relative py-16 md:py-20 lg:py-24">
+    <section id="product" className="relative py-10 md:py-12 lg:py-14">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div className="text-center">
@@ -42,7 +42,7 @@ export function HowItWorks() {
           </div>
         </Reveal>
 
-        <RevealGroup className="mt-12 grid gap-8 md:mt-16 md:grid-cols-3 md:gap-6">
+        <RevealGroup className="mt-8 grid gap-5 md:mt-10 md:grid-cols-3 md:gap-5">
           {steps.map((step, index) => (
             <RevealItem key={step.number}>
               <div className="group relative">
@@ -51,7 +51,7 @@ export function HowItWorks() {
                   <div className="absolute left-1/2 top-12 hidden h-px w-full bg-gradient-to-r from-neutral-200 to-transparent md:block" />
                 )}
 
-                <div className="relative rounded-2xl border border-neutral-200 bg-white p-6 transition-colors hover:border-neutral-300">
+                <div className="relative rounded-2xl border border-neutral-200 bg-white p-5 transition-colors hover:border-neutral-300">
                   {/* Step number */}
                   <span className="text-[11px] font-medium text-neutral-400">
                     {step.number}

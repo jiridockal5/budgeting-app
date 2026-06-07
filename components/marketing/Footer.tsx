@@ -37,17 +37,14 @@ export function Footer() {
 
   return (
     <footer className="border-t border-neutral-200 bg-neutral-900">
-      <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-        <div className="grid gap-8 md:grid-cols-4">
+      <div className="mx-auto max-w-6xl px-6 py-10 md:py-12">
+        <div className="grid gap-6 md:grid-cols-4">
           {/* Brand column */}
           <div className="md:col-span-1">
             <Link
               href="/"
-              className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-white"
+              className="text-[15px] font-semibold text-neutral-200 transition-colors hover:text-white"
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-xs font-bold text-neutral-900">
-                B
-              </span>
               Burnlytics
             </Link>
             <p className="mt-4 text-[13px] leading-6 text-neutral-400">
@@ -81,7 +78,7 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-neutral-800 pt-8 md:flex-row">
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-neutral-800 pt-6 md:flex-row">
           <p className="text-[12px] text-neutral-500">
             © {currentYear} Burnlytics. All rights reserved.
           </p>

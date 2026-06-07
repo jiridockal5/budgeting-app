@@ -43,7 +43,7 @@ export function FAQ() {
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <section id="faq" className="relative py-16 md:py-20 lg:py-24">
+    <section id="faq" className="relative py-10 md:py-12 lg:py-14">
       {/* Background */}
       <div className="absolute inset-0 bg-neutral-50/50" />
 
@@ -59,7 +59,7 @@ export function FAQ() {
           </div>
         </Reveal>
 
-        <RevealGroup className="mt-10 divide-y divide-neutral-200 rounded-2xl border border-neutral-200 bg-white md:mt-12">
+        <RevealGroup className="mt-8 divide-y divide-neutral-200 rounded-2xl border border-neutral-200 bg-white md:mt-10">
           {faqs.map((faq, index) => (
             <RevealItem key={index}>
               <div className="group">

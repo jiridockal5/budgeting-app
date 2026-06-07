@@ -70,7 +70,7 @@ const features = [
 
 export function FeatureBento() {
   return (
-    <section className="relative py-16 md:py-20 lg:py-24">
+    <section className="relative py-10 md:py-12 lg:py-14">
       {/* Subtle background texture */}
       <div className="absolute inset-0 bg-neutral-50/50" />
 
@@ -89,10 +89,10 @@ export function FeatureBento() {
           </div>
         </Reveal>
 
-        <RevealGroup className="mt-12 grid gap-4 md:mt-16 md:grid-cols-3 md:gap-5">
+        <RevealGroup className="mt-8 grid gap-4 md:mt-10 md:grid-cols-3 md:gap-4">
           {features.map((feature) => (
             <RevealItem key={feature.id} className={feature.span}>
-              <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white p-6 transition-colors hover:border-neutral-300">
+              <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white p-5 transition-colors hover:border-neutral-300">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600">
@@ -119,7 +119,7 @@ export function FeatureBento() {
                 </p>
 
                 {/* Lottie placeholder area */}
-                <div className="mt-6 flex-1">
+                <div className="mt-4 flex-1">
                   <LottiePlaceholder
                     className="h-24 w-full md:h-28"
                     icon={

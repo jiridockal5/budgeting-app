@@ -70,7 +70,7 @@ export function UseCasesTabs() {
   const activeCase = useCases.find((uc) => uc.id === activeTab)!;
 
   return (
-    <section className="relative py-16 md:py-20 lg:py-24">
+    <section className="relative py-10 md:py-12 lg:py-14">
       {/* Background */}
       <div className="absolute inset-0 bg-neutral-50/50" />
 
@@ -88,7 +88,7 @@ export function UseCasesTabs() {
 
         {/* Tabs */}
         <Reveal delay={0.1}>
-          <div className="mt-10 flex flex-wrap justify-center gap-2">
+          <div className="mt-8 flex flex-wrap justify-center gap-2">
             {useCases.map((uc) => (
               <button
                 key={uc.id}
@@ -108,7 +108,7 @@ export function UseCasesTabs() {
 
         {/* Panel */}
         <Reveal delay={0.2}>
-          <div className="mt-10">
+          <div className="mt-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
@@ -116,7 +116,7 @@ export function UseCasesTabs() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
                 transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                className="grid gap-8 md:grid-cols-2"
+                className="grid gap-6 md:grid-cols-2"
               >
                 {/* Content */}
                 <div className="flex flex-col justify-center">
