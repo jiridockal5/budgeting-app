@@ -8,6 +8,7 @@ import {
   computeAccessState,
   getTrialEndDate,
   canExport,
+  hasFreeAccessEmail,
   PAST_DUE_GRACE_DAYS,
 } from "@/lib/planGating";
 import { TRIAL_DAYS } from "@/config/plans";
@@ -108,6 +109,20 @@ describe("getTrialEndDate", () => {
     const from = new Date("2026-01-01T00:00:00Z");
     const end = getTrialEndDate(from);
     expect(end.getTime() - from.getTime()).toBe(TRIAL_DAYS * DAY_MS);
+  });
+});
+
+describe("hasFreeAccessEmail", () => {
+  it("returns true for emails listed in FREE_ACCESS_EMAILS", () => {
+    process.env.FREE_ACCESS_EMAILS = "Owner@Example.com, other@test.com";
+    expect(hasFreeAccessEmail("owner@example.com")).toBe(true);
+    expect(hasFreeAccessEmail("other@test.com")).toBe(true);
+  });
+
+  it("returns false when email is not listed", () => {
+    process.env.FREE_ACCESS_EMAILS = "owner@example.com";
+    expect(hasFreeAccessEmail("stranger@example.com")).toBe(false);
+    expect(hasFreeAccessEmail(null)).toBe(false);
   });
 });
 

@@ -21,6 +21,19 @@ export interface UserAccessInfo {
  */
 export const PAST_DUE_GRACE_DAYS = 7;
 
+/** Comma-separated emails in FREE_ACCESS_EMAILS bypass billing (server-only). */
+export function hasFreeAccessEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const raw = process.env.FREE_ACCESS_EMAILS ?? "";
+  const allowed = new Set(
+    raw
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+  );
+  return allowed.has(email.trim().toLowerCase());
+}
+
 function isActiveSubscription(sub: {
   status: string;
   currentPeriodEnd: Date;
@@ -79,6 +92,18 @@ export async function getUserAccessInfo(userId: string): Promise<UserAccessInfo>
         isOnTrial: false,
         isPaid: false,
         trialEndsAt: null,
+        trialDaysLeft: null,
+        plan: SUBSCRIPTION_PLAN,
+      };
+    }
+
+    if (hasFreeAccessEmail(user.email)) {
+      return {
+        state: "paid",
+        hasAppAccess: true,
+        isOnTrial: false,
+        isPaid: true,
+        trialEndsAt: user.growthTrialEndsAt?.toISOString() ?? null,
         trialDaysLeft: null,
         plan: SUBSCRIPTION_PLAN,
       };
