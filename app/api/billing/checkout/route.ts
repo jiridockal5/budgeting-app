@@ -4,6 +4,8 @@ import { getAllAllowedPriceIds } from "@/config/plans";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { checkRateLimit } from "@/lib/apiUtils";
+import { captureRouteException } from "@/lib/monitoring";
 
 const checkoutSchema = z.object({
   priceId: z.string().min(1),
@@ -11,6 +13,14 @@ const checkoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const { id: rateLimitUserId } = await getServerUser();
+    if (!checkRateLimit(`billing-checkout:${rateLimitUserId}`, 10, 60_000)) {
+      return NextResponse.json(
+        { success: false, error: "Too many requests. Please try again shortly." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = checkoutSchema.safeParse(body);
 
@@ -31,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     const { id: userId, email } = await getServerUser();
 
-    let user = await prisma.user.findFirst({
+    const user = await prisma.user.findFirst({
       where: { id: userId },
     });
 
@@ -72,7 +82,7 @@ export async function POST(request: NextRequest) {
       data: { url: session.url },
     });
   } catch (error) {
-    console.error("POST /api/billing/checkout error", error);
+    captureRouteException("POST /api/billing/checkout", error);
     return NextResponse.json(
       {
         success: false,

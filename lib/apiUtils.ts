@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { prisma } from "./prisma";
 import { getServerUser } from "./serverUser";
+import { captureRouteException } from "./monitoring";
 
 export type ApiHandler = () => Promise<NextResponse>;
 
@@ -31,7 +32,7 @@ export async function withErrorHandling(
   try {
     return await handler();
   } catch (error) {
-    console.error(`${label} error`, error);
+    captureRouteException(label, error);
 
     if (error instanceof ZodError) {
       return apiError("Validation failed", 400, error.issues);

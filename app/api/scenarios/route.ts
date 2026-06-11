@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
 import { checkScenarioLimit } from "@/lib/planGating";
+import { captureRouteException } from "@/lib/monitoring";
 
 const createSchema = z.object({
   planId: z.string().min(1),
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: scenarios });
   } catch (error) {
-    console.error("GET /api/scenarios error", error);
+    captureRouteException("GET /api/scenarios", error);
     return NextResponse.json(
       {
         success: false,
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("POST /api/scenarios error", error);
+    captureRouteException("POST /api/scenarios", error);
     return NextResponse.json(
       {
         success: false,

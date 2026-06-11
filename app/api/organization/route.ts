@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
+import { captureRouteException } from "@/lib/monitoring";
 
 const createSchema = z.object({
   name: z.string().min(1).max(100),
@@ -37,7 +38,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data: orgs });
   } catch (error) {
-    console.error("GET /api/organization error", error);
+    captureRouteException("GET /api/organization", error);
     return NextResponse.json(
       {
         success: false,
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("POST /api/organization error", error);
+    captureRouteException("POST /api/organization", error);
     return NextResponse.json(
       {
         success: false,

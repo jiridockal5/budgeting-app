@@ -2,12 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/apiUtils";
+import { captureRouteException } from "@/lib/monitoring";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(request: NextRequest) {
+  // Generous per-IP limit — protects against junk floods while leaving
+  // ample headroom for legitimate Stripe event bursts.
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!checkRateLimit(`stripe-webhook:${ip}`, 120, 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET not configured");
+    captureRouteException(
+      "POST /api/webhooks/stripe",
+      new Error("STRIPE_WEBHOOK_SECRET not configured")
+    );
     return NextResponse.json(
       { error: "Webhook not configured" },
       { status: 500 }
@@ -29,7 +41,7 @@ export async function POST(request: NextRequest) {
   try {
     event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    console.error("Webhook signature verification failed", err);
+    captureRouteException("POST /api/webhooks/stripe (signature)", err);
     return NextResponse.json(
       { error: "Invalid signature" },
       { status: 400 }
@@ -64,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Webhook handler error", error);
+    captureRouteException("POST /api/webhooks/stripe (handler)", error);
     return NextResponse.json(
       { error: "Webhook handler failed" },
       { status: 500 }

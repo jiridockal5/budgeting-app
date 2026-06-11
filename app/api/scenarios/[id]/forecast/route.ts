@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
+import { captureRouteException } from "@/lib/monitoring";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
 import {
   buildForecast,
@@ -136,7 +137,7 @@ export async function GET(_request: NextRequest, context: RouteParams) {
       data: { scenarioId: scenario.id, scenarioName: scenario.name, ...result },
     });
   } catch (error) {
-    console.error("GET /api/scenarios/[id]/forecast error", error);
+    captureRouteException("GET /api/scenarios/[id]/forecast", error);
     return NextResponse.json(
       {
         success: false,

@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
+import { captureRouteException } from "@/lib/monitoring";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -56,7 +57,7 @@ export async function PUT(request: NextRequest, context: RouteParams) {
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
-    console.error("PUT /api/scenarios/[id] error", error);
+    captureRouteException("PUT /api/scenarios/[id]", error);
     return NextResponse.json(
       {
         success: false,
@@ -97,7 +98,7 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("DELETE /api/scenarios/[id] error", error);
+    captureRouteException("DELETE /api/scenarios/[id]", error);
     return NextResponse.json(
       {
         success: false,

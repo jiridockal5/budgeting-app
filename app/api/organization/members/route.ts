@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
+import { captureRouteException } from "@/lib/monitoring";
 
 const inviteSchema = z.object({
   organizationId: z.string().min(1),
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("POST /api/organization/members error", error);
+    captureRouteException("POST /api/organization/members", error);
 
     if (
       error instanceof Error &&
@@ -152,7 +153,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("DELETE /api/organization/members error", error);
+    captureRouteException("DELETE /api/organization/members", error);
     return NextResponse.json(
       {
         success: false,

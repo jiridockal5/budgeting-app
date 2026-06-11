@@ -14,15 +14,35 @@ export interface UserAccessInfo {
   plan: typeof SUBSCRIPTION_PLAN;
 }
 
+/**
+ * Days of continued access after a payment fails (status PAST_DUE),
+ * giving Stripe's dunning/retry cycle time to recover the payment
+ * before the user is locked out.
+ */
+export const PAST_DUE_GRACE_DAYS = 7;
+
 function isActiveSubscription(sub: {
   status: string;
   currentPeriodEnd: Date;
 } | null): boolean {
   if (!sub) return false;
-  return (
+  const now = new Date();
+
+  if (
     (sub.status === "ACTIVE" || sub.status === "TRIALING") &&
-    sub.currentPeriodEnd > new Date()
-  );
+    sub.currentPeriodEnd > now
+  ) {
+    return true;
+  }
+
+  if (sub.status === "PAST_DUE") {
+    const graceEnd = new Date(
+      sub.currentPeriodEnd.getTime() + PAST_DUE_GRACE_DAYS * 24 * 60 * 60 * 1000
+    );
+    return graceEnd > now;
+  }
+
+  return false;
 }
 
 function trialDaysLeft(trialEndsAt: Date | null): number | null {

@@ -19,7 +19,7 @@ export function ScreenshotFrame() {
                 </div>
                 <div className="ml-4 flex h-6 flex-1 items-center justify-center rounded-md bg-neutral-100 px-3">
                   <span className="text-[11px] text-neutral-400">
-                    app.burnlytics.com/plan
+                    app.burnlytics.com/app
                   </span>
                 </div>
               </div>

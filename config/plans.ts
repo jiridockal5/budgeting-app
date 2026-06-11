@@ -19,7 +19,7 @@ export const PLAN_FEATURES = [
   "Unlimited plans & scenarios",
   "Full dashboard, SaaS & financial metrics",
   "PDF & CSV export",
-  "Priority email support",
+  "Email support",
 ] as const;
 
 const PRICE_ENV_KEYS: Record<

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
+import { captureRouteException } from "@/lib/monitoring";
 import {
   buildForecast,
   dateToMonth,
@@ -141,7 +142,7 @@ export async function GET(request: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error("GET /api/forecast error", error);
+    captureRouteException("GET /api/forecast", error);
     return NextResponse.json(
       {
         success: false,

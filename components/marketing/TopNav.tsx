@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Menu, X, ArrowRight } from "lucide-react";
-import { TurquoiseBrandGlow } from "./TurquoiseGlow";
 
 const navLinks = [
   { href: "#product", label: "Product" },
@@ -41,11 +41,15 @@ export function TopNav({ showAppLink = false }: TopNavProps) {
         }`}
       >
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Link
-            href="/"
-            className="text-[19px] font-semibold tracking-tight text-neutral-900 transition-colors hover:text-neutral-700"
-          >
-            <TurquoiseBrandGlow>Burnlytics</TurquoiseBrandGlow>
+          <Link href="/" className="flex items-center" aria-label="Burnlytics home">
+            <Image
+              src="/brand/burnlytics-wordmark.png"
+              alt="Burnlytics"
+              width={304}
+              height={118}
+              priority
+              className="h-7 w-auto mix-blend-multiply"
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -65,7 +69,7 @@ export function TopNav({ showAppLink = false }: TopNavProps) {
           <div className="hidden items-center gap-3 md:flex">
             {showAppLink && (
               <Link
-                href="/plan"
+                href="/app"
                 className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
               >
                 Go to app
@@ -129,7 +133,7 @@ export function TopNav({ showAppLink = false }: TopNavProps) {
                 <div className="flex flex-col gap-3">
                   {showAppLink && (
                     <Link
-                      href="/plan"
+                      href="/app"
                       className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] font-medium text-neutral-900 transition-colors hover:bg-neutral-50"
                     >
                       Go to app

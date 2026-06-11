@@ -58,14 +58,12 @@ POSTGRES_PRISMA_URL=postgresql://postgres:password@db.your-project.supabase.co:6
 
 The Prisma schema uses `POSTGRES_PRISMA_URL` (Supabase connection pooler with port 6543).
 
-Add to `.env.local`:
+Add to `.env.local` (replace placeholders with your own Supabase credentials — never commit them):
 ```env
-POSTGRES_PRISMA_URL=postgresql://postgres.puiswljpjrodpnflopdp:CT5ya4CB3dSB%24X%21@aws-0-eu-north-1.pooler.supabase.com:6543/postgres?sslmode=require
+POSTGRES_PRISMA_URL=postgresql://postgres.<project-ref>:<url-encoded-password>@<pooler-host>:6543/postgres?sslmode=require
 ```
 
 **⚠️ Make sure you use port 6543 (pooler), not 5432 (direct connection).**
-
-See `SETUP_LOCAL_DATABASE.md` for detailed setup instructions.
 
 Then run:
 

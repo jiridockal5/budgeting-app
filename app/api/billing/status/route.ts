@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { getUserAccessInfo } from "@/lib/planGating";
+import { captureRouteException } from "@/lib/monitoring";
 
 export async function GET() {
   try {
@@ -38,7 +39,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("GET /api/billing/status error", error);
+    captureRouteException("GET /api/billing/status", error);
     return NextResponse.json(
       {
         success: false,

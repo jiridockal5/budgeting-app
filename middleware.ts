@@ -24,7 +24,7 @@ export async function middleware(req: NextRequest) {
         return req.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
+        cookiesToSet.forEach(({ name, value }) => {
           req.cookies.set(name, value);
         });
         response = NextResponse.next({
@@ -61,6 +61,19 @@ export async function middleware(req: NextRequest) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirectTo", req.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Enforce email verification for email/password accounts.
+  // (OAuth providers verify emails on their side; confirmed users have email_confirmed_at set.)
+  const isEmailProvider = user.app_metadata?.provider === "email";
+  if (isEmailProvider && !user.email_confirmed_at) {
+    if (isApiRoute) {
+      return NextResponse.json(
+        { success: false, error: "Email not verified" },
+        { status: 403 }
+      );
+    }
+    return NextResponse.redirect(new URL("/verify-email", req.url));
   }
 
   return response;

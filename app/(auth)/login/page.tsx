@@ -134,11 +134,12 @@ function LoginForm() {
     setMessage(null);
 
     try {
-      // Use dynamic origin for redirect URL (works in both localhost and production)
+      // Send users to the auth callback, which exchanges the recovery code
+      // for a session and forwards to the set-new-password page.
       const redirectUrl =
         typeof window !== "undefined"
-          ? `${window.location.origin}/login`
-          : "/login";
+          ? `${window.location.origin}/auth/callback?next=/reset-password`
+          : "/auth/callback?next=/reset-password";
 
       const { error } = await supabase.auth.resetPasswordForEmail(
         forgotPasswordEmail,

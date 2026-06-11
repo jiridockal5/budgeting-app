@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
+import { captureRouteException } from "@/lib/monitoring";
 
 // Validation schema for assumptions input
 const assumptionsInputSchema = z.object({
@@ -145,7 +146,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("GET /api/assumptions error", error);
+    captureRouteException("GET /api/assumptions", error);
     return NextResponse.json(
       {
         success: false,
@@ -236,7 +237,7 @@ export async function POST(request: NextRequest) {
       data: serializeAssumptions(assumptions),
     });
   } catch (error) {
-    console.error("POST /api/assumptions error", error);
+    captureRouteException("POST /api/assumptions", error);
     return NextResponse.json(
       {
         success: false,

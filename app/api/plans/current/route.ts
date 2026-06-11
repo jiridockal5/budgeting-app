@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
 import { getUserAccessInfo, getTrialEndDate } from "@/lib/planGating";
+import { captureRouteException } from "@/lib/monitoring";
 
 const patchSchema = z.object({
   months: z.number().int().min(1).max(120).optional(),
@@ -80,7 +81,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("GET /api/plans/current error", error);
+    captureRouteException("GET /api/plans/current", error);
     return NextResponse.json(
       {
         success: false,
@@ -168,7 +169,7 @@ export async function PATCH(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("PATCH /api/plans/current error", error);
+    captureRouteException("PATCH /api/plans/current", error);
     return NextResponse.json(
       {
         success: false,

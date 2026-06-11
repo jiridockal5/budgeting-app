@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   Timer,
   Users,
+  UserRound,
   LucideIcon,
 } from "lucide-react";
 import { LAUNCH_V1 } from "./launch";
@@ -52,6 +53,7 @@ export const navItems: NavItem[] = [
   { href: "/app/scenarios", label: "Scenarios", icon: GitCompareArrows },
   { href: "/app/runway", label: "Runway", icon: Timer },
   { href: "/app/settings/billing", label: "Billing", icon: DollarSign },
+  { href: "/app/settings/account", label: "Account", icon: UserRound },
   ...(LAUNCH_V1.team
     ? [{ href: "/app/settings/team", label: "Team", icon: Users }]
     : []),

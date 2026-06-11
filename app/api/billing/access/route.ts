@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerUser } from "@/lib/serverUser";
 import { getUserAccessInfo } from "@/lib/planGating";
+import { captureRouteException } from "@/lib/monitoring";
 
 export async function GET() {
   try {
@@ -12,7 +13,7 @@ export async function GET() {
       data: access,
     });
   } catch (error) {
-    console.error("GET /api/billing/access error", error);
+    captureRouteException("GET /api/billing/access", error);
     return NextResponse.json(
       {
         success: false,

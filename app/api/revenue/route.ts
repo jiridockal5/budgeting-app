@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
+import { captureRouteException } from "@/lib/monitoring";
 
 const revenueConfigSchema = z.object({
   planId: z.string().min(1),
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("GET /api/revenue error", error);
+    captureRouteException("GET /api/revenue", error);
     return NextResponse.json(
       {
         success: false,
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("POST /api/revenue error", error);
+    captureRouteException("POST /api/revenue", error);
     return NextResponse.json(
       {
         success: false,
