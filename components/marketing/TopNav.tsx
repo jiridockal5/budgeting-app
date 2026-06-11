@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Menu, X, ArrowRight } from "lucide-react";
+import { TurquoiseBrandGlow } from "./TurquoiseGlow";
 
 const navLinks = [
   { href: "#product", label: "Product" },
@@ -41,15 +41,12 @@ export function TopNav({ showAppLink = false }: TopNavProps) {
         }`}
       >
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center" aria-label="Burnlytics home">
-            <Image
-              src="/brand/burnlytics-wordmark.png"
-              alt="Burnlytics"
-              width={304}
-              height={118}
-              priority
-              className="h-7 w-auto mix-blend-multiply"
-            />
+          <Link
+            href="/"
+            className="shrink-0 text-[19px] font-semibold tracking-tight text-neutral-900 transition-colors hover:text-neutral-700"
+            aria-label="Burnlytics home"
+          >
+            <TurquoiseBrandGlow>Burnlytics</TurquoiseBrandGlow>
           </Link>
 
           {/* Desktop Navigation */}
