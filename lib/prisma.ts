@@ -4,15 +4,27 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Support both POSTGRES_PRISMA_URL (from Supabase integration) and DATABASE_URL (fallback)
-// POSTGRES_PRISMA_URL is preferred as it's optimized for Prisma with connection pooling
-const databaseUrl = process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL;
+/**
+ * Supabase transaction pooler (port 6543) + Prisma requires pgbouncer=true,
+ * otherwise Postgres returns "prepared statement already exists" (42P05).
+ */
+function getDatabaseUrl(): string {
+  const raw = process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL;
+  if (!raw) {
+    throw new Error(
+      "Missing database URL. Please set POSTGRES_PRISMA_URL (preferred) or DATABASE_URL environment variable."
+    );
+  }
 
-if (!databaseUrl) {
-  throw new Error(
-    'Missing database URL. Please set POSTGRES_PRISMA_URL (preferred) or DATABASE_URL environment variable.'
-  );
+  if (raw.includes(":6543/") && !raw.includes("pgbouncer=true")) {
+    const separator = raw.includes("?") ? "&" : "?";
+    return `${raw}${separator}pgbouncer=true&connection_limit=1`;
+  }
+
+  return raw;
 }
+
+const databaseUrl = getDatabaseUrl();
 
 export const prisma =
   globalForPrisma.prisma ??
@@ -25,5 +37,5 @@ export const prisma =
     },
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+globalForPrisma.prisma = prisma;
 
