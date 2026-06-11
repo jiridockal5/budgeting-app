@@ -78,7 +78,26 @@ export function computeAccessState(input: {
   return "locked";
 }
 
-export async function getUserAccessInfo(userId: string): Promise<UserAccessInfo> {
+function freeAccessInfo(trialEndsAt: Date | null = null): UserAccessInfo {
+  return {
+    state: "paid",
+    hasAppAccess: true,
+    isOnTrial: false,
+    isPaid: true,
+    trialEndsAt: trialEndsAt?.toISOString() ?? null,
+    trialDaysLeft: null,
+    plan: SUBSCRIPTION_PLAN,
+  };
+}
+
+export async function getUserAccessInfo(
+  userId: string,
+  authEmail?: string | null
+): Promise<UserAccessInfo> {
+  if (hasFreeAccessEmail(authEmail)) {
+    return freeAccessInfo();
+  }
+
   try {
     const user = await prisma.user.findFirst({
       where: { id: userId },
@@ -98,15 +117,7 @@ export async function getUserAccessInfo(userId: string): Promise<UserAccessInfo>
     }
 
     if (hasFreeAccessEmail(user.email)) {
-      return {
-        state: "paid",
-        hasAppAccess: true,
-        isOnTrial: false,
-        isPaid: true,
-        trialEndsAt: user.growthTrialEndsAt?.toISOString() ?? null,
-        trialDaysLeft: null,
-        plan: SUBSCRIPTION_PLAN,
-      };
+      return freeAccessInfo(user.growthTrialEndsAt);
     }
 
     const state = computeAccessState({

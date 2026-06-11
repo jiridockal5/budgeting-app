@@ -6,7 +6,7 @@ import { captureRouteException } from "@/lib/monitoring";
 
 export async function GET() {
   try {
-    const { id: userId } = await getServerUser();
+    const { id: userId, email } = await getServerUser();
 
     const user = await prisma.user.findFirst({
       where: { id: userId },
@@ -20,7 +20,7 @@ export async function GET() {
       );
     }
 
-    const access = await getUserAccessInfo(userId);
+    const access = await getUserAccessInfo(userId, email);
     const sub = user.subscription;
 
     return NextResponse.json({

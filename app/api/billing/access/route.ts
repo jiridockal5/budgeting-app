@@ -5,8 +5,8 @@ import { captureRouteException } from "@/lib/monitoring";
 
 export async function GET() {
   try {
-    const { id: userId } = await getServerUser();
-    const access = await getUserAccessInfo(userId);
+    const { id: userId, email } = await getServerUser();
+    const access = await getUserAccessInfo(userId, email);
 
     return NextResponse.json({
       success: true,

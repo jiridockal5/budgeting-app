@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 import { getUserAccessInfo } from "./planGating";
+import { getServerUser } from "./serverUser";
 
 export async function requireAppAccess(
   userId: string
 ): Promise<NextResponse | null> {
-  const access = await getUserAccessInfo(userId);
+  let authEmail: string | null | undefined;
+  try {
+    const serverUser = await getServerUser();
+    authEmail = serverUser.email;
+  } catch {
+    // userId-only check below
+  }
+
+  const access = await getUserAccessInfo(userId, authEmail);
 
   if (!access.hasAppAccess) {
     return NextResponse.json(

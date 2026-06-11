@@ -60,7 +60,7 @@ export async function GET() {
       });
     }
 
-    const access = await getUserAccessInfo(user.id);
+    const access = await getUserAccessInfo(user.id, email);
     if (!access.hasAppAccess) {
       const denied = await requireAppAccess(user.id);
       if (denied) return denied;
@@ -152,7 +152,7 @@ export async function PATCH(request: NextRequest) {
       data: updates,
     });
 
-    const access = await getUserAccessInfo(user.id);
+    const access = await getUserAccessInfo(user.id, email);
 
     return NextResponse.json({
       success: true,
