@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface AutoSaveStatus {
   saving: boolean;
@@ -58,7 +58,6 @@ export function useAutoSave<T>(
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, delay, enabled]);
 
   return { saving, lastSaved, error };
@@ -70,17 +69,20 @@ export function useAutoSave<T>(
  */
 export function useAutoSaveLabel(status: AutoSaveStatus): string | null {
   const [visible, setVisible] = useState(false);
+  const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (showTimerRef.current) clearTimeout(showTimerRef.current);
     if (status.saving) {
-      setVisible(true);
+      showTimerRef.current = setTimeout(() => setVisible(true), 0);
       if (timerRef.current) clearTimeout(timerRef.current);
     } else if (status.lastSaved) {
-      setVisible(true);
+      showTimerRef.current = setTimeout(() => setVisible(true), 0);
       timerRef.current = setTimeout(() => setVisible(false), 2000);
     }
     return () => {
+      if (showTimerRef.current) clearTimeout(showTimerRef.current);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [status.saving, status.lastSaved]);

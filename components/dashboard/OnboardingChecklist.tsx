@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, Circle, ArrowRight, Timer } from "lucide-react";
 
 export interface OnboardingStatus {
@@ -116,24 +116,14 @@ export function OnboardingChecklist({
   const completedCount = steps.filter((s) => status[s.key]).length;
   const allDone = completedCount === steps.length;
 
-  const [completionReady, setCompletionReady] = useState(false);
-  const [completionDismissed, setCompletionDismissed] = useState(false);
-
-  useLayoutEffect(() => {
-    if (!allDone || !planId) {
-      setCompletionReady(false);
-      setCompletionDismissed(false);
-      return;
-    }
-    const dismissed = localStorage.getItem(storageKey(planId)) === "1";
-    setCompletionDismissed(dismissed);
-    setCompletionReady(true);
-  }, [allDone, planId]);
+  const [dismissedPlanIds, setDismissedPlanIds] = useState<Set<string>>(
+    () => new Set()
+  );
 
   const dismissCompletion = () => {
     if (!planId) return;
     localStorage.setItem(storageKey(planId), "1");
-    setCompletionDismissed(true);
+    setDismissedPlanIds((prev) => new Set(prev).add(planId));
   };
 
   if (!allDone) {
@@ -144,15 +134,10 @@ export function OnboardingChecklist({
     return null;
   }
 
-  if (!completionReady) {
-    return (
-      <div
-        className="h-28 rounded-2xl border border-slate-200 bg-slate-50/80"
-        aria-busy="true"
-        aria-label="Loading completion state"
-      />
-    );
-  }
+  const completionDismissed =
+    dismissedPlanIds.has(planId) ||
+    (typeof window !== "undefined" &&
+      localStorage.getItem(storageKey(planId)) === "1");
 
   if (!completionDismissed) {
     return (
