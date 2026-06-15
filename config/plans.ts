@@ -17,7 +17,7 @@ export const PLAN_NAME = "Burnlytics";
 
 export const PLAN_FEATURES = [
   "Unlimited plans & scenarios",
-  "Full dashboard, SaaS & financial metrics",
+  "Full dashboard and budget health metrics",
   "PDF & CSV export",
   "Email support",
 ] as const;

@@ -14,13 +14,13 @@ const steps = [
   {
     key: "hasAssumptions" as const,
     label: "Set your assumptions",
-    description: "Cash, churn, cost drivers, and plan horizon.",
+    description: "Cash balance, income changes, cost drivers, and plan horizon.",
     href: "/app/assumptions",
   },
   {
     key: "hasRevenue" as const,
-    label: "Configure revenue streams",
-    description: "Set up PLG, sales, and partner channels.",
+    label: "Configure income streams",
+    description: "Set up primary, secondary, and other income sources.",
     href: "/app/revenue",
   },
   {
@@ -167,14 +167,14 @@ export function OnboardingChecklist({
                 You&apos;re set up
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                View your runway and burn to see how the numbers come together.
+                View your cash flow to see how the numbers come together.
               </p>
               <Link
                 href="/app/runway"
                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
               >
                 <Timer className="h-4 w-4" aria-hidden />
-                View runway
+                View cash flow
               </Link>
             </div>
           </div>

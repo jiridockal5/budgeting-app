@@ -273,13 +273,13 @@ export default function ScenariosPage() {
         <div className="space-y-8">
           <PageHeader
             title="Scenarios"
-            subtitle="Compare different revenue assumptions side by side."
+            subtitle="Compare different income and spending assumptions side by side."
             actions={
               <Link
                 href="/app/revenue"
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
               >
-                Edit revenue
+                Edit income
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             }
@@ -295,7 +295,7 @@ export default function ScenariosPage() {
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="New scenario name (e.g. Aggressive growth)"
+                placeholder="New scenario name (e.g. Stretch savings)"
                 className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               />
@@ -311,7 +311,7 @@ export default function ScenariosPage() {
 
             {scenarios.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-6">
-                No scenarios yet. Save your revenue config first, then create
+                No scenarios yet. Save your income config first, then create
                 alternative scenarios here.
               </p>
             ) : (
@@ -436,37 +436,37 @@ export default function ScenariosPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       <ComparisonRow
-                        label="Projected ARR"
+                        label="Projected Annualized Income"
                         values={forecasts.map((f) =>
                           formatCompact(f.summary.projectedArr)
                         )}
                       />
                       <ComparisonRow
-                        label="Projected MRR"
+                        label="Projected Monthly Income"
                         values={forecasts.map((f) =>
                           formatCompact(f.summary.projectedMrr)
                         )}
                       />
                       <ComparisonRow
-                        label="Net New ARR"
+                        label="Net New Income"
                         values={forecasts.map((f) =>
                           formatCompact(f.summary.netNewArr)
                         )}
                       />
                       <ComparisonRow
-                        label="Total Customers"
+                        label="Total Income Sources"
                         values={forecasts.map((f) =>
                           f.summary.totalCustomers.toString()
                         )}
                       />
                       <ComparisonRow
-                        label="NRR"
+                        label="Income Retained"
                         values={forecasts.map((f) =>
                           formatPct(f.summary.annualNrr)
                         )}
                       />
                       <ComparisonRow
-                        label="Burn Multiple"
+                        label="Cash Use Ratio"
                         values={forecasts.map(
                           (f) => `${f.summary.burnMultiple.toFixed(1)}x`
                         )}
@@ -478,7 +478,7 @@ export default function ScenariosPage() {
                         )}
                       />
                       <ComparisonRow
-                        label="Monthly Burn"
+                        label="Monthly Cash Use"
                         values={forecasts.map((f) =>
                           formatCompact(f.summary.monthlyBurn)
                         )}
@@ -489,8 +489,8 @@ export default function ScenariosPage() {
               </div>
 
               <ChartCard
-                title="ARR Comparison"
-                description="Projected ARR across scenarios over the forecast period."
+                title="Annualized Income Comparison"
+                description="Projected annualized income across scenarios over the forecast period."
                 data={arrChartData}
                 series={arrSeries}
               />

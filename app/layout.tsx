@@ -11,20 +11,20 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Burnlytics | Runway & burn forecasts for early-stage SaaS",
+  title: "Burnlytics | Budget planning and cash-flow forecasts",
   description:
-    "An opinionated budgeting tool for early-stage SaaS. Model revenue, hiring, and burn with simple inputs — and see runway and investor metrics instantly.",
+    "A clear budgeting app for planning income, expenses, savings goals, and cash flow with simple inputs.",
   openGraph: {
-    title: "Burnlytics | Runway & burn forecasts for early-stage SaaS",
+    title: "Burnlytics | Budget planning and cash-flow forecasts",
     description:
-      "An opinionated budgeting tool for early-stage SaaS. Model revenue, hiring, and burn with simple inputs — and see runway and investor metrics instantly.",
+      "A clear budgeting app for planning income, expenses, savings goals, and cash flow with simple inputs.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Burnlytics | Runway & burn forecasts for early-stage SaaS",
+    title: "Burnlytics | Budget planning and cash-flow forecasts",
     description:
-      "An opinionated budgeting tool for early-stage SaaS. Model revenue, hiring, and burn with simple inputs — and see runway and investor metrics instantly.",
+      "A clear budgeting app for planning income, expenses, savings goals, and cash flow with simple inputs.",
   },
 };
 

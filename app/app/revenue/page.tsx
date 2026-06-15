@@ -34,7 +34,7 @@ type RevenueStream = "plg" | "sales" | "partners";
 /**
  * Revenue Page
  *
- * Define how PLG, sales, and partner streams generate ARR.
+ * Define how income streams generate the budget forecast.
  * Data is persisted to the database via /api/revenue.
  */
 export default function RevenuePage() {
@@ -123,13 +123,13 @@ export default function RevenuePage() {
   }[] = [
     {
       key: "plg",
-      label: "PLG / Self-service",
+      label: "Primary income",
       icon: <Sparkles className="h-4 w-4" />,
     },
-    { key: "sales", label: "Sales", icon: <Users className="h-4 w-4" /> },
+    { key: "sales", label: "Secondary income", icon: <Users className="h-4 w-4" /> },
     {
       key: "partners",
-      label: "Partners",
+      label: "Other income",
       icon: <Handshake className="h-4 w-4" />,
     },
   ];
@@ -156,8 +156,8 @@ export default function RevenuePage() {
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
-            title="Revenue"
-            subtitle="Define how your PLG, sales, and partner streams generate ARR."
+            title="Income"
+            subtitle="Define how your primary, secondary, and other income streams shape the budget."
             actions={
               saveLabel ? (
                 <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
@@ -209,10 +209,10 @@ export default function RevenuePage() {
                   <span className="hidden sm:inline">{tab.label}</span>
                   <span className="sm:hidden">
                     {tab.key === "plg"
-                      ? "PLG"
+                      ? "Primary"
                       : tab.key === "sales"
-                        ? "Sales"
-                        : "Partners"}
+                        ? "Secondary"
+                        : "Other"}
                   </span>
                 </button>
               ))}
@@ -275,13 +275,13 @@ export default function RevenuePage() {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">
-                  How revenue streams work
+                  How income streams work
                 </h3>
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">
                   Each stream uses the global assumptions as defaults, but you
-                  can override churn, expansion, and ACV per stream. The forecast
-                  combines all streams to project your total MRR/ARR growth over
-                  time.
+                  can override reductions, increases, and average income per
+                  stream. The forecast combines all streams to project monthly
+                  and annualized income over time.
                 </p>
               </div>
             </div>
@@ -330,11 +330,11 @@ function AssumptionsSnapshot({
       <div className="mt-4 pt-4 border-t border-slate-100">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <SnapshotMetric
-            label="Default churn"
+            label="Default reduction"
             value={formatPercentage(assumptions.churnRate) + " / mo"}
           />
           <SnapshotMetric
-            label="Expansion"
+            label="Increase"
             value={formatPercentage(assumptions.expansionRate) + " / mo"}
           />
           <SnapshotMetric
@@ -342,7 +342,7 @@ function AssumptionsSnapshot({
             value={`${assumptions.paymentTimingDays} days`}
           />
           <SnapshotMetric
-            label="Price uplift"
+            label="Income uplift"
             value={
               assumptions.priceUplift == null
                 ? "Optional"
@@ -406,10 +406,10 @@ function BillingMixFields({
   return (
     <>
       <StreamInputField
-        label="Monthly deal share"
+        label="Monthly source share"
         value={getMonthlyDealShare(config)}
         onChange={(v) => onChange({ monthlyDealShare: parseFloat(v) || 0 })}
-        helper={`Yearly deals are ${formatPercentage(getYearlyDealShare(config))} of new customers`}
+        helper={`Yearly sources are ${formatPercentage(getYearlyDealShare(config))} of new active sources`}
         suffix="%"
       />
       <StreamInputField
@@ -453,44 +453,44 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
       <StreamHeader
         icon={<Sparkles className="h-5 w-5 text-emerald-600" />}
         iconBg="bg-emerald-50"
-        title="PLG / Self-service"
-        description="Product-led growth through free trials and self-service signups"
+        title="Primary income"
+        description="Your main recurring income source"
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <StreamInputField
-          label="Monthly new trials"
+          label="Monthly new sources"
           value={config.monthlyTrials}
           onChange={(v) => updateField("monthlyTrials", v)}
-          helper="Number of new trial signups per month"
+          helper="Number of new primary income sources per month"
         />
         <StreamInputField
-          label="Trial → paid conversion"
+          label="Activation rate"
           value={config.trialConversionRate}
           onChange={(v) => updateField("trialConversionRate", v)}
-          helper="Percentage of trials that convert to paid"
+          helper="Percentage of new sources that become active"
           suffix="%"
         />
         <BillingMixFields
           config={config}
           onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
-          annualLabel="Average yearly ACV"
-          annualHelper="Annual contract value for yearly self-service deals"
-          monthlyLabel="Average monthly ARPA"
-          monthlyHelper="Monthly recurring revenue for monthly self-service deals"
+          annualLabel="Average yearly income"
+          annualHelper="Annual value for yearly primary income"
+          monthlyLabel="Average monthly income"
+          monthlyHelper="Monthly value for primary income"
         />
         <StreamInputField
-          label="PLG churn rate"
+          label="Primary income reduction rate"
           value={config.churnRate}
           onChange={(v) => updateField("churnRate", v)}
-          helper="Monthly churn rate for PLG customers"
+          helper="Monthly reduction rate for primary income"
           suffix="%"
         />
         <StreamInputField
-          label="PLG expansion rate"
+          label="Primary income increase rate"
           value={config.expansionRate}
           onChange={(v) => updateField("expansionRate", v)}
-          helper="Monthly expansion on surviving PLG customers"
+          helper="Monthly increase on retained primary income"
           suffix="%"
         />
       </div>
@@ -500,17 +500,17 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
         color="emerald"
       >
         <span className="font-semibold text-emerald-700">{newCustomers}</span>{" "}
-        new customers / month at{" "}
+        new sources / month at{" "}
         <span className="font-semibold text-emerald-700">
           {formatCurrency(getBlendedMrr(config))}
         </span>{" "}
-        blended MRR
+        blended monthly income
         <span className="text-slate-500">
           {" "}
           ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
           {formatPercentage(getYearlyDealShare(config))} yearly, using{" "}
-          {formatPercentage(config.churnRate)} churn,{" "}
-          {formatPercentage(config.expansionRate)} expansion)
+          {formatPercentage(config.churnRate)} reduction,{" "}
+          {formatPercentage(config.expansionRate)} increase)
         </span>
       </StreamPreview>
     </div>
@@ -544,44 +544,44 @@ function SalesStreamForm({
       <StreamHeader
         icon={<Users className="h-5 w-5 text-blue-600" />}
         iconBg="bg-blue-50"
-        title="Sales"
-        description="Direct sales through inbound leads and outbound prospecting"
+        title="Secondary income"
+        description="Recurring side income, freelance income, or other planned earnings"
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <StreamInputField
-          label="Monthly inbound SQLs"
+          label="Monthly opportunities"
           value={config.monthlySqls}
           onChange={(v) => updateField("monthlySqls", v)}
-          helper="Sales-qualified leads entering the pipeline per month"
+          helper="Potential secondary income opportunities per month"
         />
         <StreamInputField
-          label="Demo → closed-won"
+          label="Activation rate"
           value={config.closeRate}
           onChange={(v) => updateField("closeRate", v)}
-          helper="Percentage of demos that result in closed deals"
+          helper="Percentage of opportunities that become income"
           suffix="%"
         />
         <BillingMixFields
           config={config}
           onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
-          annualLabel="Average yearly ACV"
-          annualHelper="Annual contract value for yearly sales-led deals"
-          monthlyLabel="Average monthly ARPA"
-          monthlyHelper="Monthly recurring revenue for monthly sales-led deals"
+          annualLabel="Average yearly income"
+          annualHelper="Annual value for yearly secondary income"
+          monthlyLabel="Average monthly income"
+          monthlyHelper="Monthly value for secondary income"
         />
         <StreamInputField
-          label="Sales churn rate"
+          label="Secondary income reduction rate"
           value={config.churnRate}
           onChange={(v) => updateField("churnRate", v)}
-          helper="Monthly churn rate for sales customers"
+          helper="Monthly reduction rate for secondary income"
           suffix="%"
         />
         <StreamInputField
-          label="Sales expansion rate"
+          label="Secondary income increase rate"
           value={config.expansionRate}
           onChange={(v) => updateField("expansionRate", v)}
-          helper="Monthly expansion on surviving sales customers"
+          helper="Monthly increase on retained secondary income"
           suffix="%"
         />
       </div>
@@ -591,17 +591,17 @@ function SalesStreamForm({
         color="blue"
       >
         <span className="font-semibold text-blue-700">{newCustomers}</span> new
-        customers / month at{" "}
+        sources / month at{" "}
         <span className="font-semibold text-blue-700">
           {formatCurrency(getBlendedMrr(config))}
         </span>{" "}
-        blended MRR
+        blended monthly income
         <span className="text-slate-500">
           {" "}
           ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
           {formatPercentage(getYearlyDealShare(config))} yearly, using{" "}
-          {formatPercentage(config.churnRate)} churn,{" "}
-          {formatPercentage(config.expansionRate)} expansion)
+          {formatPercentage(config.churnRate)} reduction,{" "}
+          {formatPercentage(config.expansionRate)} increase)
         </span>
       </StreamPreview>
     </div>
@@ -635,37 +635,37 @@ function PartnersStreamForm({
       <StreamHeader
         icon={<Handshake className="h-5 w-5 text-violet-600" />}
         iconBg="bg-violet-50"
-        title="Partners"
-        description="Revenue through channel partners, affiliates, and referrals"
+        title="Other income"
+        description="Additional planned income from referrals, bonuses, or one-time sources"
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <StreamInputField
-          label="Monthly referred deals"
+          label="Monthly income opportunities"
           value={config.monthlyReferrals}
           onChange={(v) => updateField("monthlyReferrals", v)}
-          helper="Number of partner-referred opportunities per month"
+          helper="Number of other income opportunities per month"
         />
         <StreamInputField
           label="Close rate"
           value={config.closeRate}
           onChange={(v) => updateField("closeRate", v)}
-          helper="Percentage of partner referrals that close"
+          helper="Percentage of opportunities that become income"
           suffix="%"
         />
         <BillingMixFields
           config={config}
           onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
-          annualLabel="Average yearly ACV"
-          annualHelper="Annual contract value for yearly partner-sourced deals"
-          monthlyLabel="Average monthly ARPA"
-          monthlyHelper="Monthly recurring revenue for monthly partner-sourced deals"
+          annualLabel="Average yearly income"
+          annualHelper="Annual value for yearly other income"
+          monthlyLabel="Average monthly income"
+          monthlyHelper="Monthly value for other income"
         />
         <StreamInputField
           label="Commission rate"
           value={config.commissionRate}
           onChange={(v) => updateField("commissionRate", v)}
-          helper="Commission paid to partners on referred revenue"
+          helper="Costs or fees applied to this income source"
           suffix="%"
         />
       </div>
@@ -675,16 +675,16 @@ function PartnersStreamForm({
         color="violet"
       >
         <span className="font-semibold text-violet-700">{newCustomers}</span>{" "}
-        new customers / month at{" "}
+        new sources / month at{" "}
         <span className="font-semibold text-violet-700">
           {formatCurrency(getBlendedMrr(config))}
         </span>{" "}
-        blended MRR
+        blended monthly income
         <span className="text-slate-500">
           {" "}
           ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
           {formatPercentage(getYearlyDealShare(config))} yearly,{" "}
-          {formatPercentage(config.commissionRate)} partner commission)
+          {formatPercentage(config.commissionRate)} cost or fee)
         </span>
       </StreamPreview>
     </div>

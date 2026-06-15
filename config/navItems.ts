@@ -33,11 +33,11 @@ export const navItems: NavItem[] = [
     label: "Metrics",
     icon: BarChart3,
     children: [
-      { href: "/app/metrics/saas", label: "SaaS Metrics" },
+      { href: "/app/metrics/saas", label: "Budget Metrics" },
       { href: "/app/metrics/financial", label: "Financial Metrics" },
     ],
   },
-  { href: "/app/revenue", label: "Revenue", icon: TrendingUp },
+  { href: "/app/revenue", label: "Income", icon: TrendingUp },
   {
     href: "/app/expenses",
     label: "Expenses",
@@ -51,7 +51,7 @@ export const navItems: NavItem[] = [
     ? [{ href: "/app/actuals", label: "Actuals", icon: ClipboardCheck }]
     : []),
   { href: "/app/scenarios", label: "Scenarios", icon: GitCompareArrows },
-  { href: "/app/runway", label: "Runway", icon: Timer },
+  { href: "/app/runway", label: "Cash Flow", icon: Timer },
   { href: "/app/settings/billing", label: "Billing", icon: DollarSign },
   { href: "/app/settings/account", label: "Account", icon: UserRound },
   ...(LAUNCH_V1.team

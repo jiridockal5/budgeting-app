@@ -11,18 +11,18 @@ function formatCompact(value: number): string {
 export function exportForecastCSV(forecast: ForecastResult) {
   const headers = [
     "Month",
-    "MRR",
-    "ARR",
-    "PLG MRR",
-    "Sales MRR",
-    "Partner MRR",
-    "Total Customers",
-    "New MRR",
-    "New Customer Cash In",
-    "Existing Customer Cash In",
+    "Monthly Income",
+    "Annualized Income",
+    "Primary Income",
+    "Secondary Income",
+    "Other Income",
+    "Total Income Sources",
+    "New Monthly Income",
+    "New Source Cash In",
+    "Existing Source Cash In",
     "Total Cash In",
-    "Churned MRR",
-    "Expansion MRR",
+    "Reduced Income",
+    "Increased Income",
     "COS Expense",
     "GTM Expense",
     "R&D Expense",
@@ -36,8 +36,8 @@ export function exportForecastCSV(forecast: ForecastResult) {
     "Operating Expenses",
     "EBIT",
     "EBIT Margin %",
-    "Net Burn",
-    "Cumulative Burn",
+    "Net Cash Flow",
+    "Cumulative Cash Use",
     "Cash Remaining",
   ];
 
@@ -77,29 +77,29 @@ export function exportForecastCSV(forecast: ForecastResult) {
   const summaryRows = [
     [],
     ["Summary"],
-    ["Projected ARR", s.projectedArr.toFixed(2)],
-    ["Projected MRR", s.projectedMrr.toFixed(2)],
-    ["Net New ARR", s.netNewArr.toFixed(2)],
-    ["MRR Growth Rate", `${s.mrrGrowthRate.toFixed(1)}%`],
-    ["ARR Growth (annualized)", `${s.arrGrowthRate.toFixed(1)}%`],
-    ["NRR (annual)", `${s.annualNrr.toFixed(1)}%`],
-    ["GRR (annual)", `${s.annualGrr.toFixed(1)}%`],
+    ["Projected Annualized Income", s.projectedArr.toFixed(2)],
+    ["Projected Monthly Income", s.projectedMrr.toFixed(2)],
+    ["Net New Income", s.netNewArr.toFixed(2)],
+    ["Monthly Income Growth Rate", `${s.mrrGrowthRate.toFixed(1)}%`],
+    ["Annualized Income Growth", `${s.arrGrowthRate.toFixed(1)}%`],
+    ["Income Retained (annual)", `${s.annualNrr.toFixed(1)}%`],
+    ["Base Income Retained (annual)", `${s.annualGrr.toFixed(1)}%`],
     ["Quick Ratio", s.quickRatio >= 999 ? "∞" : `${s.quickRatio.toFixed(1)}x`],
     ["CAC", s.cac.toFixed(2)],
     ["CAC Payback (months)", s.cacPaybackMonths.toFixed(1)],
     ["LTV", s.ltv.toFixed(2)],
     ["LTV/CAC", `${s.ltvCacRatio.toFixed(1)}x`],
     ["ARPA", s.arpa.toFixed(2)],
-    ["Sales Efficiency", s.salesEfficiency > 0 ? `${s.salesEfficiency.toFixed(2)}x` : "—"],
+    ["Income Efficiency", s.salesEfficiency > 0 ? `${s.salesEfficiency.toFixed(2)}x` : "—"],
     ["Magic Number", s.magicNumber !== null ? `${s.magicNumber.toFixed(2)}x` : "—"],
-    ["R&D % of Revenue", `${s.rndPctOfRevenue.toFixed(1)}%`],
+    ["R&D % of Income", `${s.rndPctOfRevenue.toFixed(1)}%`],
     ["Gross Margin", `${s.grossMarginPct.toFixed(1)}%`],
     ["EBIT", s.ebit.toFixed(2)],
     ["EBIT Margin", `${s.ebitMarginPct.toFixed(1)}%`],
     ["Monthly Burn", s.monthlyBurn.toFixed(2)],
-    ["Burn Multiple", `${s.burnMultiple.toFixed(1)}x`],
+    ["Cash Use Ratio", `${s.burnMultiple.toFixed(1)}x`],
     ["Rule of 40", `${s.ruleOf40.toFixed(1)}%`],
-    ["Runway (months)", s.runwayMonths >= 999 ? "∞" : s.runwayMonths.toFixed(0)],
+    ["Cash Cushion (months)", s.runwayMonths >= 999 ? "∞" : s.runwayMonths.toFixed(0)],
   ];
 
   const csv = [
@@ -114,8 +114,8 @@ export function exportForecastCSV(forecast: ForecastResult) {
 export function exportSummaryPDF(forecast: ForecastResult) {
   const s = forecast.summary;
   const last = forecast.months[forecast.months.length - 1];
-  const runway =
-    s.runwayMonths >= 999 ? "Profitable" : `${Math.round(s.runwayMonths)} months`;
+  const cashCushion =
+    s.runwayMonths >= 999 ? "Cash-positive" : `${Math.round(s.runwayMonths)} months`;
 
   const html = `
 <!DOCTYPE html>
@@ -136,33 +136,33 @@ export function exportSummaryPDF(forecast: ForecastResult) {
   .footer { margin-top: 40px; font-size: 12px; color: #94a3b8; text-align: center; }
 </style>
 </head><body>
-<h1>SaaS Forecast Report</h1>
+<h1>Budget Forecast Report</h1>
 <p style="color:#64748b">Generated on ${new Date().toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}</p>
 
 <h2>Key Metrics</h2>
 <table>
-<tr><td>Projected ARR</td><td class="value">${formatCompact(s.projectedArr)}</td></tr>
-<tr><td>Projected MRR</td><td class="value">${formatCompact(s.projectedMrr)}</td></tr>
-<tr><td>Net New ARR</td><td class="value">${formatCompact(s.netNewArr)}</td></tr>
-<tr><td>Total Customers</td><td class="value">${s.totalCustomers}</td></tr>
-<tr><td>NRR (annual)</td><td class="value ${s.annualNrr >= 100 ? "highlight" : ""}">${s.annualNrr.toFixed(1)}%</td></tr>
-<tr><td>GRR (annual)</td><td class="value ${s.annualGrr >= 90 ? "highlight" : ""}">${s.annualGrr.toFixed(1)}%</td></tr>
+<tr><td>Projected Annualized Income</td><td class="value">${formatCompact(s.projectedArr)}</td></tr>
+<tr><td>Projected Monthly Income</td><td class="value">${formatCompact(s.projectedMrr)}</td></tr>
+<tr><td>Net New Income</td><td class="value">${formatCompact(s.netNewArr)}</td></tr>
+<tr><td>Total Income Sources</td><td class="value">${s.totalCustomers}</td></tr>
+<tr><td>Income Retained (annual)</td><td class="value ${s.annualNrr >= 100 ? "highlight" : ""}">${s.annualNrr.toFixed(1)}%</td></tr>
+<tr><td>Base Income Retained (annual)</td><td class="value ${s.annualGrr >= 90 ? "highlight" : ""}">${s.annualGrr.toFixed(1)}%</td></tr>
 </table>
 
-<h2>Unit Economics</h2>
+<h2>Income Efficiency</h2>
 <table>
-<tr><td>CAC</td><td class="value">${formatCompact(s.cac)}</td></tr>
-<tr><td>CAC Payback</td><td class="value">${s.cacPaybackMonths.toFixed(0)} months</td></tr>
-<tr><td>LTV</td><td class="value">${formatCompact(s.ltv)}</td></tr>
-<tr><td>LTV / CAC</td><td class="value">${s.ltvCacRatio.toFixed(1)}x</td></tr>
-<tr><td>ARPA</td><td class="value">${formatCompact(s.arpa)}</td></tr>
+<tr><td>Setup Cost</td><td class="value">${formatCompact(s.cac)}</td></tr>
+<tr><td>Payback</td><td class="value">${s.cacPaybackMonths.toFixed(0)} months</td></tr>
+<tr><td>Long-term Value</td><td class="value">${formatCompact(s.ltv)}</td></tr>
+<tr><td>Value / Cost</td><td class="value">${s.ltvCacRatio.toFixed(1)}x</td></tr>
+<tr><td>Average Income per Source</td><td class="value">${formatCompact(s.arpa)}</td></tr>
 <tr><td>Quick Ratio</td><td class="value">${s.quickRatio >= 999 ? "∞" : `${s.quickRatio.toFixed(1)}x`}</td></tr>
 </table>
 
 <h2>Financial P&L (End of Period)</h2>
 <table>
-<tr><td>Revenue (MRR)</td><td class="value">${last ? formatCompact(last.totalMrr) : "—"}</td></tr>
-<tr><td>Cost of Sales</td><td class="value">${last ? formatCompact(last.cosExpense) : "—"}</td></tr>
+<tr><td>Monthly Income</td><td class="value">${last ? formatCompact(last.totalMrr) : "—"}</td></tr>
+<tr><td>Direct Costs</td><td class="value">${last ? formatCompact(last.cosExpense) : "—"}</td></tr>
 <tr><td>Gross Profit</td><td class="value">${formatCompact(s.grossProfit)}</td></tr>
 <tr><td>Gross Margin</td><td class="value ${s.grossMarginPct >= 70 ? "highlight" : ""}">${s.grossMarginPct.toFixed(1)}%</td></tr>
 <tr><td>Operating Expenses</td><td class="value">${formatCompact(s.operatingExpenses)}</td></tr>
@@ -170,30 +170,30 @@ export function exportSummaryPDF(forecast: ForecastResult) {
 <tr><td>EBIT Margin</td><td class="value">${s.ebitMarginPct.toFixed(1)}%</td></tr>
 </table>
 
-<h2>Burn & Runway</h2>
+<h2>Cash Flow & Cushion</h2>
 <table>
 <tr><td>Cash on Hand</td><td class="value">${formatCompact(s.cashOnHand)}</td></tr>
-<tr><td>Monthly Burn (cash basis)</td><td class="value ${s.monthlyBurn > 0 ? "warn" : "highlight"}">${formatCompact(s.monthlyBurn)}</td></tr>
-<tr><td>Burn Multiple</td><td class="value">${s.burnMultiple.toFixed(1)}x</td></tr>
+<tr><td>Monthly Cash Use</td><td class="value ${s.monthlyBurn > 0 ? "warn" : "highlight"}">${formatCompact(s.monthlyBurn)}</td></tr>
+<tr><td>Cash Use Ratio</td><td class="value">${s.burnMultiple.toFixed(1)}x</td></tr>
 <tr><td>Rule of 40</td><td class="value ${s.ruleOf40 >= 40 ? "highlight" : ""}">${s.ruleOf40.toFixed(1)}%</td></tr>
-<tr><td>Runway</td><td class="value ${s.runwayMonths <= 12 && s.runwayMonths < 999 ? "warn" : "highlight"}">${runway}</td></tr>
+<tr><td>Cash Cushion</td><td class="value ${s.runwayMonths <= 12 && s.runwayMonths < 999 ? "warn" : "highlight"}">${cashCushion}</td></tr>
 </table>
 
 <h2>Cash In (End of Period Month)</h2>
 <table>
-<tr><td>New Customer Cash In</td><td class="value">${last ? formatCompact(last.newCustomerCashIn) : "—"}</td></tr>
-<tr><td>Existing Customer Cash In</td><td class="value">${last ? formatCompact(last.existingCustomerCashIn) : "—"}</td></tr>
+<tr><td>New Source Cash In</td><td class="value">${last ? formatCompact(last.newCustomerCashIn) : "—"}</td></tr>
+<tr><td>Existing Source Cash In</td><td class="value">${last ? formatCompact(last.existingCustomerCashIn) : "—"}</td></tr>
 <tr><td>Total Cash In</td><td class="value">${last ? formatCompact(last.totalCashIn) : "—"}</td></tr>
 </table>
 
-<h2>Revenue by Channel (End of Period)</h2>
+<h2>Income by Source (End of Period)</h2>
 <table>
-<tr><td>PLG MRR</td><td class="value">${last ? formatCompact(last.plgMrr) : "—"}</td></tr>
-<tr><td>Sales MRR</td><td class="value">${last ? formatCompact(last.salesMrr) : "—"}</td></tr>
-<tr><td>Partner MRR</td><td class="value">${last ? formatCompact(last.partnerMrr) : "—"}</td></tr>
+<tr><td>Primary Income</td><td class="value">${last ? formatCompact(last.plgMrr) : "—"}</td></tr>
+<tr><td>Secondary Income</td><td class="value">${last ? formatCompact(last.salesMrr) : "—"}</td></tr>
+<tr><td>Other Income</td><td class="value">${last ? formatCompact(last.partnerMrr) : "—"}</td></tr>
 </table>
 
-<p class="footer">Generated by Burnlytics — SaaS Budgeting Tool</p>
+<p class="footer">Generated by Burnlytics — Budgeting Tool</p>
 </body></html>`;
 
   const blob = new Blob([html], { type: "text/html" });

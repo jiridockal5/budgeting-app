@@ -1,29 +1,29 @@
 /**
  * Global Assumptions Module
  *
- * Defines the global default drivers that power runway, revenue, and expense
+ * Defines the global default drivers that power cash-flow, income, and expense
  * forecasts for the current plan.
  */
 
 export interface CashFundraisingAssumptions {
   /** Starting cash balance in EUR */
   cashOnHand: number;
-  /** Expected month when funding is received ("YYYY-MM") */
+  /** Expected month when planned savings or outside cash is received ("YYYY-MM") */
   plannedRaiseMonth: string | null;
-  /** Expected gross cash proceeds from the next funding round */
+  /** Expected gross cash from the next planned savings event */
   plannedRaiseAmount: number | null;
-  /** Estimated transaction costs / dilution friction (%) */
+  /** Estimated fees or planning buffer (%) */
   fundraisingFees: number;
   /** Minimum desired cash balance in EUR */
   minCashBuffer: number | null;
-  /** Target runway threshold in months */
+  /** Target cash cushion threshold in months */
   targetRunwayMonths: number | null;
 }
 
 export interface RevenueDefaultAssumptions {
-  /** Monthly logo or revenue churn rate (percentage, e.g., 3 = 3%) */
+  /** Monthly income reduction rate (percentage, e.g., 3 = 3%) */
   churnRate: number;
-  /** Monthly expansion rate on surviving customers (percentage, e.g., 5 = 5%) */
+  /** Monthly income increase rate on retained sources (percentage, e.g., 5 = 5%) */
   expansionRate: number;
   /** Average delay between invoicing and cash collection in days */
   paymentTimingDays: number;
@@ -82,22 +82,22 @@ export const DEFAULT_ASSUMPTIONS: GlobalAssumptions = {
  */
 export const ASSUMPTION_HELPERS: Record<keyof GlobalAssumptions, string> = {
   cashOnHand: "Cash available at the beginning of the forecast period.",
-  plannedRaiseMonth: "Expected month when new funding is received.",
+  plannedRaiseMonth: "Expected month when planned savings or outside cash is received.",
   plannedRaiseAmount:
-    "Expected gross cash proceeds from the next funding round.",
+    "Expected gross cash from the next planned savings event.",
   fundraisingFees:
-    "Estimated transaction costs or dilution-related funding friction.",
+    "Estimated fees, taxes, or planning buffer for the goal.",
   minCashBuffer:
-    "Safety threshold used to evaluate whether the company remains sufficiently funded.",
+    "Safety threshold used to evaluate whether the plan keeps enough cash available.",
   targetRunwayMonths:
-    "Desired number of months the company should remain funded.",
+    "Desired number of months your cash should cover.",
   churnRate:
-    "Baseline monthly customer or revenue churn used unless overridden elsewhere.",
+    "Baseline monthly income reduction used unless overridden elsewhere.",
   expansionRate:
-    "Default monthly expansion on surviving revenue, used in forecast retention metrics.",
+    "Default monthly increase on retained income, used in forecast retention metrics.",
   paymentTimingDays:
     "Average delay between invoicing and cash collection.",
-  priceUplift: "Optional default annual increase in pricing.",
+  priceUplift: "Optional default annual increase in income.",
   salaryTaxRate:
     "Employer contributions and taxes added on top of gross salary.",
   salaryGrowthRate:

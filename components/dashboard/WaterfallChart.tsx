@@ -24,9 +24,9 @@ export function WaterfallChart({ months }: WaterfallChartProps) {
   const first = months[0];
 
   const data = [
-    { name: "Starting MRR", value: first.totalMrr, fill: "#94a3b8" },
+    { name: "Starting income", value: first.totalMrr, fill: "#94a3b8" },
     {
-      name: "New MRR",
+      name: "New income",
       value: months.reduce((sum, m) => sum + m.newMrr, 0),
       fill: "#10b981",
     },
@@ -36,11 +36,11 @@ export function WaterfallChart({ months }: WaterfallChartProps) {
       fill: "#3b82f6",
     },
     {
-      name: "Churned",
+      name: "Reduced",
       value: -months.reduce((sum, m) => sum + m.churnedMrr, 0),
       fill: "#ef4444",
     },
-    { name: "Ending MRR", value: last.totalMrr, fill: "#6366f1" },
+    { name: "Ending income", value: last.totalMrr, fill: "#6366f1" },
   ];
 
   function defaultFormat(value: number): string {
@@ -52,9 +52,9 @@ export function WaterfallChart({ months }: WaterfallChartProps) {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-900">MRR Waterfall</h3>
+      <h3 className="text-lg font-semibold text-slate-900">Income Waterfall</h3>
       <p className="text-sm text-slate-500 mt-1">
-        Breakdown of MRR changes over the forecast period.
+        Breakdown of monthly income changes over the forecast period.
       </p>
       <div className="mt-5 h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -80,7 +80,7 @@ export function WaterfallChart({ months }: WaterfallChartProps) {
                 borderRadius: "8px",
                 fontSize: "13px",
               }}
-              formatter={(value: number | undefined) => [defaultFormat(value ?? 0), "MRR"]}
+              formatter={(value: number | undefined) => [defaultFormat(value ?? 0), "Monthly income"]}
             />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
               {data.map((entry, i) => (

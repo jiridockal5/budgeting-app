@@ -207,16 +207,16 @@ export type CostModel = CostMethodModel & {
 export const COST_METHOD_LABELS: Record<CostMethod, string> = {
   fixed: "Fixed amount",
   growing: "Grows over time",
-  percentOfRevenue: "% of revenue",
-  perCustomer: "Per customer",
+  percentOfRevenue: "% of income",
+  perCustomer: "Per income source",
   perEmployee: "Per employee",
 };
 
 export const REVENUE_BASE_LABELS: Record<RevenueBase, string> = {
-  total: "Total MRR",
-  plg: "PLG MRR",
-  sales: "Sales MRR",
-  partners: "Partner MRR",
+  total: "Total monthly income",
+  plg: "Primary income",
+  sales: "Secondary income",
+  partners: "Other income",
 };
 
 /**
@@ -248,7 +248,7 @@ export function describeCostModel(model: CostModel | null): string {
     case "percentOfRevenue":
       return `${model.percent}% of ${REVENUE_BASE_LABELS[model.revenueBase]}`;
     case "perCustomer":
-      return `${model.amountPerUnit}/${model.customerBasis === "new" ? "new cust." : "customer"}`;
+      return `${model.amountPerUnit}/${model.customerBasis === "new" ? "new source" : "source"}`;
     case "perEmployee":
       return `${model.amountPerUnit}/${model.employeeBasis === "count" ? "head" : "FTE"}`;
   }

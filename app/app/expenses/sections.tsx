@@ -570,7 +570,7 @@ export function NonHeadcountSection({
             </h2>
             <p className="text-sm text-slate-500">
               Tools, infra, marketing & other costs — fixed, growing, or
-              revenue-linked
+              income-linked
             </p>
           </div>
         </div>
@@ -1110,7 +1110,7 @@ export function CostMethodFields({
       {method === "perCustomer" && form.config?.method === "perCustomer" && (
         <>
           {labeled(
-            "€ per customer / mo",
+            "€ per source / mo",
             <input
               type="number"
               step="1"
@@ -1122,7 +1122,7 @@ export function CostMethodFields({
             />
           )}
           {labeled(
-            "Customers",
+            "Income sources",
             <select
               value={form.config.customerBasis}
               onChange={(e) => patchConfig({ customerBasis: e.target.value })}
@@ -1141,7 +1141,7 @@ export function CostMethodFields({
             >
               {(Object.keys(REVENUE_BASE_LABELS) as RevenueBase[]).map((b) => (
                 <option key={b} value={b}>
-                  {b === "total" ? "All customers" : REVENUE_BASE_LABELS[b]}
+                  {b === "total" ? "All sources" : REVENUE_BASE_LABELS[b]}
                 </option>
               ))}
             </select>
@@ -1381,7 +1381,7 @@ export function CostPreview({
       <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3 text-xs text-indigo-800">
         This cost updates automatically with your forecast (
         {describeCostModel(form.config ?? null)}). See it reflected on the
-        Dashboard and Runway once saved.
+        Dashboard and Cash Flow once saved.
       </div>
     );
   }

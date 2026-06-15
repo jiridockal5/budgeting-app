@@ -17,8 +17,8 @@ const features = [
     id: "scenarios",
     title: "Scenario planning",
     description:
-      "Compare Base / Conservative / Aggressive in one view. See how each path affects your runway.",
-    chips: ["Runway", "Planning"],
+      "Compare Base / Conservative / Aggressive in one view. See how each path affects your cash flow.",
+    chips: ["Cash flow", "Planning"],
     icon: Layers,
     span: "md:col-span-2",
   },
@@ -33,28 +33,28 @@ const features = [
   },
   {
     id: "revenue",
-    title: "Revenue modeling",
+    title: "Income planning",
     description:
-      "PLG, Sales-led, or partner motions. Keep it lightweight or go deep — your choice.",
-    chips: ["Revenue", "Growth"],
+      "Track salary, side income, recurring deposits, or variable earnings in one simple forecast.",
+    chips: ["Income", "Forecast"],
     icon: TrendingUp,
     span: "md:col-span-1",
   },
   {
     id: "hiring",
-    title: "Hiring & expenses",
+    title: "Bills & expenses",
     description:
-      "Headcount plan, tools, services, and overhead. All in one place, all reflected in your burn.",
-    chips: ["Headcount", "Costs"],
+      "Plan fixed bills, flexible spending, and one-time costs with everything reflected in your balance.",
+    chips: ["Bills", "Costs"],
     icon: Users,
     span: "md:col-span-1",
   },
   {
     id: "metrics",
-    title: "Investor metrics",
+    title: "Budget health metrics",
     description:
-      "CAC Payback, LTV/CAC, NRR/GRR, Burn Multiple, Rule of 40, and more. Always ready for board decks.",
-    chips: ["Metrics", "Fundraising"],
+      "Savings rate, spending mix, cash cushion, and balance trends stay ready whenever you review the plan.",
+    chips: ["Metrics", "Goals"],
     icon: BarChart3,
     span: "md:col-span-1",
   },
@@ -82,7 +82,7 @@ export function FeatureBento() {
               Features
             </p>
             <h2 className="mt-3 text-[1.75rem] font-semibold tracking-tight text-neutral-900 md:text-[2rem]">
-              Everything you need to plan your runway
+              Everything you need to plan your budget
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-7 text-neutral-600">
               Simple inputs, powerful outputs. Focus on decisions, not spreadsheet formulas.

@@ -3,35 +3,35 @@
 import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Reveal } from "./Reveal";
-import { Rocket, Users, Layers, FileText } from "lucide-react";
+import { PiggyBank, CalendarDays, Layers, FileText } from "lucide-react";
 
 const useCases = [
   {
-    id: "fundraising",
-    label: "Fundraising",
-    icon: Rocket,
-    headline: "Investor-ready forecasts",
+    id: "monthly-budget",
+    label: "Monthly budget",
+    icon: CalendarDays,
+    headline: "Stay ahead of every month",
     bullets: [
-      "Show exactly how much runway you have and when you'll need to raise",
-      "Present metrics like Burn Multiple, LTV/CAC, and Rule of 40 with confidence",
+      "See expected income, bills, and spending before the month starts",
+      "Spot gaps early and adjust categories before they become surprises",
     ],
     ui: {
-      title: "Series A Model",
-      items: ["24-mo forecast", "3 scenarios", "Key metrics deck"],
+      title: "June Budget",
+      items: ["Income: €4,200", "Bills: €1,850", "Planned savings: €650"],
     },
   },
   {
-    id: "hiring",
-    label: "Hiring plan",
-    icon: Users,
-    headline: "Plan your team growth",
+    id: "savings",
+    label: "Savings goals",
+    icon: PiggyBank,
+    headline: "Plan for the goals that matter",
     bullets: [
-      "Map out when to hire each role based on cash and milestones",
-      "See how each hire impacts burn rate and runway",
+      "Map savings targets across vacations, emergency funds, or big purchases",
+      "See how each goal changes your month-by-month cash balance",
     ],
     ui: {
-      title: "Headcount Plan",
-      items: ["12 roles planned", "€420K annual cost", "18-mo runway"],
+      title: "Savings Plan",
+      items: ["Emergency fund: 72%", "Vacation: €1,200 left", "New laptop: on track"],
     },
   },
   {
@@ -40,32 +40,32 @@ const useCases = [
     icon: Layers,
     headline: "Compare multiple paths",
     bullets: [
-      "Model aggressive vs conservative growth assumptions",
-      "Instantly see how each scenario affects runway",
+      "Model conservative, normal, and stretch spending plans",
+      "Instantly see how each scenario affects your cash flow",
     ],
     ui: {
       title: "Scenarios",
-      items: ["Base: 14mo runway", "Conservative: 18mo", "Aggressive: 10mo"],
+      items: ["Base: €900 left", "Conservative: €1,250", "Stretch: €420"],
     },
   },
   {
-    id: "board",
-    label: "Board update",
+    id: "review",
+    label: "Budget review",
     icon: FileText,
-    headline: "Monthly board reporting",
+    headline: "Review and share your plan",
     bullets: [
-      "Export key metrics and narrative for board decks",
-      "Export PDF and CSV metrics for board-ready reporting",
+      "Export a clean snapshot for household check-ins or personal reviews",
+      "Use PDF and CSV exports to keep a record of each budget cycle",
     ],
     ui: {
-      title: "Dec Board Deck",
-      items: ["ARR: €312K (+24%)", "Burn: €42K/mo", "Runway: 18.2mo"],
+      title: "Monthly Review",
+      items: ["Saved: €650", "Groceries: €80 under", "Cash cushion: 3.4mo"],
     },
   },
 ];
 
 export function UseCasesTabs() {
-  const [activeTab, setActiveTab] = useState("fundraising");
+  const [activeTab, setActiveTab] = useState("monthly-budget");
   const prefersReducedMotion = useReducedMotion();
   const activeCase = useCases.find((uc) => uc.id === activeTab)!;
 

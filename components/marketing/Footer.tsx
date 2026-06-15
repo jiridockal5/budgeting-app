@@ -45,8 +45,8 @@ export function Footer() {
               Burnlytics
             </Link>
             <p className="mt-4 text-[13px] leading-6 text-neutral-400">
-              Runway and burn analytics for early-stage SaaS. Simple inputs,
-              clear outputs.
+              Budget planning and cash-flow forecasts. Simple inputs, clear
+              outputs.
             </p>
           </div>
 

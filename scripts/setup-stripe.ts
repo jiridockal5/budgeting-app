@@ -44,7 +44,7 @@ async function findOrCreateProduct(): Promise<Stripe.Product> {
 
   return stripe.products.create({
     name: "Burnlytics",
-    description: "SaaS forecasting — runway, metrics, and investor-ready exports.",
+    description: "Budget planning — cash-flow forecasts, metrics, and exports.",
     metadata: { app: "saas-forecast", tier: "growth" },
   });
 }

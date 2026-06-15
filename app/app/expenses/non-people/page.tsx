@@ -44,7 +44,7 @@ export default function NonPeopleCostsPage() {
         <div className="space-y-8">
           <PageHeader
             title="Non-People Costs"
-            subtitle="Tools, infra, marketing & other costs — fixed, growing, or revenue-linked"
+            subtitle="Tools, infra, marketing & other costs — fixed, growing, or income-linked"
           />
 
           {controller.error && (
@@ -102,11 +102,10 @@ export default function NonPeopleCostsPage() {
                   How expense categories work
                 </h3>
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                  Categorizing expenses into COS, GTM, R&D, CS, and Ops allows
-                  us to compute key SaaS metrics: gross margin (revenue minus
-                  COS), sales efficiency (GTM spend vs new ARR), and R&D
-                  investment ratio. These metrics help investors and operators
-                  benchmark performance against industry standards.
+                  Categorizing expenses helps the app show where money goes,
+                  how recurring costs affect cash flow, and which areas are
+                  driving changes in your budget. Keep categories consistent so
+                  charts and exports stay easy to compare over time.
                 </p>
               </div>
             </div>

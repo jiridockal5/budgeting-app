@@ -32,7 +32,7 @@ export default function FinancialMetricsPage() {
   return (
     <MetricsPageShell
       title="Financial Metrics"
-      subtitle="Functional P&L by month — revenue, gross margin, operating expenses, and EBIT."
+      subtitle="Functional budget view by month — income, margin, operating expenses, and cash flow."
       loading={loading}
       error={error}
       forecast={forecast}

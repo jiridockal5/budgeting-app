@@ -4,63 +4,63 @@ import { Reveal, RevealGroup, RevealItem } from "./Reveal";
 import { Info } from "lucide-react";
 
 const categories = [
-  { id: "growth", label: "Growth" },
-  { id: "retention", label: "Retention" },
-  { id: "efficiency", label: "Efficiency" },
-  { id: "unit", label: "Unit economics" },
-  { id: "runway", label: "Runway" },
+  { id: "income", label: "Income" },
+  { id: "spending", label: "Spending" },
+  { id: "savings", label: "Savings" },
+  { id: "goals", label: "Goals" },
+  { id: "cash-flow", label: "Cash flow" },
 ];
 
 const metrics = [
   {
-    name: "CAC",
-    description: "Cost to acquire a customer",
-    category: "unit",
+    name: "Income",
+    description: "Money coming in each month",
+    category: "income",
   },
   {
-    name: "CAC Payback",
-    description: "Months to recover CAC",
-    category: "efficiency",
+    name: "Bills",
+    description: "Fixed recurring obligations",
+    category: "spending",
   },
   {
-    name: "LTV/CAC",
-    description: "Unit economics ratio",
-    category: "unit",
+    name: "Flexible spend",
+    description: "Variable day-to-day costs",
+    category: "spending",
   },
   {
-    name: "NRR",
-    description: "Net revenue retention",
-    category: "retention",
+    name: "Savings rate",
+    description: "Share of income saved",
+    category: "savings",
   },
   {
-    name: "GRR",
-    description: "Gross revenue retention",
-    category: "retention",
+    name: "Cash cushion",
+    description: "Months of expenses covered",
+    category: "cash-flow",
   },
   {
-    name: "ARR Growth",
-    description: "Year-over-year growth",
-    category: "growth",
+    name: "Goal progress",
+    description: "Savings target progress",
+    category: "goals",
   },
   {
-    name: "Net New ARR Mix",
-    description: "Expansion vs new vs churn",
-    category: "growth",
+    name: "Spending mix",
+    description: "Where your money goes",
+    category: "spending",
   },
   {
-    name: "Gross Margin",
-    description: "Margin after COGS",
-    category: "efficiency",
+    name: "Net cash flow",
+    description: "Income minus expenses",
+    category: "cash-flow",
   },
   {
-    name: "Burn Multiple",
-    description: "Burn / Net New ARR",
-    category: "efficiency",
+    name: "Planned balance",
+    description: "Expected ending cash",
+    category: "cash-flow",
   },
   {
-    name: "Rule of 40",
-    description: "Growth + margin score",
-    category: "efficiency",
+    name: "Over-budget risk",
+    description: "Early warning on shortfalls",
+    category: "goals",
   },
 ];
 
@@ -71,13 +71,13 @@ export function MetricsGrid() {
         <Reveal>
           <div className="text-center">
             <p className="text-[12px] font-medium uppercase tracking-wider text-neutral-500">
-              Investor Metrics
+              Budget metrics
             </p>
             <h2 className="mt-3 text-[1.75rem] font-semibold tracking-tight text-neutral-900 md:text-[2rem]">
-              All the metrics investors want to see
+              All the numbers that keep your plan clear
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-7 text-neutral-600">
-              Calculated automatically from your forecast. Always up to date, always ready to share.
+              Calculated automatically from your budget. Always up to date and ready to review.
             </p>
           </div>
         </Reveal>

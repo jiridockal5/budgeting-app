@@ -28,8 +28,8 @@ export default function SaasMetricsPage() {
 
   return (
     <MetricsPageShell
-      title="SaaS Metrics"
-      subtitle="Investor and operator KPIs — month-by-month across the forecast period."
+      title="Budget Metrics"
+      subtitle="Budget health and cash-flow KPIs — month-by-month across the forecast period."
       loading={loading}
       error={error}
       forecast={forecast}
@@ -44,15 +44,15 @@ export default function SaasMetricsPage() {
           <PeriodSummaryBar summary={summary} />
 
           <MonthlyMatrixTable
-            title="SaaS Metrics by Month"
-            subtitle={`${displayMonths.length} months · growth, revenue, and customers`}
+            title="Budget Metrics by Month"
+            subtitle={`${displayMonths.length} months · income, changes, and source counts`}
             months={displayMonths}
             rows={SAAS_GROWTH_ROWS}
           />
 
           <MonthlyMatrixTable
-            title="Cash & Burn by Month"
-            subtitle={`${displayMonths.length} months · cash in, expenses, and runway`}
+            title="Cash Flow by Month"
+            subtitle={`${displayMonths.length} months · income, expenses, and cash cushion`}
             months={displayMonths}
             rows={SAAS_CASH_ROWS}
           />
@@ -64,12 +64,12 @@ export default function SaasMetricsPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-900">
-                  Runway
+                  Cash cushion
                 </p>
                 <p className="text-sm text-slate-500">
                   {summary.runwayMonths >= 999
-                    ? "Cash-positive — no runway limit"
-                    : `${Math.round(summary.runwayMonths)} months at current burn`}
+                    ? "Cash-positive — no cushion limit"
+                    : `${Math.round(summary.runwayMonths)} months at current spending rate`}
                 </p>
               </div>
             </div>
@@ -77,7 +77,7 @@ export default function SaasMetricsPage() {
               href="/app/runway"
               className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
-              View runway details
+              View cash-flow details
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

@@ -19,7 +19,7 @@ export function FinalCTA() {
         <Reveal>
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-[1.75rem] font-semibold tracking-tight text-neutral-900 md:text-[2rem]">
-              Stop guessing runway. Build a plan you can defend.
+              Stop guessing where your money goes. Build a budget you can trust.
             </h2>
 
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">

@@ -35,57 +35,57 @@ function buildMetrics(summary: ForecastResult["summary"]) {
   return [
     {
       id: "arr",
-      name: "ARR",
+      name: "Annual Income",
       value: formatCompact(summary.projectedArr),
-      helper: "Projected annual recurring revenue at end of forecast.",
+      helper: "Projected annualized income at end of forecast.",
     },
     {
       id: "mrr",
-      name: "MRR",
+      name: "Monthly Income",
       value: formatCompact(summary.projectedMrr),
-      helper: "Projected monthly recurring revenue at end of forecast.",
+      helper: "Projected monthly income at end of forecast.",
     },
     {
       id: "nrr",
-      name: "NRR",
+      name: "Income Retained",
       value: formatPct(summary.annualNrr),
-      helper: "Net revenue retention. Target > 100%, great > 120%.",
+      helper: "Income kept after expected reductions, plus planned increases.",
     },
     {
       id: "grr",
-      name: "GRR",
+      name: "Base Income",
       value: formatPct(summary.annualGrr),
-      helper: "Gross revenue retention. Excludes expansion; target > 90%.",
+      helper: "Income retained before planned increases.",
     },
     {
       id: "gross-margin",
       name: "Gross Margin",
       value: formatPct(summary.grossMarginPct),
-      helper: "Revenue minus cost of sales. Tag COS expenses for accuracy.",
+      helper: "Income minus direct costs. Tag COS expenses for accuracy.",
     },
     {
       id: "cac",
-      name: "CAC",
+      name: "Setup Cost",
       value: formatCompact(summary.cac),
-      helper: "Total GTM spend divided by new customers acquired.",
+      helper: "Acquisition-style costs divided by new income sources.",
     },
     {
       id: "cac-payback",
-      name: "CAC Payback",
+      name: "Payback",
       value: `${summary.cacPaybackMonths.toFixed(0)} mo`,
-      helper: "Months to recover CAC. Aim for < 12 months.",
+      helper: "Months to recover setup costs from gross profit.",
     },
     {
       id: "ltv-cac",
-      name: "LTV / CAC",
+      name: "Value / Cost",
       value: `${summary.ltvCacRatio.toFixed(1)}x`,
-      helper: "Lifetime value ratio. Healthy range: 3x–5x.",
+      helper: "Long-term value compared with setup costs.",
     },
     {
       id: "burn-multiple",
-      name: "Burn Multiple",
+      name: "Cash Use",
       value: `${summary.burnMultiple.toFixed(1)}x`,
-      helper: "Cash burn ÷ net new ARR. Lower is more efficient.",
+      helper: "Cash used compared with new annualized income. Lower is more efficient.",
     },
     {
       id: "rule-of-40",
@@ -95,9 +95,9 @@ function buildMetrics(summary: ForecastResult["summary"]) {
     },
     {
       id: "net-new-arr",
-      name: "Net New ARR",
+      name: "Net New Income",
       value: formatCompact(summary.netNewArr),
-      helper: "New + expansion − churn over the forecast period.",
+      helper: "New plus increased income minus reductions over the forecast period.",
     },
   ];
 }
@@ -199,7 +199,7 @@ export default function DashboardPage() {
         }
 
         if (!rr.ok) {
-          warnings.push(`Revenue: ${rr.error}`);
+          warnings.push(`Income: ${rr.error}`);
         }
 
         if (!pr.ok) {
@@ -255,7 +255,7 @@ export default function DashboardPage() {
         <div className="space-y-8">
           <PageHeader
             title="Dashboard"
-            subtitle="Key SaaS metrics for your current plan."
+            subtitle="Key budget and cash-flow metrics for your current plan."
             actions={
               <div className="flex items-center gap-3">
                 <Link
@@ -366,7 +366,7 @@ export default function DashboardPage() {
                       href="/app/revenue"
                       className="text-indigo-600 hover:underline"
                     >
-                      revenue streams
+                      income streams
                     </Link>
                     , and{" "}
                     <Link
@@ -386,39 +386,39 @@ export default function DashboardPage() {
                 Forecast Overview
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Visual trends for ARR growth and cash runway.
+                Visual trends for income growth and cash flow.
               </p>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
               <ChartCard
-                title="ARR by Channel"
-                description="Track momentum across PLG, sales, and partner revenue."
+                title="Annual Income by Source"
+                description="Track momentum across primary, secondary, and other income sources."
                 data={arrChartData}
                 series={[
                   {
                     dataKey: "plgArr",
-                    name: "PLG",
+                    name: "Primary",
                     color: "#10b981",
                     stackId: "arr",
                   },
                   {
                     dataKey: "salesArr",
-                    name: "Sales",
+                    name: "Secondary",
                     color: "#3b82f6",
                     stackId: "arr",
                   },
                   {
                     dataKey: "partnerArr",
-                    name: "Partners",
+                    name: "Other",
                     color: "#8b5cf6",
                     stackId: "arr",
                   },
                 ]}
               />
               <ChartCard
-                title="Revenue vs. Expenses"
-                description="Model cash burn and path to profitability."
+                title="Income vs. Expenses"
+                description="Model cash flow and your path to a healthier budget."
                 data={burnChartData}
                 series={[
                   {

@@ -1,8 +1,8 @@
-# Budgeting App (Forecasting SaaS for Startups)
+# Budgeting App
 
-A lightweight, fast-to-setup forecasting tool designed for early-stage SaaS companies.  
+A lightweight, fast-to-setup budgeting tool for planning income, expenses, savings goals, and cash flow.
 
-The app focuses purely on **forecasting**, not reporting — helping founders plan their runway, hiring, expansion, churn, and future ARR for fundraising.
+The app focuses on forward-looking **budget planning**, not transaction tracking — helping people compare scenarios, understand upcoming cash flow, and make better spending decisions.
 
 ## 🚀 Tech Stack
 
@@ -16,10 +16,10 @@ The app focuses purely on **forecasting**, not reporting — helping founders pl
 ## 🧩 Features (MVP)
 
 - User authentication (Supabase Auth)
-- Forecasting models for ARR, churn, hiring, runway
+- Forecasting models for income, expenses, savings, and cash flow
 - Clean UI inspired by Mixpanel, Chargebee, Linear
 - Simple inputs → fast financial plans
-- Designed for companies without a CFO
+- Designed for people who want a clearer budget without spreadsheet maintenance
 
 ## ▶️ Running the project locally
 
@@ -50,7 +50,7 @@ POSTGRES_PRISMA_URL=postgresql://postgres:password@db.your-project.supabase.co:6
 
 **Note:** The Supabase + Vercel integration automatically sets these variables. If you're using the integration, you don't need to manually set them in Vercel.
 
-## 🧪 Testing the Revenue Forecast Engine
+## 🧪 Testing the Budget Forecast Engine
 
 ### 1. Run Database Migrations
 
@@ -109,7 +109,7 @@ http://localhost:3001/api/test-forecast
 ```
 
 This will:
-- Create a test scenario with all 3 revenue streams (PLG, Sales, Partners)
+- Create a test scenario with all 3 income streams
 - Run a 12-month forecast calculation
 - Return JSON with monthly projections and summary stats
 
@@ -120,8 +120,8 @@ This will:
   "summary": {
     "scenarioId": "...",
     "months": 12,
-    "startingMrr": 0,
-    "endingMrr": 12345.67,
+    "startingMonthlyIncome": 0,
+    "endingMonthlyIncome": 12345.67,
     "growthPercentage": "..." 
   },
   "forecast": [...]
@@ -152,13 +152,15 @@ If you get an error like `Cannot read properties of undefined (reading 'create')
 import { buildRevenueForecast } from "@/lib/revenueForecast";
 
 const forecast = await buildRevenueForecast(scenarioId);
-// Returns array of MonthlyPoint with MRR and customer data
+// Returns an array of monthly forecast points with income and cash-flow data
 ```
 
-### Revenue Streams
+### Income Streams
 
-The engine supports 3 revenue streams:
+The engine supports 3 income streams. The internal table and API names still
+use legacy revenue terminology for compatibility, but the product copy presents
+them as:
 
-1. **PLG (Self-service)**: Traffic → Signups → Paid conversions → MRR
-2. **Sales-led**: Leads → SQLs → Wins (with sales cycle delay) → MRR
-3. **Partners/Affiliates**: Partners → Leads → Conversions → MRR (with revenue share)
+1. **Primary income**: main recurring income
+2. **Secondary income**: side income, freelance income, or other planned earnings
+3. **Other income**: referrals, bonuses, or one-time sources

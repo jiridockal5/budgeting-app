@@ -30,27 +30,26 @@ export function Hero() {
           <Reveal>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-[13px] font-medium text-neutral-600 shadow-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
-              Runway forecasting for early-stage SaaS
+              Budget planning for everyday decisions
             </div>
           </Reveal>
 
           {/* Headline */}
           <Reveal delay={0.1}>
             <h1 className="text-[2.25rem] font-semibold leading-[1.05] tracking-tight text-neutral-900 sm:text-[2.75rem] md:text-[3.25rem] lg:text-[4.5rem] lg:leading-[1.02] xl:text-[5rem]">
-              Fundraising-ready
+              Build a budget
               <br />
-              runway forecasts
+              you can actually
               <br />
-              in minutes.
+              stick to.
             </h1>
           </Reveal>
 
           {/* Subheadline */}
           <Reveal delay={0.2}>
             <p className="mx-auto mt-5 max-w-[680px] text-[17px] leading-[1.65] text-neutral-600 md:text-[18px] md:leading-[1.7]">
-              An opinionated budgeting tool for early-stage SaaS. Model revenue,
-              hiring, and burn with simple inputs — and see runway and investor
-              metrics instantly.
+              Plan income, bills, spending, and savings goals with simple
+              inputs — then see your cash flow and budget health instantly.
             </p>
           </Reveal>
 
@@ -76,7 +75,7 @@ export function Hero() {
           {/* Trust line */}
           <Reveal delay={0.4}>
             <p className="mt-5 text-[14px] text-neutral-600">
-              No integrations. No spreadsheets. Just a clear 12–24 month plan.
+              No spreadsheet formulas. No guesswork. Just a clear month-by-month plan.
             </p>
           </Reveal>
         </div>

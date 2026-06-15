@@ -88,8 +88,8 @@ export default function RunwayPage() {
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
-            title="Runway"
-            subtitle="How long your cash will last at the current burn rate."
+            title="Cash Flow"
+            subtitle="How long your cash will last at the current spending rate."
             actions={
               <Link
                 href="/app/assumptions"
@@ -114,14 +114,14 @@ export default function RunwayPage() {
             </div>
           )}
 
-          {/* Big runway card */}
+          {/* Big cash cushion card */}
           <div
             className={`rounded-2xl border p-8 shadow-sm ${runwayBg}`}
           >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
               <div>
                 <p className="text-sm font-medium text-slate-600 uppercase tracking-wider">
-                  Estimated Runway
+                  Estimated Cash Cushion
                 </p>
                 <p className={`mt-2 text-5xl font-bold tabular-nums ${runwayColor}`}>
                   {isInfinite ? "∞" : `${Math.round(runwayMonths)} months`}
@@ -136,7 +136,7 @@ export default function RunwayPage() {
                 )}
                 {isInfinite && (
                   <p className="mt-2 text-sm text-emerald-700">
-                    Revenue covers expenses within the forecast period.
+                    Income covers expenses within the forecast period.
                   </p>
                 )}
               </div>
@@ -149,7 +149,7 @@ export default function RunwayPage() {
                 />
                 <RunwayStat
                   icon={<TrendingDown className="h-4 w-4 text-rose-600" />}
-                  label="Monthly burn"
+                  label="Monthly cash use"
                   value={formatCompact(Math.abs(monthlyBurn))}
                 />
               </div>
@@ -159,18 +159,18 @@ export default function RunwayPage() {
               <div className="mt-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-100 px-4 py-3">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-600" />
                 <p className="text-sm text-red-800">
-                  <span className="font-semibold">Low runway warning.</span>{" "}
-                  Consider reducing burn or securing additional funding.
+                  <span className="font-semibold">Low cash cushion warning.</span>{" "}
+                  Consider reducing spending or adding income.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Runway progress bar */}
+          {/* Cash cushion progress bar */}
           {!isInfinite && (
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                Cash Countdown
+                Cash Cushion Countdown
               </h2>
               <div className="relative">
                 <div className="h-4 w-full rounded-full bg-slate-200">
@@ -215,7 +215,7 @@ export default function RunwayPage() {
                 >
                   Assumptions
                 </Link>{" "}
-                and enter your current cash on hand to see accurate runway
+                and enter your current cash on hand to see accurate cash-flow
                 projections.
               </p>
             </div>
@@ -239,7 +239,7 @@ function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
           Monthly Cashflow
         </h2>
         <p className="mt-1 text-sm text-slate-600">
-          Cash inflows, outflows, burn, and ending cash balance by month.
+          Cash inflows, outflows, net cash flow, and ending cash balance by month.
         </p>
       </div>
       <div className="overflow-x-auto">
@@ -256,7 +256,7 @@ function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
                 Cash outflows
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Cash burn
+                Net cash flow
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Cash balance

@@ -8,23 +8,23 @@ const steps = [
   {
     number: "01",
     icon: Settings2,
-    title: "Input assumptions",
+    title: "Add your budget basics",
     description:
-      "Pricing, growth, churn, hiring plan, and expenses. Start simple — expand as you learn more.",
+      "Income, bills, recurring expenses, savings goals, and the planning window you care about.",
   },
   {
     number: "02",
     icon: Sparkles,
-    title: "Generate the forecast",
+    title: "Forecast cash flow",
     description:
-      "Revenue, burn, runway, cash balance, and scenario comparisons — all calculated instantly.",
+      "See what comes in, what goes out, your ending balance, and how different choices change the plan.",
   },
   {
     number: "03",
     icon: Share2,
-    title: "Share investor-ready outputs",
+    title: "Make confident decisions",
     description:
-      "Key SaaS metrics and a crisp narrative for your raise. Export or share anytime.",
+      "Compare scenarios, spot shortfalls early, and export a budget snapshot whenever you need it.",
   },
 ];
 
@@ -38,7 +38,7 @@ export function HowItWorks() {
               How it works
             </p>
             <h2 className="mt-3 text-[1.75rem] font-semibold tracking-tight text-neutral-900 md:text-[2rem]">
-              From assumptions to investor deck
+              From numbers to a practical budget
             </h2>
           </div>
         </Reveal>

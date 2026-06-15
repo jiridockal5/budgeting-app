@@ -2,92 +2,92 @@ import { EXPENSE_CATEGORY_SHORT_LABELS } from "@/lib/expenses";
 import type { MatrixRow } from "./MonthlyMatrixTable";
 
 export const SAAS_GROWTH_ROWS: MatrixRow[] = [
-  { type: "section", label: "Growth & Revenue" },
+  { type: "section", label: "Income" },
   {
     type: "data",
-    label: "MRR",
+    label: "Monthly Income",
     bold: true,
     format: "currency",
     getValue: (m) => m.totalMrr,
   },
   {
     type: "data",
-    label: "ARR",
+    label: "Annualized Income",
     format: "currency",
     getValue: (m) => m.totalArr,
   },
   {
     type: "data",
-    label: "New MRR",
+    label: "New Monthly Income",
     format: "currency",
     getValue: (m) => m.newMrr,
   },
   {
     type: "data",
-    label: "Expansion MRR",
+    label: "Increased Income",
     format: "currency",
     getValue: (m) => m.expansionMrr,
   },
   {
     type: "data",
-    label: "Churned MRR",
+    label: "Reduced Income",
     format: "currency",
     getValue: (m) => m.churnedMrr,
   },
-  { type: "section", label: "Revenue by Channel" },
+  { type: "section", label: "Income by Source" },
   {
     type: "data",
-    label: "PLG MRR",
+    label: "Primary Income",
     indent: true,
     format: "currency",
     getValue: (m) => m.plgMrr,
   },
   {
     type: "data",
-    label: "Sales MRR",
+    label: "Secondary Income",
     indent: true,
     format: "currency",
     getValue: (m) => m.salesMrr,
   },
   {
     type: "data",
-    label: "Partner MRR",
+    label: "Other Income",
     indent: true,
     format: "currency",
     getValue: (m) => m.partnerMrr,
   },
-  { type: "section", label: "Customers" },
+  { type: "section", label: "Income Sources" },
   {
     type: "data",
-    label: "Total Customers",
+    label: "Total Sources",
     bold: true,
     format: "number",
     getValue: (m) => m.totalCustomers,
   },
   {
     type: "data",
-    label: "PLG Customers",
+    label: "Primary Sources",
     indent: true,
     format: "number",
     getValue: (m) => m.plgCustomers,
   },
   {
     type: "data",
-    label: "Sales Customers",
+    label: "Secondary Sources",
     indent: true,
     format: "number",
     getValue: (m) => m.salesCustomers,
   },
   {
     type: "data",
-    label: "Partner Customers",
+    label: "Other Sources",
     indent: true,
     format: "number",
     getValue: (m) => m.partnerCustomers,
   },
   {
     type: "data",
-    label: "ARPA",
+    label: "Average Monthly Income",
     format: "currency",
     getValue: (m) =>
       m.totalCustomers > 0 ? m.totalMrr / m.totalCustomers : 0,
@@ -95,7 +95,7 @@ export const SAAS_GROWTH_ROWS: MatrixRow[] = [
 ];
 
 export const SAAS_CASH_ROWS: MatrixRow[] = [
-  { type: "section", label: "Cash & Burn" },
+  { type: "section", label: "Cash Flow" },
   {
     type: "data",
     label: "Cash In",
@@ -105,14 +105,14 @@ export const SAAS_CASH_ROWS: MatrixRow[] = [
   },
   {
     type: "data",
-    label: "New Customer Cash",
+    label: "New Source Cash",
     indent: true,
     format: "currency",
     getValue: (m) => m.newCustomerCashIn,
   },
   {
     type: "data",
-    label: "Existing Customer Cash",
+    label: "Existing Source Cash",
     indent: true,
     format: "currency",
     getValue: (m) => m.existingCustomerCashIn,
@@ -125,7 +125,7 @@ export const SAAS_CASH_ROWS: MatrixRow[] = [
   },
   {
     type: "data",
-    label: "Net Burn",
+    label: "Net Cash Flow",
     bold: true,
     format: "currency",
     colorNegative: true,
@@ -141,17 +141,17 @@ export const SAAS_CASH_ROWS: MatrixRow[] = [
 ];
 
 export const FINANCIAL_ACCRUAL_ROWS: MatrixRow[] = [
-  { type: "section", label: "Top Line" },
+  { type: "section", label: "Income" },
   {
     type: "data",
-    label: "Revenue (MRR)",
+    label: "Monthly Income",
     bold: true,
     format: "currency",
     getValue: (m) => m.totalMrr,
   },
   {
     type: "data",
-    label: "Cost of Sales",
+    label: "Direct Costs",
     format: "currency",
     getValue: (m) => m.cosExpense,
   },
@@ -236,14 +236,14 @@ export const FINANCIAL_CASH_ROWS: MatrixRow[] = [
   },
   {
     type: "data",
-    label: "From New Customers",
+    label: "From New Sources",
     indent: true,
     format: "currency",
     getValue: (m) => m.newCustomerCashIn,
   },
   {
     type: "data",
-    label: "From Existing Customers",
+    label: "From Existing Sources",
     indent: true,
     format: "currency",
     getValue: (m) => m.existingCustomerCashIn,

@@ -118,7 +118,7 @@ export function PricingSection() {
                 {PLAN_NAME}
               </h3>
               <p className="mt-1 text-[14px] text-neutral-500">
-                For founders building investor-ready forecasts.
+                For people who want a clearer budget and cash-flow plan.
               </p>
 
               <div className="mt-4 flex items-baseline gap-1">
@@ -168,7 +168,7 @@ export function PricingSection() {
 
         <Reveal delay={0.3}>
           <p className="mt-6 text-center text-[13px] text-neutral-500">
-            Need a demo or help with your model?{" "}
+            Need help setting up your budget?{" "}
             <button className="font-medium text-neutral-700 underline underline-offset-2 transition-colors hover:text-neutral-900">
               Contact us
             </button>

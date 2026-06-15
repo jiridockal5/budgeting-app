@@ -208,7 +208,7 @@ export default function AssumptionsPage() {
         <div className="space-y-8">
           <PageHeader
             title="Assumptions"
-            subtitle="Global defaults that shape runway, fundraising, and the core drivers behind your forecast."
+            subtitle="Global defaults that shape cash flow, goals, and the core drivers behind your budget forecast."
             actions={
               saveLabel ? (
                 <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
@@ -292,8 +292,8 @@ export default function AssumptionsPage() {
                 </SectionCard>
 
                 <SectionCard
-                  title="Cash & fundraising"
-                  description="Set the cash position and funding targets that define how much room you have to operate."
+                  title="Cash & goals"
+                  description="Set the cash position and savings targets that define how much room you have to operate."
                   icon={<Wallet className="h-5 w-5 text-indigo-600" />}
                   iconBg="bg-indigo-50"
                 >
@@ -302,8 +302,8 @@ export default function AssumptionsPage() {
                       Why this matters
                     </p>
                     <p className="mt-1 text-sm leading-relaxed text-indigo-900/80">
-                      A founder usually wants to know: “When do I run out of cash,
-                      and how much should I raise?”
+                      A useful budget answers: “How long does my cash last, and
+                      how much room do I have for my goals?”
                     </p>
                   </div>
 
@@ -318,14 +318,14 @@ export default function AssumptionsPage() {
                       type="number"
                     />
                     <InputField
-                      label="Planned raise month"
+                      label="Planned savings month"
                       value={assumptions.plannedRaiseMonth}
                       onChange={updatePlannedRaiseMonth}
                       helper={ASSUMPTION_HELPERS.plannedRaiseMonth}
                       type="month"
                     />
                     <InputField
-                      label="Planned raise amount"
+                      label="Planned savings amount"
                       value={assumptions.plannedRaiseAmount}
                       onChange={(value) =>
                         updateNumericField("plannedRaiseAmount", value, {
@@ -338,7 +338,7 @@ export default function AssumptionsPage() {
                       optional
                     />
                     <InputField
-                      label="Fundraising fees / dilution fees"
+                      label="Goal fees / buffer"
                       value={assumptions.fundraisingFees}
                       onChange={(value) =>
                         updateNumericField("fundraisingFees", value)
@@ -348,7 +348,7 @@ export default function AssumptionsPage() {
                       type="number"
                     />
                     <InputField
-                      label="Target runway"
+                      label="Target cash cushion"
                       value={assumptions.targetRunwayMonths}
                       onChange={(value) =>
                         updateNumericField("targetRunwayMonths", value, {
@@ -364,17 +364,17 @@ export default function AssumptionsPage() {
                 </SectionCard>
 
                 <SectionCard
-                  title="Revenue defaults"
-                  description="Only keep baseline revenue assumptions here when they truly apply across the model."
+                  title="Income defaults"
+                  description="Only keep baseline income assumptions here when they truly apply across the model."
                   icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
                   iconBg="bg-emerald-50"
                 >
                   {/* TODO: Monthly expansion rate is hidden from global assumptions for v1.
                       It is still used in forecast calculations via the default value.
-                      Consider moving expansion rate to per-stream Revenue config. */}
+                      Consider moving expansion rate to per-stream Income config. */}
                   <div className="grid gap-5 sm:grid-cols-2">
                     <InputField
-                      label="Default churn"
+                      label="Default income reduction"
                       value={assumptions.churnRate}
                       onChange={(value) => updateNumericField("churnRate", value)}
                       helper={ASSUMPTION_HELPERS.churnRate}
@@ -392,7 +392,7 @@ export default function AssumptionsPage() {
                       type="number"
                     />
                     <InputField
-                      label="Price uplift / annual price increase"
+                      label="Income uplift / annual increase"
                       value={assumptions.priceUplift}
                       onChange={(value) =>
                         updateNumericField("priceUplift", value, {
@@ -495,10 +495,10 @@ export default function AssumptionsPage() {
                     </div>
                     <div>
                       <h2 className="text-lg font-semibold text-slate-900">
-                        Funding focus
+                        Cash focus
                       </h2>
                       <p className="text-sm text-slate-500">
-                        The key defaults that shape runway and fundraising decisions.
+                        The key defaults that shape cash-flow and savings decisions.
                       </p>
                     </div>
                   </div>
@@ -510,23 +510,23 @@ export default function AssumptionsPage() {
                       detail="Cash available at the start of the forecast."
                     />
                     <DecisionPoint
-                      title="Planned raise"
+                      title="Planned savings"
                       value={formatMonth(assumptions.plannedRaiseMonth)}
                       detail={
                         assumptions.plannedRaiseAmount != null
-                          ? `${formatCurrency(assumptions.plannedRaiseAmount)} gross proceeds`
+                          ? `${formatCurrency(assumptions.plannedRaiseAmount)} planned amount`
                           : "Amount not set"
                       }
                     />
                     <DecisionPoint
-                      title="Funding fees"
+                      title="Goal buffer"
                       value={formatPercentage(assumptions.fundraisingFees)}
-                      detail="Transaction costs or dilution friction."
+                      detail="Extra buffer for fees or friction."
                     />
                     <DecisionPoint
-                      title="Target runway"
+                      title="Target cash cushion"
                       value={formatOptionalMonths(assumptions.targetRunwayMonths)}
-                      detail="Desired months the company should remain funded."
+                      detail="Desired months of expenses your cash should cover."
                     />
                   </div>
 
@@ -537,9 +537,9 @@ export default function AssumptionsPage() {
                       Derived outputs
                     </p>
                     <DecisionPoint
-                      title="Runway"
+                      title="Cash cushion"
                       value="—"
-                      detail="Projected months of funding remaining."
+                      detail="Projected months of cash remaining."
                     />
                     <DecisionPoint
                       title="Cash-out month"
@@ -547,9 +547,9 @@ export default function AssumptionsPage() {
                       detail="Estimated month when cash reaches zero."
                     />
                     <DecisionPoint
-                      title="Suggested raise needed"
+                      title="Suggested savings needed"
                       value="—"
-                      detail="Estimated funding required to hit target runway."
+                      detail="Estimated amount required to hit target cash cushion."
                     />
                   </div>
                 </div>
@@ -573,33 +573,33 @@ export default function AssumptionsPage() {
                       />
                     </SummaryGroup>
 
-                    <SummaryGroup title="Cash & fundraising">
+                    <SummaryGroup title="Cash & goals">
                       <SummaryRow
                         label="Starting cash"
                         value={formatCurrency(assumptions.cashOnHand)}
                         variant="highlight"
                       />
                       <SummaryRow
-                        label="Planned raise month"
+                        label="Planned savings month"
                         value={formatMonth(assumptions.plannedRaiseMonth)}
                       />
                       <SummaryRow
-                        label="Planned raise amount"
+                        label="Planned savings amount"
                         value={formatOptionalCurrency(assumptions.plannedRaiseAmount)}
                       />
                       <SummaryRow
-                        label="Funding fees"
+                        label="Goal buffer"
                         value={formatPercentage(assumptions.fundraisingFees)}
                       />
                       <SummaryRow
-                        label="Target runway"
+                        label="Target cash cushion"
                         value={formatOptionalMonths(assumptions.targetRunwayMonths)}
                       />
                     </SummaryGroup>
 
-                    <SummaryGroup title="Revenue defaults">
+                    <SummaryGroup title="Income defaults">
                       <SummaryRow
-                        label="Default churn"
+                        label="Default income reduction"
                         value={`${formatPercentage(assumptions.churnRate)} / month`}
                       />
                       <SummaryRow
@@ -649,9 +649,9 @@ export default function AssumptionsPage() {
                       </h3>
                       <p className="mt-2 text-sm leading-relaxed text-slate-600">
                         This page is for global defaults only. Put stream-specific
-                        revenue assumptions on the Revenue page and detailed cost
+                        income assumptions on the Income page and detailed cost
                         assumptions on the Expenses page so this stays focused on
-                        runway, fundraising, and reusable model drivers.
+                        cash flow, goals, and reusable model drivers.
                       </p>
                     </div>
                   </div>
@@ -662,7 +662,7 @@ export default function AssumptionsPage() {
                     href="/app/revenue"
                     className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
                   >
-                    Go to Revenue
+                    Go to Income
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link

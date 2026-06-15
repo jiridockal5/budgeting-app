@@ -7,29 +7,29 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "Do you integrate with Stripe / Chargebee / accounting?",
+    question: "Do you integrate with banks or accounting tools?",
     answer:
-      "Not yet — by design. Start with simple inputs and get to clarity fast. We're focused on forecasting first, not data syncing.",
+      "Not yet — by design. Start with simple inputs and get to clarity fast. We're focused on budgeting and forecasting first, not data syncing.",
   },
   {
-    question: "Is this a reporting tool?",
+    question: "Is this an expense tracker?",
     answer:
-      "No. It's forecasting for runway, fundraising planning, and post-raise execution. If you need BI dashboards from live data, that's not us (yet).",
+      "It is focused on forward-looking budget planning. If you need automatic transaction imports or live categorization, that is not the core workflow yet.",
   },
   {
     question: "How long does setup take?",
     answer:
-      "Most teams can create a useful baseline in 10–20 minutes. Start with the basics (revenue, main costs, headcount) and refine as you go.",
+      "Most people can create a useful baseline in 10–20 minutes. Start with income, bills, main expenses, and savings goals, then refine as you go.",
   },
   {
-    question: "Can I model hiring and expenses?",
+    question: "Can I model recurring and one-time expenses?",
     answer:
-      "Yes — headcount plan plus recurring and one-time expenses. Each hire and cost shows up in your burn and runway projections immediately.",
+      "Yes — recurring bills, flexible expenses, and one-time costs all flow into your budget and cash-flow projections immediately.",
   },
   {
     question: "Can I run multiple scenarios?",
     answer:
-      "Yes. Your trial and subscription include unlimited scenarios. Compare different growth, hiring, or pricing strategies side by side.",
+      "Yes. Your trial and subscription include unlimited scenarios. Compare different income, spending, or savings plans side by side.",
   },
   {
     question: "What happens after my free trial?",
