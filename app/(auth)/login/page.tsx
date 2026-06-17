@@ -25,6 +25,19 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/app";
 
+  useEffect(() => {
+    const callbackError = searchParams.get("error");
+    if (callbackError === "auth_callback_failed") {
+      setError(
+        "That sign-in link could not be verified. It may have expired or already been used. Request a new confirmation or reset email and try again.",
+      );
+    } else if (callbackError === "config") {
+      setError(
+        "Authentication is not configured correctly. Please contact support.",
+      );
+    }
+  }, [searchParams]);
+
   // Check Supabase configuration on mount
   useEffect(() => {
     const checkConfig = () => {

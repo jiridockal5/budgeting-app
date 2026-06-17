@@ -27,6 +27,9 @@ export async function GET(request: Request) {
   }
 
   const cookieStore = await cookies();
+  const successUrl = `${origin}${next}`;
+  let response = NextResponse.redirect(successUrl);
+
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -35,6 +38,7 @@ export async function GET(request: Request) {
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
           cookieStore.set(name, value, options);
+          response.cookies.set(name, value, options);
         });
       },
     },
@@ -43,15 +47,17 @@ export async function GET(request: Request) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      return response;
     }
     console.error("auth/callback exchangeCodeForSession failed", error.message);
   } else if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      return response;
     }
     console.error("auth/callback verifyOtp failed", error.message);
+  } else {
+    console.error("auth/callback missing code or token_hash/type params");
   }
 
   return NextResponse.redirect(
