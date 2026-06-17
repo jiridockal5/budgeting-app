@@ -1,7 +1,6 @@
 "use client";
 
 import { Reveal, RevealGroup, RevealItem } from "./Reveal";
-import { LottiePlaceholder } from "./LottiePlayer";
 import {
   Layers,
   Zap,
@@ -20,7 +19,7 @@ const features = [
       "Compare Base / Conservative / Aggressive in one view. See how each path affects your runway.",
     chips: ["Runway", "Planning"],
     icon: Layers,
-    span: "md:col-span-2",
+    span: "md:col-span-1",
   },
   {
     id: "setup",
@@ -65,7 +64,7 @@ const features = [
       "Change one assumption and the full model updates instantly. No manual recalculation.",
     chips: ["Real-time"],
     icon: RefreshCw,
-    span: "md:col-span-2",
+    span: "md:col-span-1",
   },
 ];
 
@@ -118,16 +117,6 @@ export function FeatureBento() {
                 <p className="mt-2 text-[14px] leading-6 text-neutral-600">
                   {feature.description}
                 </p>
-
-                {/* Lottie placeholder area */}
-                <div className="mt-4 flex-1">
-                  <LottiePlaceholder
-                    className="h-24 w-full md:h-28"
-                    icon={
-                      <feature.icon className="h-8 w-8 text-neutral-300" />
-                    }
-                  />
-                </div>
               </div>
             </RevealItem>
           ))}
