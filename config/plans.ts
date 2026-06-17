@@ -1,5 +1,8 @@
 export const TRIAL_DAYS = 7;
 
+/** When false, all authenticated users get full app access (billing code kept for later). */
+export const BILLING_GATE_ENABLED = false;
+
 export type BillingCurrency = "eur" | "usd";
 export type BillingInterval = "monthly" | "annual";
 export type AccessState = "trial" | "paid" | "locked";

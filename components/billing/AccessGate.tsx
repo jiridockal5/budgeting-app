@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { AccessState } from "@/config/plans";
+import { BILLING_GATE_ENABLED, type AccessState } from "@/config/plans";
 
 const EXEMPT_PATHS = ["/app/subscribe", "/app/settings/billing"];
 
@@ -16,9 +16,14 @@ interface AccessInfo {
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(BILLING_GATE_ENABLED);
 
   useEffect(() => {
+    if (!BILLING_GATE_ENABLED) {
+      setChecking(false);
+      return;
+    }
+
     const isExempt = EXEMPT_PATHS.some((p) => pathname.startsWith(p));
     if (isExempt) {
       setChecking(false);
@@ -51,6 +56,10 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, router]);
 
+  if (!BILLING_GATE_ENABLED) {
+    return <>{children}</>;
+  }
+
   if (checking && !EXEMPT_PATHS.some((p) => pathname.startsWith(p))) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -68,6 +77,7 @@ export function TrialBanner() {
   const [state, setState] = useState<AccessState | null>(null);
 
   useEffect(() => {
+    if (!BILLING_GATE_ENABLED) return;
     if (pathname.startsWith("/app/subscribe")) return;
 
     fetch("/api/billing/access")
@@ -81,7 +91,7 @@ export function TrialBanner() {
       .catch(() => {});
   }, [pathname]);
 
-  if (state !== "trial" || daysLeft === null) return null;
+  if (!BILLING_GATE_ENABLED || state !== "trial" || daysLeft === null) return null;
 
   return (
     <div className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-900 lg:px-8">

@@ -38,6 +38,15 @@ Sandbox setup is automated (`npm run setup:stripe`). For production:
    - Cancel via "Manage subscription" portal and confirm `cancelAtPeriodEnd` is reflected.
 6. **Dunning / failed payments:** Stripe → Settings → Subscriptions and emails — configure smart retries and customer emails. The app keeps access during a 7-day grace period after a payment fails (`PAST_DUE_GRACE_DAYS` in `lib/planGating.ts`), then locks.
 
+## Billing gate toggle
+
+Access enforcement is controlled by `BILLING_GATE_ENABLED` in `config/plans.ts`:
+
+- **`false` (current):** All authenticated users have full app access. Stripe routes, webhooks, and subscribe/billing pages remain in place but users are not locked out after trial.
+- **`true`:** Restores the 7-day trial + subscription lockout (`AccessGate`, `requireAppAccess`, `computeAccessState`).
+
+To re-enable billing: set `BILLING_GATE_ENABLED = true`, redeploy, and optionally extend `growthTrialEndsAt` for existing users before flipping the flag.
+
 ## Rate limiting
 
 `checkRateLimit` in `lib/apiUtils.ts` (in-memory, per server instance) protects: billing checkout/portal (10/min per user), Stripe webhook (120/min per IP), account deletion (3/min per user). For multi-instance deployments consider a shared store (e.g. Upstash) later.

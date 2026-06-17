@@ -7,11 +7,12 @@ vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 import {
   computeAccessState,
   getTrialEndDate,
+  getUserAccessInfo,
   canExport,
   hasFreeAccessEmail,
   PAST_DUE_GRACE_DAYS,
 } from "@/lib/planGating";
-import { TRIAL_DAYS } from "@/config/plans";
+import { BILLING_GATE_ENABLED, TRIAL_DAYS } from "@/config/plans";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -130,5 +131,21 @@ describe("canExport", () => {
   it("mirrors app access", () => {
     expect(canExport(true)).toBe(true);
     expect(canExport(false)).toBe(false);
+  });
+});
+
+describe("getUserAccessInfo when BILLING_GATE_ENABLED is false", () => {
+  it("grants full access without checking trial or subscription", async () => {
+    expect(BILLING_GATE_ENABLED).toBe(false);
+
+    const access = await getUserAccessInfo("user-with-expired-trial");
+
+    expect(access).toMatchObject({
+      state: "paid",
+      hasAppAccess: true,
+      isOnTrial: false,
+      isPaid: true,
+      trialDaysLeft: null,
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { TRIAL_DAYS, type AccessState } from "@/config/plans";
+import { BILLING_GATE_ENABLED, TRIAL_DAYS, type AccessState } from "@/config/plans";
 import { prisma } from "./prisma";
 import { SUBSCRIPTION_PLAN } from "./stripe";
 
@@ -94,6 +94,10 @@ export async function getUserAccessInfo(
   userId: string,
   authEmail?: string | null
 ): Promise<UserAccessInfo> {
+  if (!BILLING_GATE_ENABLED) {
+    return freeAccessInfo();
+  }
+
   if (hasFreeAccessEmail(authEmail)) {
     return freeAccessInfo();
   }
