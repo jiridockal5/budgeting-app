@@ -234,8 +234,8 @@ export function HeadcountSection({
         )}
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Table (desktop) */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="min-w-full divide-y divide-neutral-200">
           <thead className="bg-neutral-50">
             <tr>
@@ -328,6 +328,77 @@ export function HeadcountSection({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards (mobile) */}
+      <div className="divide-y divide-neutral-200 md:hidden">
+        {rows.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-neutral-500">
+            No people added yet. Add your first hire below.
+          </p>
+        ) : (
+          rows.map((row) => (
+            <div key={row.id} className="px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-neutral-900">
+                    {row.role}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <span className="inline-flex items-center rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
+                      {PERSON_TYPE_LABELS[row.type]}
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">
+                      {EXPENSE_CATEGORY_SHORT_LABELS[row.category]}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(row)}
+                    aria-label={`Edit ${row.role}`}
+                    className="rounded-lg p-2 text-turquoise-600 hover:bg-turquoise-50 hover:text-turquoise-700 transition-colors"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(row.id)}
+                    aria-label={`Delete ${row.role}`}
+                    className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                <div>
+                  <dt className="text-xs text-neutral-500">Base Salary</dt>
+                  <dd className="text-sm text-neutral-900">
+                    {formatCurrency(row.baseSalary)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-neutral-500">FTE</dt>
+                  <dd className="text-sm text-neutral-600">
+                    {row.fte.toFixed(1)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-neutral-500">Start</dt>
+                  <dd className="text-sm text-neutral-600">{row.startMonth}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-neutral-500">End</dt>
+                  <dd className="text-sm text-neutral-600">
+                    {row.endMonth || "—"}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Add Form */}
@@ -642,8 +713,8 @@ export function NonHeadcountSection({
         </div>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Table (desktop) */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="min-w-full divide-y divide-neutral-200">
           <thead className="bg-neutral-50">
             <tr>
@@ -776,6 +847,108 @@ export function NonHeadcountSection({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards (mobile) */}
+      <div className="divide-y divide-neutral-200 md:hidden">
+        {rows.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-neutral-500">
+            No costs added yet. Add your first expense below.
+          </p>
+        ) : (
+          rows.map((row) => {
+            const method = row.config?.method ?? "fixed";
+            const linked = methodNeedsForecast(method);
+            return (
+              <div
+                key={row.id}
+                className={
+                  selectedIds.has(row.id)
+                    ? "bg-turquoise-50/40 px-4 py-4"
+                    : "px-4 py-4"
+                }
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(row.id)}
+                      onChange={() => toggleOne(row.id)}
+                      aria-label={`Select ${row.name}`}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 text-turquoise-600 focus:ring-turquoise-400"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-neutral-900">
+                        {row.name}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">
+                          {EXPENSE_CATEGORY_SHORT_LABELS[row.category]}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            method === "fixed"
+                              ? "bg-neutral-100 text-neutral-600"
+                              : "bg-turquoise-50 text-turquoise-700"
+                          }`}
+                        >
+                          {describeCostModel(row.config ?? null)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onEdit(row)}
+                      aria-label={`Edit ${row.name}`}
+                      className="rounded-lg p-2 text-turquoise-600 hover:bg-turquoise-50 hover:text-turquoise-700 transition-colors"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(row.id)}
+                      aria-label={`Delete ${row.name}`}
+                      className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div>
+                    <dt className="text-xs text-neutral-500">Amount</dt>
+                    <dd className="text-sm text-neutral-900">
+                      {linked ? (
+                        <span className="text-neutral-400">—</span>
+                      ) : (
+                        <>
+                          {formatCurrency(row.amount)}
+                          {method === "fixed" && (
+                            <span className="ml-1 text-xs text-neutral-400">
+                              {formatFrequency(row.frequency)}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-neutral-500">Start</dt>
+                    <dd className="text-sm text-neutral-600">{row.startMonth}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-neutral-500">End</dt>
+                    <dd className="text-sm text-neutral-600">
+                      {row.endMonth || "—"}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Add / Edit Form */}

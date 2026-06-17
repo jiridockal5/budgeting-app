@@ -13,7 +13,7 @@ export default function NonPeopleCostsPage() {
   if (controller.loading) {
     return (
       <main className="min-h-screen bg-neutral-50">
-        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+        <div className="mx-auto max-w-6xl px-4 py-6 space-y-8 sm:px-6 sm:py-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-4 w-80" />
@@ -40,7 +40,7 @@ export default function NonPeopleCostsPage() {
 
   return (
     <main className="min-h-screen bg-neutral-50">
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="space-y-8">
           <PageHeader
             title="Non-People Costs"
