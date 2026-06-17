@@ -43,7 +43,7 @@ export function ConfirmDialog({
     <dialog
       ref={dialogRef}
       onClose={onCancel}
-      className="fixed inset-0 z-50 m-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-0 shadow-xl backdrop:bg-slate-900/40 backdrop:backdrop-blur-sm"
+      className="fixed inset-0 z-50 m-auto w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-0 shadow-xl backdrop:bg-neutral-900/40 backdrop:backdrop-blur-sm"
     >
       <div className="p-6">
         <div className="flex items-start gap-4">
@@ -53,15 +53,15 @@ export function ConfirmDialog({
             </div>
           )}
           <div className="min-w-0">
-            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-            <p className="mt-2 text-sm text-slate-600">{description}</p>
+            <h3 className="text-lg font-semibold text-neutral-900">{title}</h3>
+            <p className="mt-2 text-sm text-neutral-600">{description}</p>
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
           >
             {cancelLabel}
           </button>
@@ -72,7 +72,7 @@ export function ConfirmDialog({
             className={`rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
               variant === "danger"
                 ? "bg-red-600 hover:bg-red-500"
-                : "bg-indigo-600 hover:bg-indigo-500"
+                : "bg-neutral-900 hover:bg-neutral-800"
             }`}
           >
             {confirmPending ? confirmPendingLabel : confirmLabel}

@@ -18,7 +18,7 @@ export function PeriodTabs({ totalMonths, selected, onChange }: PeriodTabsProps)
   if (tabs.length <= 1) return null;
 
   return (
-    <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100 p-1">
+    <div className="inline-flex items-center gap-1 rounded-xl bg-neutral-100 p-1">
       {tabs.map((tab) => {
         const active =
           tab.value === selected ||
@@ -31,8 +31,8 @@ export function PeriodTabs({ totalMonths, selected, onChange }: PeriodTabsProps)
             onClick={() => onChange(tab.value)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
               active
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-500 hover:text-neutral-700"
             }`}
           >
             {tab.label}

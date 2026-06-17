@@ -45,14 +45,14 @@ export default function FinancialMetricsPage() {
       {summary && last && displayMonths.length > 0 && (
         <>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+            <div className="inline-flex rounded-lg border border-neutral-200 bg-white p-1 shadow-sm">
               <button
                 type="button"
                 onClick={() => setView("accrual")}
                 className={`rounded-md px-4 py-2 text-sm font-medium transition ${
                   view === "accrual"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-neutral-900 text-white"
+                    : "text-neutral-600 hover:text-neutral-900"
                 }`}
               >
                 Accrual P&L
@@ -62,8 +62,8 @@ export default function FinancialMetricsPage() {
                 onClick={() => setView("cash")}
                 className={`rounded-md px-4 py-2 text-sm font-medium transition ${
                   view === "cash"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-neutral-900 text-white"
+                    : "text-neutral-600 hover:text-neutral-900"
                 }`}
               >
                 Cash Basis
@@ -71,7 +71,7 @@ export default function FinancialMetricsPage() {
             </div>
             <Link
               href="/app/expenses/people"
-              className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+              className="inline-flex items-center gap-2 text-sm font-medium text-turquoise-600 hover:text-turquoise-500"
             >
               Tag expenses by category
               <ArrowRight className="h-3.5 w-3.5" />

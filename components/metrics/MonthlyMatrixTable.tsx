@@ -43,38 +43,38 @@ export function MonthlyMatrixTable({
   if (months.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-slate-200 px-6 py-4 bg-slate-50/50">
-        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+    <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+      <div className="border-b border-neutral-200 px-6 py-4 bg-neutral-50/50">
+        <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
         {subtitle && (
-          <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>
+          <p className="text-sm text-neutral-500 mt-0.5">{subtitle}</p>
         )}
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              <th className="sticky left-0 z-10 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 min-w-[180px] border-r border-slate-200">
+            <tr className="border-b border-neutral-200 bg-neutral-50">
+              <th className="sticky left-0 z-10 bg-neutral-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500 min-w-[180px] border-r border-neutral-200">
                 Metric
               </th>
               {months.map((m) => (
                 <th
                   key={m.date}
-                  className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap min-w-[72px]"
+                  className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500 whitespace-nowrap min-w-[72px]"
                 >
                   {formatMonthColumn(m.date)}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-neutral-100">
             {rows.map((row, idx) => {
               if (row.type === "section") {
                 return (
-                  <tr key={`section-${idx}`} className="bg-slate-50/60">
+                  <tr key={`section-${idx}`} className="bg-neutral-50/60">
                     <td
                       colSpan={months.length + 1}
-                      className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500"
+                      className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-neutral-500"
                     >
                       {row.label}
                     </td>
@@ -83,12 +83,12 @@ export function MonthlyMatrixTable({
               }
 
               return (
-                <tr key={row.label} className="hover:bg-slate-50/40">
+                <tr key={row.label} className="hover:bg-neutral-50/40">
                   <td
-                    className={`sticky left-0 z-10 bg-white px-4 py-2.5 text-sm border-r border-slate-100 ${
+                    className={`sticky left-0 z-10 bg-white px-4 py-2.5 text-sm border-r border-neutral-100 ${
                       row.bold
-                        ? "font-semibold text-slate-900"
-                        : "text-slate-600"
+                        ? "font-semibold text-neutral-900"
+                        : "text-neutral-600"
                     } ${row.indent ? "pl-8" : ""}`}
                   >
                     {row.label}
@@ -101,7 +101,7 @@ export function MonthlyMatrixTable({
                         key={m.date}
                         className={`px-3 py-2.5 text-sm text-right tabular-nums whitespace-nowrap ${
                           row.bold ? "font-semibold" : ""
-                        } ${isNegative ? "text-rose-600" : "text-slate-800"}`}
+                        } ${isNegative ? "text-rose-600" : "text-neutral-800"}`}
                       >
                         {formatCell(value, row.format)}
                       </td>

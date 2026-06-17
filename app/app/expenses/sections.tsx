@@ -107,17 +107,17 @@ export function CostAssumptionsSnapshot({
   assumptions: GlobalAssumptions;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50">
             <Settings2 className="h-5 w-5 text-rose-600" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">
+            <h2 className="text-sm font-semibold text-neutral-900">
               Cost Assumptions
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               These defaults adjust payroll and operating cost forecasts
             </p>
           </div>
@@ -125,14 +125,14 @@ export function CostAssumptionsSnapshot({
 
         <Link
           href="/app/assumptions"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-turquoise-600 hover:text-turquoise-700 transition-colors"
         >
           Edit global assumptions
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-slate-100">
+      <div className="mt-4 pt-4 border-t border-neutral-100">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <SnapshotMetric
             label="Employer Tax Rate"
@@ -171,9 +171,9 @@ export function SnapshotMetric({
 }) {
   return (
     <div className="text-center sm:text-left">
-      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-      <p className="text-sm font-semibold text-slate-900">{value}</p>
-      <p className="text-xs text-slate-400 mt-0.5">{helper}</p>
+      <p className="text-xs text-neutral-500 mb-0.5">{label}</p>
+      <p className="text-sm font-semibold text-neutral-900">{value}</p>
+      <p className="text-xs text-neutral-400 mt-0.5">{helper}</p>
     </div>
   );
 }
@@ -208,26 +208,26 @@ export function HeadcountSection({
   assumptions,
 }: HeadcountSectionProps) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
       {/* Section Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/50">
+      <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 bg-neutral-50/50">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100">
             <Users className="h-4 w-4 text-violet-600" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">People Costs</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-lg font-semibold text-neutral-900">People Costs</h2>
+            <p className="text-sm text-neutral-500">
               Employees, contractors & advisors — salary, taxes, growth
             </p>
           </div>
         </div>
         {summary.count > 0 && (
           <div className="hidden sm:block text-right">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               {summary.count} role{summary.count !== 1 ? "s" : ""}
             </p>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-neutral-900">
               {formatCurrency(summary.totalBaseSalary)}/mo base
             </p>
           </div>
@@ -236,71 +236,71 @@ export function HeadcountSection({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+        <table className="min-w-full divide-y divide-neutral-200">
+          <thead className="bg-neutral-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Role
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Category
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Base Salary
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 FTE
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Start
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 End
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 bg-white">
+          <tbody className="divide-y divide-neutral-200 bg-white">
             {rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={8}
-                  className="px-6 py-8 text-center text-sm text-slate-500"
+                  className="px-6 py-8 text-center text-sm text-neutral-500"
                 >
                   No people added yet. Add your first hire below.
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
+                <tr key={row.id} className="hover:bg-neutral-50/60">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
                     {row.role}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                     <span className="inline-flex items-center rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
                       {PERSON_TYPE_LABELS[row.type]}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
-                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
+                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">
                       {EXPENSE_CATEGORY_SHORT_LABELS[row.category]}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-900">
                     {formatCurrency(row.baseSalary)}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                     {row.fte.toFixed(1)}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                     {row.startMonth}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                     {row.endMonth || "—"}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
@@ -308,7 +308,7 @@ export function HeadcountSection({
                       <button
                         type="button"
                         onClick={() => onEdit(row)}
-                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+                        className="inline-flex items-center gap-1 text-sm text-turquoise-600 hover:text-turquoise-700 transition-colors"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                         <span className="sr-only sm:not-sr-only">Edit</span>
@@ -331,10 +331,10 @@ export function HeadcountSection({
       </div>
 
       {/* Add Form */}
-      <div className="border-t border-slate-200 bg-slate-50/50 px-6 py-4">
+      <div className="border-t border-neutral-200 bg-neutral-50/50 px-6 py-4">
         <div className="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end">
           <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               Role
             </label>
             <input
@@ -344,11 +344,11 @@ export function HeadcountSection({
                 setForm((prev) => ({ ...prev, role: e.target.value }))
               }
               placeholder="e.g. Product Designer"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               Type
             </label>
             <select
@@ -359,7 +359,7 @@ export function HeadcountSection({
                   type: e.target.value as PersonType,
                 }))
               }
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
             >
               {PERSON_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -369,7 +369,7 @@ export function HeadcountSection({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               Category
             </label>
             <select
@@ -380,7 +380,7 @@ export function HeadcountSection({
                   category: e.target.value as ExpenseCategory,
                 }))
               }
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
             >
               {EXPENSE_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
@@ -390,7 +390,7 @@ export function HeadcountSection({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               {form.type === "employee" ? "Base Salary (€/mo)" : "Rate (€/mo)"}
             </label>
             <input
@@ -405,11 +405,11 @@ export function HeadcountSection({
                 }))
               }
               placeholder="5000"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               FTE
             </label>
             <input
@@ -424,11 +424,11 @@ export function HeadcountSection({
                   fte: parseFloat(e.target.value) || 1,
                 }))
               }
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               Start
             </label>
             <MonthPicker
@@ -439,7 +439,7 @@ export function HeadcountSection({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               End (opt)
             </label>
             <MonthPicker
@@ -459,14 +459,14 @@ export function HeadcountSection({
                 type="button"
                 onClick={onAdd}
                 disabled={!form.role.trim() || form.baseSalary <= 0}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Update
               </button>
               <button
                 type="button"
                 onClick={onCancelEdit}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
               >
                 Cancel
               </button>
@@ -476,14 +476,14 @@ export function HeadcountSection({
               type="button"
               onClick={onAdd}
               disabled={!form.role.trim() || form.baseSalary <= 0}
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="h-4 w-4 shrink-0" />
               Add
             </button>
           )}
         </div>
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-neutral-500">
           Employer tax ({formatPercentage(assumptions.salaryTaxRate)}) applies to{" "}
           <span className="font-medium">employees only</span>; contractors and
           advisors are billed at their rate. Salaries grow{" "}
@@ -557,18 +557,18 @@ export function NonHeadcountSection({
       formMethod === "perEmployee" ||
       form.amount > 0);
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
       {/* Section Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/50">
+      <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 bg-neutral-50/50">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100">
             <Receipt className="h-4 w-4 text-amber-600" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-neutral-900">
               Non-People Costs
             </h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-neutral-500">
               Tools, infra, marketing & other costs — fixed, growing, or
               revenue-linked
             </p>
@@ -576,14 +576,14 @@ export function NonHeadcountSection({
         </div>
         {summary.count > 0 && (
           <div className="hidden sm:block text-right">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               {summary.count} cost{summary.count !== 1 ? "s" : ""}
             </p>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-neutral-900">
               {formatCurrency(summary.recurringMonthly)}/mo recurring
             </p>
             {summary.oneTimeTotal > 0 && (
-              <p className="text-xs text-slate-500 mt-0.5 max-w-[240px] ml-auto leading-snug">
+              <p className="text-xs text-neutral-500 mt-0.5 max-w-[240px] ml-auto leading-snug">
                 +{formatCurrency(summary.oneTimeTotal)} one-time (start month
                 only)
               </p>
@@ -594,22 +594,22 @@ export function NonHeadcountSection({
 
       {/* Bulk toolbar */}
       {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-indigo-100 bg-indigo-50/60 px-6 py-3">
-          <span className="text-sm font-medium text-indigo-900">
+        <div className="flex flex-wrap items-center gap-2 border-b border-turquoise-100 bg-turquoise-50/60 px-6 py-3">
+          <span className="text-sm font-medium text-turquoise-900">
             {selectedIds.size} selected
           </span>
-          <div className="h-4 w-px bg-indigo-200" />
+          <div className="h-4 w-px bg-turquoise-200" />
           <button
             type="button"
             onClick={() => onBulkScale(10)}
-            className="rounded-md border border-indigo-200 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+            className="rounded-md border border-turquoise-200 bg-white px-2.5 py-1 text-xs font-medium text-turquoise-700 hover:bg-turquoise-50"
           >
             +10%
           </button>
           <button
             type="button"
             onClick={() => onBulkScale(-10)}
-            className="rounded-md border border-indigo-200 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+            className="rounded-md border border-turquoise-200 bg-white px-2.5 py-1 text-xs font-medium text-turquoise-700 hover:bg-turquoise-50"
           >
             −10%
           </button>
@@ -621,14 +621,14 @@ export function NonHeadcountSection({
               const pct = parseFloat(input);
               if (Number.isFinite(pct)) onBulkScale(pct);
             }}
-            className="rounded-md border border-indigo-200 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+            className="rounded-md border border-turquoise-200 bg-white px-2.5 py-1 text-xs font-medium text-turquoise-700 hover:bg-turquoise-50"
           >
             Custom %…
           </button>
           <button
             type="button"
             onClick={onBulkDuplicate}
-            className="rounded-md border border-indigo-200 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+            className="rounded-md border border-turquoise-200 bg-white px-2.5 py-1 text-xs font-medium text-turquoise-700 hover:bg-turquoise-50"
           >
             Duplicate
           </button>
@@ -644,8 +644,8 @@ export function NonHeadcountSection({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+        <table className="min-w-full divide-y divide-neutral-200">
+          <thead className="bg-neutral-50">
             <tr>
               <th className="px-4 py-3 w-10">
                 <input
@@ -653,38 +653,38 @@ export function NonHeadcountSection({
                   checked={allSelected}
                   onChange={toggleAll}
                   aria-label="Select all"
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-neutral-300 text-turquoise-600 focus:ring-turquoise-400"
                 />
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Category
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Amount
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 How it&apos;s calculated
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Start
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 End
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 bg-white">
+          <tbody className="divide-y divide-neutral-200 bg-white">
             {rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={8}
-                  className="px-6 py-8 text-center text-sm text-slate-500"
+                  className="px-6 py-8 text-center text-sm text-neutral-500"
                 >
                   No costs added yet. Add your first expense below.
                 </td>
@@ -698,8 +698,8 @@ export function NonHeadcountSection({
                   key={row.id}
                   className={
                     selectedIds.has(row.id)
-                      ? "bg-indigo-50/40"
-                      : "hover:bg-slate-50/60"
+                      ? "bg-turquoise-50/40"
+                      : "hover:bg-neutral-50/60"
                   }
                 >
                   <td className="px-4 py-4 w-10">
@@ -708,46 +708,46 @@ export function NonHeadcountSection({
                       checked={selectedIds.has(row.id)}
                       onChange={() => toggleOne(row.id)}
                       aria-label={`Select ${row.name}`}
-                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      className="h-4 w-4 rounded border-neutral-300 text-turquoise-600 focus:ring-turquoise-400"
                     />
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
                     {row.name}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
-                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
+                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">
                       {EXPENSE_CATEGORY_SHORT_LABELS[row.category]}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-900">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-900">
                     {linked ? (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-neutral-400">—</span>
                     ) : (
                       <>
                         {formatCurrency(row.amount)}
                         {method === "fixed" && (
-                          <span className="ml-1 text-xs text-slate-400">
+                          <span className="ml-1 text-xs text-neutral-400">
                             {formatFrequency(row.frequency)}
                           </span>
                         )}
                       </>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         method === "fixed"
-                          ? "bg-slate-100 text-slate-600"
-                          : "bg-indigo-50 text-indigo-700"
+                          ? "bg-neutral-100 text-neutral-600"
+                          : "bg-turquoise-50 text-turquoise-700"
                       }`}
                     >
                       {describeCostModel(row.config ?? null)}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                     {row.startMonth}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                     {row.endMonth || "—"}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right">
@@ -755,7 +755,7 @@ export function NonHeadcountSection({
                       <button
                         type="button"
                         onClick={() => onEdit(row)}
-                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+                        className="inline-flex items-center gap-1 text-sm text-turquoise-600 hover:text-turquoise-700 transition-colors"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                         <span className="sr-only sm:not-sr-only">Edit</span>
@@ -779,10 +779,10 @@ export function NonHeadcountSection({
       </div>
 
       {/* Add / Edit Form */}
-      <div className="border-t border-slate-200 bg-slate-50/50 px-6 py-4">
+      <div className="border-t border-neutral-200 bg-neutral-50/50 px-6 py-4">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
           <div className="sm:col-span-2">
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               Name
             </label>
             <input
@@ -792,11 +792,11 @@ export function NonHeadcountSection({
                 setForm((prev) => ({ ...prev, name: e.target.value }))
               }
               placeholder="e.g. Intercom, AWS"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               Category
             </label>
             <select
@@ -807,7 +807,7 @@ export function NonHeadcountSection({
                   category: e.target.value as ExpenseCategory,
                 }))
               }
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
             >
               {EXPENSE_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
@@ -817,7 +817,7 @@ export function NonHeadcountSection({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               Cost type
             </label>
             <select
@@ -831,7 +831,7 @@ export function NonHeadcountSection({
                   ),
                 }))
               }
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
             >
               {(Object.keys(COST_METHOD_LABELS) as CostMethod[]).map((m) => (
                 <option key={m} value={m}>
@@ -846,7 +846,7 @@ export function NonHeadcountSection({
 
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               Start
             </label>
             <MonthPicker
@@ -857,7 +857,7 @@ export function NonHeadcountSection({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-neutral-600 mb-1">
               End (opt)
             </label>
             <MonthPicker
@@ -882,14 +882,14 @@ export function NonHeadcountSection({
                 type="button"
                 onClick={onAdd}
                 disabled={!canSubmitForm}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Update
               </button>
               <button
                 type="button"
                 onClick={onCancelEdit}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
               >
                 Cancel
               </button>
@@ -899,7 +899,7 @@ export function NonHeadcountSection({
               type="button"
               onClick={onAdd}
               disabled={!canSubmitForm}
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="h-4 w-4 shrink-0" />
               Add
@@ -948,7 +948,7 @@ export function defaultModelForMethod(
 }
 
 export const fieldClass =
-  "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100";
+  "w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100";
 
 export type NonPeopleForm = Omit<NonHeadcountExpenseRow, "id">;
 export type SetNonPeopleForm = Dispatch<SetStateAction<NonPeopleForm>>;
@@ -970,7 +970,7 @@ export function CostMethodFields({
 
   const labeled = (label: string, node: ReactNode) => (
     <div>
-      <label className="block text-xs font-medium text-slate-600 mb-1">
+      <label className="block text-xs font-medium text-neutral-600 mb-1">
         {label}
       </label>
       {node}
@@ -1224,22 +1224,22 @@ export function ScheduleEditor({
   const overrideMonths = buildMonthWindow(form.startMonth, 12);
 
   return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-white">
+    <div className="mt-3 rounded-xl border border-neutral-200 bg-white">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-slate-700"
+        className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-neutral-700"
       >
         <span className="flex items-center gap-2">
           {open ? (
-            <ChevronDown className="h-4 w-4 text-slate-400" />
+            <ChevronDown className="h-4 w-4 text-neutral-400" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-slate-400" />
+            <ChevronRight className="h-4 w-4 text-neutral-400" />
           )}
           Advanced schedule
         </span>
         {(stepCount > 0 || overrideCount > 0) && (
-          <span className="text-xs text-indigo-600">
+          <span className="text-xs text-turquoise-600">
             {stepCount > 0 && `${stepCount} step${stepCount !== 1 ? "s" : ""}`}
             {stepCount > 0 && overrideCount > 0 && " · "}
             {overrideCount > 0 &&
@@ -1249,11 +1249,11 @@ export function ScheduleEditor({
       </button>
 
       {open && (
-        <div className="border-t border-slate-100 px-4 py-4 space-y-5">
+        <div className="border-t border-neutral-100 px-4 py-4 space-y-5">
           {/* Step changes */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold text-slate-700">
+              <p className="text-xs font-semibold text-neutral-700">
                 Scheduled step changes
               </p>
               <button
@@ -1266,13 +1266,13 @@ export function ScheduleEditor({
                     ],
                   })
                 }
-                className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                className="inline-flex items-center gap-1 text-xs font-medium text-turquoise-600 hover:text-turquoise-700"
               >
                 <Plus className="h-3.5 w-3.5" /> Add step
               </button>
             </div>
             {steps.length === 0 ? (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-neutral-400">
                 Set the base amount to a new value from a chosen month (e.g. rent
                 increase).
               </p>
@@ -1320,16 +1320,16 @@ export function ScheduleEditor({
 
           {/* Per-month overrides */}
           <div>
-            <p className="text-xs font-semibold text-slate-700 mb-2">
+            <p className="text-xs font-semibold text-neutral-700 mb-2">
               Per-month overrides
             </p>
-            <p className="text-xs text-slate-400 mb-2">
+            <p className="text-xs text-neutral-400 mb-2">
               Type a value to pin a specific month; leave blank to use the formula.
             </p>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {overrideMonths.map((month) => (
                 <div key={month}>
-                  <label className="block text-[10px] text-slate-400 mb-0.5">
+                  <label className="block text-[10px] text-neutral-400 mb-0.5">
                     {month}
                   </label>
                   <input
@@ -1345,7 +1345,7 @@ export function ScheduleEditor({
                       }
                       setConfig({ overrides: next });
                     }}
-                    className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-900 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-100"
+                    className="w-full rounded-md border border-neutral-200 px-2 py-1 text-xs text-neutral-900 focus:border-turquoise-300 focus:outline-none focus:ring-1 focus:ring-turquoise-100"
                   />
                 </div>
               ))}
@@ -1378,7 +1378,7 @@ export function CostPreview({
 
   if (methodNeedsForecast(method)) {
     return (
-      <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3 text-xs text-indigo-800">
+      <div className="mt-3 rounded-xl border border-turquoise-100 bg-turquoise-50/50 px-4 py-3 text-xs text-turquoise-800">
         This cost updates automatically with your forecast (
         {describeCostModel(form.config ?? null)}). See it reflected on the
         Dashboard and Runway once saved.
@@ -1396,8 +1396,8 @@ export function CostPreview({
   const max = Math.max(1, ...series);
 
   return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs font-semibold text-slate-700 mb-2">
+    <div className="mt-3 rounded-xl border border-neutral-200 bg-white px-4 py-3">
+      <p className="text-xs font-semibold text-neutral-700 mb-2">
         Next 12 months preview
       </p>
       <div className="flex items-end gap-1 h-16">
@@ -1408,13 +1408,13 @@ export function CostPreview({
             title={`${months[i]}: ${formatCurrency(value)}`}
           >
             <div
-              className="w-full rounded-t bg-indigo-400/80 group-hover:bg-indigo-500 transition-colors"
+              className="w-full rounded-t bg-turquoise-400/80 group-hover:bg-turquoise-500 transition-colors"
               style={{ height: `${Math.max(2, (value / max) * 100)}%` }}
             />
           </div>
         ))}
       </div>
-      <div className="mt-2 flex justify-between text-[10px] text-slate-400">
+      <div className="mt-2 flex justify-between text-[10px] text-neutral-400">
         <span>{months[0]}</span>
         <span>{months[11]}</span>
       </div>

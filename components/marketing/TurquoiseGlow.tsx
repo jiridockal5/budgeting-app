@@ -1,7 +1,5 @@
 import { ReactNode } from "react";
-
-const TURQUOISE_GLOW =
-  "radial-gradient(ellipse 72% 58% at center, rgba(126, 207, 199, 0.55) 0%, rgba(168, 221, 216, 0.22) 48%, transparent 74%)";
+import { TURQUOISE_GLOW } from "@/lib/turquoise";
 
 interface TurquoiseIconBadgeProps {
   children: ReactNode;

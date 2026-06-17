@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto flex max-w-5xl items-center justify-center px-6 py-10">
         <AuthCard
           title="Set a new password"
@@ -69,7 +69,7 @@ export default function ResetPasswordPage() {
           footerLinkHref="/login"
         >
           {!sessionChecked ? (
-            <p className="text-center text-sm text-slate-500">Loading…</p>
+            <p className="text-center text-sm text-neutral-500">Loading…</p>
           ) : !hasSession ? (
             <AuthMessage
               type="error"

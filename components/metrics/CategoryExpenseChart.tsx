@@ -21,9 +21,9 @@ interface CategoryExpenseChartProps {
 const CATEGORY_COLORS = {
   cos: "#ef4444",
   gtm: "#f59e0b",
-  rnd: "#8b5cf6",
+  rnd: "#5bb5aa",
   cs: "#3b82f6",
-  ops: "#64748b",
+  ops: "#737373",
 };
 
 export function CategoryExpenseChart({ months }: CategoryExpenseChartProps) {
@@ -42,26 +42,26 @@ export function CategoryExpenseChart({ months }: CategoryExpenseChartProps) {
     }));
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-900">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-neutral-900">
         Expense by Category
       </h3>
-      <p className="text-sm text-slate-500 mt-1">
+      <p className="text-sm text-neutral-500 mt-1">
         Functional breakdown: COS, GTM, R&D, CS, and Ops.
       </p>
       <div className="mt-5 h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "#a3a3a3" }}
               tickLine={false}
-              axisLine={{ stroke: "#e2e8f0" }}
+              axisLine={{ stroke: "#e5e5e5" }}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "#a3a3a3" }}
               tickLine={false}
               axisLine={false}
               tickFormatter={formatCompact}
@@ -70,7 +70,7 @@ export function CategoryExpenseChart({ months }: CategoryExpenseChartProps) {
             <Tooltip
               contentStyle={{
                 backgroundColor: "white",
-                border: "1px solid #e2e8f0",
+                border: "1px solid #e5e5e5",
                 borderRadius: "8px",
                 fontSize: "13px",
               }}

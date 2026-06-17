@@ -49,11 +49,11 @@ export function ChartCard({
   const hasData = data && data.length > 0 && series && series.length > 0;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-1">
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+        <h3 className="text-lg font-semibold text-neutral-900">{title}</h3>
         {description ? (
-          <p className="text-sm text-slate-500">{description}</p>
+          <p className="text-sm text-neutral-500">{description}</p>
         ) : null}
       </div>
 
@@ -76,16 +76,16 @@ export function ChartCard({
                   </linearGradient>
                 ))}
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: "#94a3b8" }}
+                tick={{ fontSize: 11, fill: "#a3a3a3" }}
                 tickLine={false}
-                axisLine={{ stroke: "#e2e8f0" }}
+                axisLine={{ stroke: "#e5e5e5" }}
                 interval="preserveStartEnd"
               />
               <YAxis
-                tick={{ fontSize: 11, fill: "#94a3b8" }}
+                tick={{ fontSize: 11, fill: "#a3a3a3" }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={formatValue}
@@ -94,7 +94,7 @@ export function ChartCard({
               <Tooltip
                 contentStyle={{
                   backgroundColor: "white",
-                  border: "1px solid #e2e8f0",
+                  border: "1px solid #e5e5e5",
                   borderRadius: "8px",
                   fontSize: "13px",
                 }}
@@ -123,7 +123,7 @@ export function ChartCard({
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="mt-5 flex h-64 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm font-medium text-slate-500">
+        <div className="mt-5 flex h-64 items-center justify-center rounded-lg border border-dashed border-neutral-200 bg-neutral-50 text-sm font-medium text-neutral-500">
           {placeholder}
         </div>
       )}

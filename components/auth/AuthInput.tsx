@@ -25,7 +25,7 @@ export function AuthInput({
     <div>
       <label
         htmlFor={id}
-        className="mb-2 block text-sm font-medium text-slate-600"
+        className="mb-2 block text-sm font-medium text-neutral-600"
       >
         {label}
       </label>
@@ -36,7 +36,7 @@ export function AuthInput({
         onChange={(e) => onChange(e.target.value)}
         required={required}
         autoFocus={autoFocus}
-        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+        className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-neutral-900 placeholder:text-neutral-500 transition focus:border-turquoise-400 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
         placeholder={placeholder}
       />
     </div>

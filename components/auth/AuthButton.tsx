@@ -26,8 +26,8 @@ export function AuthButton({
 
   const variantStyles =
     variant === "primary"
-      ? "bg-indigo-600 text-white hover:bg-indigo-500"
-      : "border border-slate-300 bg-white text-slate-900 hover:border-indigo-200";
+      ? "bg-neutral-900 text-white hover:bg-neutral-800"
+      : "border border-neutral-300 bg-white text-neutral-900 hover:border-turquoise-200";
 
   return (
     <button

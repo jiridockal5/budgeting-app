@@ -137,7 +137,7 @@ export default function RevenuePage() {
   // ── Loading state ──
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
@@ -152,7 +152,7 @@ export default function RevenuePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
@@ -160,7 +160,7 @@ export default function RevenuePage() {
             subtitle="Define how your PLG, sales, and partner streams generate ARR."
             actions={
               saveLabel ? (
-                <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-sm text-neutral-500">
                   {autoSave.saving ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
@@ -190,7 +190,7 @@ export default function RevenuePage() {
 
           {/* Stream Tabs */}
           <div className="space-y-6">
-            <div className="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+            <div className="flex flex-wrap gap-2 p-1 bg-neutral-100 rounded-xl w-fit">
               {streamTabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -200,8 +200,8 @@ export default function RevenuePage() {
                     transition-all duration-200 ease-out
                     ${
                       activeStream === tab.key
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50"
                     }
                   `}
                 >
@@ -218,7 +218,7 @@ export default function RevenuePage() {
               ))}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               {activeStream === "plg" && (
                 <PlgStreamForm
                   config={config.plg}
@@ -268,16 +268,16 @@ export default function RevenuePage() {
           </div>
 
           {/* Info Card */}
-          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6">
+          <div className="rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-50 to-white p-6">
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-                <Info className="h-4 w-4 text-indigo-600" />
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-turquoise-50">
+                <Info className="h-4 w-4 text-turquoise-600" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-900">
+                <h3 className="text-sm font-semibold text-neutral-900">
                   How revenue streams work
                 </h3>
-                <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+                <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
                   Each stream uses the global assumptions as defaults, but you
                   can override churn, expansion, and ACV per stream. The forecast
                   combines all streams to project your total MRR/ARR growth over
@@ -302,17 +302,17 @@ function AssumptionsSnapshot({
   assumptions: GlobalAssumptions;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50">
             <Settings2 className="h-5 w-5 text-amber-600" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">
+            <h2 className="text-sm font-semibold text-neutral-900">
               Global Assumptions
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               These defaults apply unless a stream overrides them
             </p>
           </div>
@@ -320,14 +320,14 @@ function AssumptionsSnapshot({
 
         <Link
           href="/app/assumptions"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-turquoise-600 hover:text-turquoise-700 transition-colors"
         >
           Edit global assumptions
           <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-slate-100">
+      <div className="mt-4 pt-4 border-t border-neutral-100">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <SnapshotMetric
             label="Default churn"
@@ -358,8 +358,8 @@ function AssumptionsSnapshot({
 function SnapshotMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="text-center sm:text-left">
-      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-      <p className="text-sm font-semibold text-slate-900">{value}</p>
+      <p className="text-xs text-neutral-500 mb-0.5">{label}</p>
+      <p className="text-sm font-semibold text-neutral-900">{value}</p>
     </div>
   );
 }
@@ -505,7 +505,7 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
           {formatCurrency(getBlendedMrr(config))}
         </span>{" "}
         blended MRR
-        <span className="text-slate-500">
+        <span className="text-neutral-500">
           {" "}
           ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
           {formatPercentage(getYearlyDealShare(config))} yearly, using{" "}
@@ -596,7 +596,7 @@ function SalesStreamForm({
           {formatCurrency(getBlendedMrr(config))}
         </span>{" "}
         blended MRR
-        <span className="text-slate-500">
+        <span className="text-neutral-500">
           {" "}
           ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
           {formatPercentage(getYearlyDealShare(config))} yearly, using{" "}
@@ -680,7 +680,7 @@ function PartnersStreamForm({
           {formatCurrency(getBlendedMrr(config))}
         </span>{" "}
         blended MRR
-        <span className="text-slate-500">
+        <span className="text-neutral-500">
           {" "}
           ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
           {formatPercentage(getYearlyDealShare(config))} yearly,{" "}
@@ -711,8 +711,8 @@ function StreamHeader({ icon, iconBg, title, description }: StreamHeaderProps) {
         {icon}
       </div>
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        <p className="text-sm text-slate-500">{description}</p>
+        <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
+        <p className="text-sm text-neutral-500">{description}</p>
       </div>
     </div>
   );
@@ -737,12 +737,12 @@ function StreamInputField({
 }: StreamInputFieldProps) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-sm font-medium text-neutral-700">
         {label}
       </label>
       <div className="relative">
         {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
             {prefix}
           </span>
         )}
@@ -753,20 +753,20 @@ function StreamInputField({
           step="any"
           min="0"
           className={`
-            w-full rounded-xl border border-slate-200 bg-white py-2.5 text-sm text-slate-900
-            shadow-sm transition placeholder:text-slate-400
-            focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100
+            w-full rounded-xl border border-neutral-200 bg-white py-2.5 text-sm text-neutral-900
+            shadow-sm transition placeholder:text-neutral-400
+            focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100
             ${prefix ? "pl-8" : "pl-3"}
             ${suffix ? "pr-10" : "pr-3"}
           `}
         />
         {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
             {suffix}
           </span>
         )}
       </div>
-      <p className="text-xs text-slate-500 leading-relaxed">{helper}</p>
+      <p className="text-xs text-neutral-500 leading-relaxed">{helper}</p>
     </div>
   );
 }
@@ -789,8 +789,8 @@ function StreamPreview({ icon, color, children }: StreamPreviewProps) {
       className={`flex items-center gap-3 p-4 rounded-xl border ${bgColorMap[color]}`}
     >
       <div className="flex-shrink-0">{icon}</div>
-      <p className="text-sm text-slate-700">
-        <span className="font-medium text-slate-500">Preview: </span>
+      <p className="text-sm text-neutral-700">
+        <span className="font-medium text-neutral-500">Preview: </span>
         {children}
       </p>
     </div>

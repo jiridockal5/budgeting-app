@@ -45,9 +45,9 @@ export function NetNewArrMixChart({
   if (data.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-900">Net New ARR Mix</h3>
-      <p className="text-sm text-slate-500 mt-1">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-neutral-900">Net New ARR Mix</h3>
+      <p className="text-sm text-neutral-500 mt-1">
         Composition of MRR movement over the forecast period.
       </p>
       <div className="mt-5 h-64">
@@ -66,14 +66,14 @@ export function NetNewArrMixChart({
               {data.map((entry) => (
                 <Cell
                   key={entry.name}
-                  fill={COLOR_BY_NAME[entry.name] ?? "#94a3b8"}
+                  fill={COLOR_BY_NAME[entry.name] ?? "#a3a3a3"}
                 />
               ))}
             </Pie>
             <Tooltip
               contentStyle={{
                 backgroundColor: "white",
-                border: "1px solid #e2e8f0",
+                border: "1px solid #e5e5e5",
                 borderRadius: "8px",
                 fontSize: "13px",
               }}

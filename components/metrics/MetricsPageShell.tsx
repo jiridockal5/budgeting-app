@@ -39,7 +39,7 @@ export function MetricsPageShell({
 }: MetricsPageShellProps) {
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-[1600px] px-6 py-8 space-y-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
@@ -54,7 +54,7 @@ export function MetricsPageShell({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-[1600px] px-6 py-8">
         <div className="space-y-8">
           <PageHeader
@@ -66,13 +66,13 @@ export function MetricsPageShell({
                   <>
                     <button
                       onClick={() => exportForecastCSV(forecast)}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                      className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
                     >
                       Export CSV
                     </button>
                     <button
                       onClick={() => exportSummaryPDF(forecast)}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                      className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
                     >
                       Print PDF
                     </button>
@@ -80,7 +80,7 @@ export function MetricsPageShell({
                 )}
                 <Link
                   href="/app/assumptions"
-                  className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+                  className="inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800"
                 >
                   Edit assumptions
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -96,7 +96,7 @@ export function MetricsPageShell({
               onChange={onPeriodChange}
             />
             {hasData && monthCount > 0 && (
-              <p className="text-sm text-slate-500 sm:text-right">
+              <p className="text-sm text-neutral-500 sm:text-right">
                 {periodMonths !== null
                   ? `${monthCount} monthly columns (months 1–${monthCount})`
                   : `${monthCount} monthly columns (full forecast)`}

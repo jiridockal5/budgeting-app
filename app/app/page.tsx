@@ -256,7 +256,7 @@ export default function DashboardPage() {
       !onboarding.hasExpenses);
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
@@ -266,7 +266,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3">
                 <Link
                   href="/app/assumptions"
-                  className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  className="rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-turquoise-400 focus:ring-offset-2"
                 >
                   Edit assumptions
                 </Link>
@@ -312,7 +312,7 @@ export default function DashboardPage() {
               onChange={setPeriodMonths}
             />
             {periodMonths !== null && (
-              <span className="text-sm text-slate-500">
+              <span className="text-sm text-neutral-500">
                 Showing first {periodMonths} months
               </span>
             )}
@@ -353,12 +353,12 @@ export default function DashboardPage() {
           </section>
 
           {/* ── Charts Section ── */}
-          <section className="space-y-6 border-t border-slate-200 pt-6">
+          <section className="space-y-6 border-t border-neutral-200 pt-6">
             {!hasData && (
-              <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
+              <div className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-turquoise-50">
                   <svg
-                    className="h-4 w-4 text-indigo-600"
+                    className="h-4 w-4 text-turquoise-600"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={2}
@@ -372,28 +372,28 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-900">
+                  <p className="text-sm font-medium text-neutral-900">
                     Complete setup to see metrics and charts
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-neutral-500">
                     Set your{" "}
                     <Link
                       href="/app/assumptions"
-                      className="text-indigo-600 hover:underline"
+                      className="text-turquoise-600 hover:underline"
                     >
                       assumptions
                     </Link>
                     ,{" "}
                     <Link
                       href="/app/revenue"
-                      className="text-indigo-600 hover:underline"
+                      className="text-turquoise-600 hover:underline"
                     >
                       revenue streams
                     </Link>
                     , and{" "}
                     <Link
                       href="/app/expenses"
-                      className="text-indigo-600 hover:underline"
+                      className="text-turquoise-600 hover:underline"
                     >
                       expenses
                     </Link>{" "}
@@ -404,10 +404,10 @@ export default function DashboardPage() {
             )}
 
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-neutral-900">
                 Forecast Overview
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-neutral-600">
                 Visual trends for ARR growth and cash runway.
                 {showingSampleForecast && (
                   <span className="text-sky-700">
@@ -439,7 +439,7 @@ export default function DashboardPage() {
                   {
                     dataKey: "partnerArr",
                     name: "Partners",
-                    color: "#8b5cf6",
+                    color: "#5bb5aa",
                     stackId: "arr",
                   },
                 ]}

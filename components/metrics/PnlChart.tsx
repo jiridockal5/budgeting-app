@@ -36,24 +36,24 @@ export function PnlChart({ months }: PnlChartProps) {
     }));
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-900">Monthly P&L</h3>
-      <p className="text-sm text-slate-500 mt-1">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-neutral-900">Monthly P&L</h3>
+      <p className="text-sm text-neutral-500 mt-1">
         Recognized revenue, cost of sales, operating expenses, and EBIT over time.
       </p>
       <div className="mt-5 h-72">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "#a3a3a3" }}
               tickLine={false}
-              axisLine={{ stroke: "#e2e8f0" }}
+              axisLine={{ stroke: "#e5e5e5" }}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "#a3a3a3" }}
               tickLine={false}
               axisLine={false}
               tickFormatter={formatCompact}
@@ -62,7 +62,7 @@ export function PnlChart({ months }: PnlChartProps) {
             <Tooltip
               contentStyle={{
                 backgroundColor: "white",
-                border: "1px solid #e2e8f0",
+                border: "1px solid #e5e5e5",
                 borderRadius: "8px",
                 fontSize: "13px",
               }}
@@ -74,9 +74,9 @@ export function PnlChart({ months }: PnlChartProps) {
             <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
             <Bar dataKey="cos" name="Cost of Sales" stackId="opex" fill="#fca5a5" />
             <Bar dataKey="gtm" name="GTM" stackId="opex" fill="#fcd34d" />
-            <Bar dataKey="rnd" name="R&D" stackId="opex" fill="#c4b5fd" />
+            <Bar dataKey="rnd" name="R&D" stackId="opex" fill="#a8ddd8" />
             <Bar dataKey="cs" name="CS" stackId="opex" fill="#93c5fd" />
-            <Bar dataKey="ops" name="Ops" stackId="opex" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="ops" name="Ops" stackId="opex" fill="#a3a3a3" radius={[4, 4, 0, 0]} />
             <Line
               type="monotone"
               dataKey="revenue"
@@ -89,7 +89,7 @@ export function PnlChart({ months }: PnlChartProps) {
               type="monotone"
               dataKey="ebit"
               name="EBIT"
-              stroke="#6366f1"
+              stroke="#7ecfc7"
               strokeWidth={2}
               dot={false}
             />

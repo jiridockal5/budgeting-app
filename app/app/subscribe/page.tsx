@@ -24,22 +24,22 @@ export default function SubscribePage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto flex max-w-lg flex-col items-center px-6 py-16">
         <div className="mb-4 flex w-full justify-end">
           <button
             type="button"
             onClick={handleLogout}
-            className="text-sm text-slate-500 hover:text-slate-700"
+            className="text-sm text-neutral-500 hover:text-neutral-700"
           >
             Log out
           </button>
         </div>
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-slate-900">
+          <h1 className="text-2xl font-semibold text-neutral-900">
             Subscribe to Burnlytics
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-neutral-600">
             Your {TRIAL_DAYS}-day trial included full access. Choose a plan to
             continue building forecasts, running scenarios, and exporting for
             investors.
@@ -50,11 +50,11 @@ export default function SubscribePage() {
           <SubscribeCheckout locked showTrialNote={false} />
         </div>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
+        <p className="mt-6 text-center text-xs text-neutral-500">
           Already subscribed?{" "}
           <Link
             href="/app/settings/billing"
-            className="font-medium text-indigo-600 hover:text-indigo-500"
+            className="font-medium text-turquoise-600 hover:text-turquoise-500"
           >
             Check billing status
           </Link>

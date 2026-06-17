@@ -112,12 +112,12 @@ export function MonthPicker({
         type="button"
         disabled={disabled}
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm text-slate-900 shadow-sm transition hover:border-slate-300 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-left text-sm text-neutral-900 shadow-sm transition hover:border-neutral-300 focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <span className={value ? "text-slate-900" : "text-slate-400"}>
+        <span className={value ? "text-neutral-900" : "text-neutral-400"}>
           {value ? formatMonthValue(value) : placeholder}
         </span>
-        <Calendar className="h-4 w-4 text-slate-500" />
+        <Calendar className="h-4 w-4 text-neutral-500" />
       </button>
 
       {open &&
@@ -131,24 +131,24 @@ export function MonthPicker({
               minWidth: Math.max(pos.width, 280),
               zIndex: 9999,
             }}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"
+            className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-xl"
           >
             <div className="mb-4 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setDisplayYear((prev) => prev - 1)}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                className="rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700"
                 aria-label="Previous year"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <div className="text-sm font-semibold text-slate-900">
+              <div className="text-sm font-semibold text-neutral-900">
                 {displayYear}
               </div>
               <button
                 type="button"
                 onClick={() => setDisplayYear((prev) => prev + 1)}
-                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                className="rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700"
                 aria-label="Next year"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -173,8 +173,8 @@ export function MonthPicker({
                     }}
                     className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
                       selected
-                        ? "bg-indigo-600 text-white shadow-sm"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                        ? "bg-neutral-900 text-white shadow-sm"
+                        : "bg-neutral-50 text-neutral-700 hover:bg-neutral-100"
                     }`}
                   >
                     {monthLabel}
@@ -183,7 +183,7 @@ export function MonthPicker({
               })}
             </div>
 
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+            <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3">
               {allowClear ? (
                 <button
                   type="button"
@@ -191,7 +191,7 @@ export function MonthPicker({
                     onChange("");
                     setOpen(false);
                   }}
-                  className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
+                  className="text-sm font-medium text-neutral-500 transition hover:text-neutral-700"
                 >
                   Clear
                 </button>
@@ -206,7 +206,7 @@ export function MonthPicker({
                   setDisplayYear(getInitialYear(currentMonth));
                   setOpen(false);
                 }}
-                className="text-sm font-medium text-indigo-600 transition hover:text-indigo-700"
+                className="text-sm font-medium text-turquoise-600 transition hover:text-turquoise-700"
               >
                 This month
               </button>

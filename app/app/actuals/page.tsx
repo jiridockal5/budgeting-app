@@ -137,7 +137,7 @@ export default function ActualsPage() {
   if (!LAUNCH_V1.actuals) return null;
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
@@ -145,7 +145,7 @@ export default function ActualsPage() {
             subtitle="Import accounting data and compare actuals vs budget"
           />
 
-          <p className="text-sm text-slate-500 -mt-4">
+          <p className="text-sm text-neutral-500 -mt-4">
             Use this module for variance analysis and reforecasting — upload your
             accounting export, map it to forecast categories, and spot where
             actuals diverge from plan.
@@ -175,12 +175,12 @@ export default function ActualsPage() {
 
 function EmptyState({ onUpload }: { onUpload: () => void }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-      <ClipboardCheck className="mx-auto h-12 w-12 text-slate-300" />
-      <h3 className="mt-4 text-lg font-semibold text-slate-900">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-10 text-center shadow-sm">
+      <ClipboardCheck className="mx-auto h-12 w-12 text-neutral-300" />
+      <h3 className="mt-4 text-lg font-semibold text-neutral-900">
         No actuals imported yet
       </h3>
-      <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+      <p className="mt-2 text-sm text-neutral-500 max-w-md mx-auto">
         Upload your accounting export to compare actual vs budget and identify
         variances. This helps you reforecast with real numbers instead of
         assumptions alone.
@@ -188,7 +188,7 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
       <button
         type="button"
         onClick={onUpload}
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
       >
         <Upload className="h-4 w-4" />
         Upload Accounting Export
@@ -210,28 +210,28 @@ function ExplainerCard() {
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6">
+    <div className="rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-50 to-white p-6">
       <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-          <Info className="h-4 w-4 text-indigo-600" />
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-turquoise-50">
+          <Info className="h-4 w-4 text-turquoise-600" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">
+          <h3 className="text-sm font-semibold text-neutral-900">
             How actuals import works
           </h3>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-neutral-600">
             Compare your accounting data against your forecast to identify
             variances and improve future projections.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             {steps.map((step, i) => (
               <div key={step.num} className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-turquoise-100 text-xs font-semibold text-turquoise-700">
                   {step.num}
                 </span>
-                <span className="text-sm text-slate-700">{step.label}</span>
+                <span className="text-sm text-neutral-700">{step.label}</span>
                 {i < steps.length - 1 && (
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-300" />
+                  <ArrowRight className="h-3.5 w-3.5 text-neutral-300" />
                 )}
               </div>
             ))}
@@ -248,16 +248,16 @@ function ExplainerCard() {
 
 function UploadSection({ onUpload }: { onUpload: () => void }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100">
-          <Upload className="h-4 w-4 text-indigo-600" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-turquoise-100">
+          <Upload className="h-4 w-4 text-turquoise-600" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-neutral-900">
             Upload Accounting Export
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-neutral-500">
             Import your latest accounting data to compare against budget
           </p>
         </div>
@@ -265,25 +265,25 @@ function UploadSection({ onUpload }: { onUpload: () => void }) {
 
       <div
         onClick={onUpload}
-        className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-10 transition hover:border-indigo-300 hover:bg-indigo-50/30"
+        className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 px-6 py-10 transition hover:border-turquoise-300 hover:bg-turquoise-50/30"
       >
-        <Upload className="h-8 w-8 text-slate-400" />
-        <p className="mt-3 text-sm font-medium text-slate-700">
+        <Upload className="h-8 w-8 text-neutral-400" />
+        <p className="mt-3 text-sm font-medium text-neutral-700">
           Drag and drop your file here, or click to browse
         </p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-neutral-500">
           Supported formats: CSV / XLSX
         </p>
       </div>
 
       <div className="mt-4 flex items-center justify-between">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-neutral-500">
           Manual upload for now. Direct integrations coming later.
         </p>
         <button
           type="button"
           onClick={onUpload}
-          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500"
+          className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800"
         >
           <Upload className="h-4 w-4" />
           Upload File
@@ -299,67 +299,67 @@ function UploadSection({ onUpload }: { onUpload: () => void }) {
 
 function MappingSection() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/50">
+    <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 bg-neutral-50/50">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100">
             <TableProperties className="h-4 w-4 text-violet-600" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-neutral-900">
               Category Mapping
             </h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-neutral-500">
               AI-suggested mappings from your accounting lines to forecast
               categories
             </p>
           </div>
         </div>
         <div className="hidden sm:block text-right">
-          <p className="text-xs text-slate-500">5 lines imported</p>
-          <p className="text-sm font-semibold text-slate-900">4 mapped, 1 to review</p>
+          <p className="text-xs text-neutral-500">5 lines imported</p>
+          <p className="text-sm font-semibold text-neutral-900">4 mapped, 1 to review</p>
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+        <table className="min-w-full divide-y divide-neutral-200">
+          <thead className="bg-neutral-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Imported Account / Line
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Suggested Category
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Confidence
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Status
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Action
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 bg-white">
+          <tbody className="divide-y divide-neutral-200 bg-white">
             {MOCK_MAPPING_ROWS.map((row) => (
-              <tr key={row.id} className="hover:bg-slate-50/60">
-                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
+              <tr key={row.id} className="hover:bg-neutral-50/60">
+                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
                   {row.importedLine}
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                   {row.suggestedCategory}
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-600">
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       row.type === "Revenue"
                         ? "bg-emerald-50 text-emerald-700"
-                        : "bg-slate-100 text-slate-700"
+                        : "bg-neutral-100 text-neutral-700"
                     }`}
                   >
                     {row.type}
@@ -388,7 +388,7 @@ function MappingSection() {
                 <td className="whitespace-nowrap px-6 py-4 text-right">
                   <button
                     type="button"
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+                    className="text-sm font-medium text-turquoise-600 hover:text-turquoise-700 transition-colors"
                   >
                     {row.status === "review" ? "Review" : "Change"}
                   </button>
@@ -447,10 +447,10 @@ function VarianceSummaryCards() {
       {cards.map((card) => (
         <div
           key={card.label}
-          className="group flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
+          className="group flex flex-col rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-all hover:border-neutral-300 hover:shadow-md"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
               {card.label}
             </span>
             <card.icon
@@ -458,7 +458,7 @@ function VarianceSummaryCards() {
             />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tabular-nums text-slate-900">
+            <span className="text-2xl font-bold tabular-nums text-neutral-900">
               {card.value}
             </span>
             <span
@@ -467,7 +467,7 @@ function VarianceSummaryCards() {
               {card.variance}
             </span>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-slate-500">
+          <p className="mt-2 text-xs leading-relaxed text-neutral-500">
             {card.helper}
           </p>
         </div>
@@ -482,17 +482,17 @@ function VarianceSummaryCards() {
 
 function MonthlyComparisonTable() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/50">
+    <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 bg-neutral-50/50">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100">
             <TableProperties className="h-4 w-4 text-blue-600" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-neutral-900">
               Monthly Actual vs Budget
             </h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-neutral-500">
               Side-by-side comparison of budgeted and actual amounts
             </p>
           </div>
@@ -500,47 +500,47 @@ function MonthlyComparisonTable() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+        <table className="min-w-full divide-y divide-neutral-200">
+          <thead className="bg-neutral-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Category
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Jan Budget
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Jan Actual
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Jan Variance
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Feb Budget
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Feb Actual
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Feb Variance
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 bg-white">
+          <tbody className="divide-y divide-neutral-200 bg-white">
             {MOCK_MONTHLY_DATA.map((row) => {
               const janVar = formatVariance(row.janBudget, row.janActual);
               const febVar = formatVariance(row.febBudget, row.febActual);
               const isRevenue = row.category === "Subscription Revenue";
 
               return (
-                <tr key={row.category} className="hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
+                <tr key={row.category} className="hover:bg-neutral-50/60">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-neutral-900">
                     {row.category}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-slate-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-neutral-600">
                     {formatCurrency(row.janBudget)}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-slate-900">
+                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-neutral-900">
                     {formatCurrency(row.janActual)}
                   </td>
                   <td
@@ -556,10 +556,10 @@ function MonthlyComparisonTable() {
                   >
                     {janVar.label}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-slate-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-neutral-600">
                     {formatCurrency(row.febBudget)}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-slate-900">
+                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm tabular-nums text-neutral-900">
                     {formatCurrency(row.febActual)}
                   </td>
                   <td
@@ -591,16 +591,16 @@ function MonthlyComparisonTable() {
 
 function VarianceInsightsCard() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6">
+    <div className="rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-50 to-white p-6">
       <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-          <Sparkles className="h-4 w-4 text-indigo-600" />
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-turquoise-50">
+          <Sparkles className="h-4 w-4 text-turquoise-600" />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-semibold text-slate-900">
+          <h3 className="text-sm font-semibold text-neutral-900">
             Variance Insights
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-neutral-500">
             AI-generated observations based on your actual vs budget data
           </p>
           <ul className="mt-4 space-y-3">
@@ -612,7 +612,7 @@ function VarianceInsightsCard() {
                       ? "bg-amber-100"
                       : insight.type === "positive"
                         ? "bg-emerald-100"
-                        : "bg-indigo-100"
+                        : "bg-turquoise-100"
                   }`}
                 >
                   {insight.type === "warning" ? (
@@ -620,10 +620,10 @@ function VarianceInsightsCard() {
                   ) : insight.type === "positive" ? (
                     <TrendingDown className="h-3 w-3 text-emerald-600" />
                   ) : (
-                    <ArrowRight className="h-3 w-3 text-indigo-600" />
+                    <ArrowRight className="h-3 w-3 text-turquoise-600" />
                   )}
                 </span>
-                <span className="text-sm text-slate-700 leading-relaxed">
+                <span className="text-sm text-neutral-700 leading-relaxed">
                   {insight.text}
                 </span>
               </li>

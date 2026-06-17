@@ -12,15 +12,15 @@ export default function NonPeopleCostsPage() {
 
   if (controller.loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-4 w-80" />
           </div>
           <Skeleton className="h-24 w-full rounded-2xl" />
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200">
+          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-6 py-4 bg-neutral-50/50 border-b border-neutral-200">
               <Skeleton className="h-6 w-32" />
             </div>
             <div className="p-6">
@@ -39,7 +39,7 @@ export default function NonPeopleCostsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
@@ -92,16 +92,16 @@ export default function NonPeopleCostsPage() {
             onBulkDuplicate={controller.handleDuplicateNonPeople}
           />
 
-          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6">
+          <div className="rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-50 to-white p-6">
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-                <Info className="h-4 w-4 text-indigo-600" />
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-turquoise-50">
+                <Info className="h-4 w-4 text-turquoise-600" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-900">
+                <h3 className="text-sm font-semibold text-neutral-900">
                   How expense categories work
                 </h3>
-                <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+                <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
                   Categorizing expenses into COS, GTM, R&D, CS, and Ops allows
                   us to compute key SaaS metrics: gross margin (revenue minus
                   COS), sales efficiency (GTM spend vs new ARR), and R&D

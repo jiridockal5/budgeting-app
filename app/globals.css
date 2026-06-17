@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+@theme {
+  --color-turquoise-50: #f0faf9;
+  --color-turquoise-100: #d4f0ed;
+  --color-turquoise-200: #b8e8e4;
+  --color-turquoise-300: #a8ddd8;
+  --color-turquoise-400: #7ecfc7;
+  --color-turquoise-500: #5bb5aa;
+  --color-turquoise-600: #469088;
+  --color-turquoise-700: #357068;
+  --color-turquoise-800: #2a5852;
+  --color-turquoise-900: #21433f;
+}
+
 :root {
   --background: #fafafa;
   --foreground: #171717;
@@ -27,7 +40,7 @@ body {
 }
 
 ::selection {
-  background-color: rgba(23, 23, 23, 0.1);
+  background-color: rgba(126, 207, 199, 0.25);
 }
 
 /* Smooth scroll behavior */
@@ -86,6 +99,6 @@ html {
 
 /* Dialog backdrop */
 dialog::backdrop {
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(23, 23, 23, 0.4);
   backdrop-filter: blur(4px);
 }

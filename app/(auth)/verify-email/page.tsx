@@ -50,7 +50,7 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto flex max-w-5xl items-center justify-center px-6 py-10">
         <AuthCard
           title="Confirm your email"
@@ -79,7 +79,7 @@ export default function VerifyEmailPage() {
             <button
               type="button"
               onClick={handleSignOut}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
             >
               Sign out
             </button>

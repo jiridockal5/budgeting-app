@@ -21,19 +21,19 @@ export function PeriodSummaryBar({ summary }: { summary: ForecastSummary }) {
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-semibold text-slate-900">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <p className="text-sm font-semibold text-neutral-900">
         Period summary
       </p>
-      <p className="text-xs text-slate-500 mt-0.5 mb-4">
+      <p className="text-xs text-neutral-500 mt-0.5 mb-4">
         Aggregated across the selected period — see monthly tables below for
         month-by-month values.
       </p>
       <dl className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
         {items.map((item) => (
           <div key={item.label}>
-            <dt className="text-xs text-slate-500">{item.label}</dt>
-            <dd className="mt-0.5 text-sm font-semibold tabular-nums text-slate-900">
+            <dt className="text-xs text-neutral-500">{item.label}</dt>
+            <dd className="mt-0.5 text-sm font-semibold tabular-nums text-neutral-900">
               {item.value}
             </dd>
           </div>

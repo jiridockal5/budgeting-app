@@ -63,7 +63,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   if (checking && !EXEMPT_PATHS.some((p) => pathname.startsWith(p))) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-turquoise-400 border-t-transparent" />
       </div>
     );
   }

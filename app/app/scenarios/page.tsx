@@ -34,7 +34,7 @@ interface ScenarioForecast {
   summary: ForecastResult["summary"];
 }
 
-const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const COLORS = ["#7ecfc7", "#10b981", "#f59e0b", "#ef4444", "#5bb5aa"];
 
 function formatCompact(value: number): string {
   if (Math.abs(value) >= 1_000_000)
@@ -255,7 +255,7 @@ export default function ScenariosPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
@@ -268,7 +268,7 @@ export default function ScenariosPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
@@ -277,7 +277,7 @@ export default function ScenariosPage() {
             actions={
               <Link
                 href="/app/revenue"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
               >
                 Edit revenue
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -286,8 +286,8 @@ export default function ScenariosPage() {
           />
 
           {/* Create scenario */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-neutral-900 mb-4">
               Your scenarios
             </h2>
             <div className="flex gap-3 mb-6">
@@ -296,13 +296,13 @@ export default function ScenariosPage() {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="New scenario name (e.g. Aggressive growth)"
-                className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                className="flex-1 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
                 onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               />
               <button
                 onClick={handleCreate}
                 disabled={!newName.trim()}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
                 Create
@@ -310,7 +310,7 @@ export default function ScenariosPage() {
             </div>
 
             {scenarios.length === 0 ? (
-              <p className="text-sm text-slate-500 text-center py-6">
+              <p className="text-sm text-neutral-500 text-center py-6">
                 No scenarios yet. Save your revenue config first, then create
                 alternative scenarios here.
               </p>
@@ -321,15 +321,15 @@ export default function ScenariosPage() {
                     key={s.id}
                     className={`flex items-center gap-4 rounded-xl border px-4 py-3 transition ${
                       selectedIds.includes(s.id)
-                        ? "border-indigo-200 bg-indigo-50/50"
-                        : "border-slate-200 bg-white"
+                        ? "border-turquoise-200 bg-turquoise-50/50"
+                        : "border-neutral-200 bg-white"
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(s.id)}
                       onChange={() => toggleSelect(s.id)}
-                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      className="h-4 w-4 rounded border-neutral-300 text-turquoise-600 focus:ring-turquoise-400"
                     />
                     <div
                       className="h-3 w-3 rounded-full flex-shrink-0"
@@ -349,12 +349,12 @@ export default function ScenariosPage() {
                             if (e.key === "Escape") setEditingId(null);
                           }}
                           onBlur={() => handleRename(s.id)}
-                          className="w-full rounded-lg border border-indigo-300 px-2 py-1 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                          className="w-full rounded-lg border border-turquoise-300 px-2 py-1 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
                           autoFocus
                         />
                       ) : (
                         <p
-                          className="text-sm font-medium text-slate-900 truncate cursor-pointer"
+                          className="text-sm font-medium text-neutral-900 truncate cursor-pointer"
                           onDoubleClick={() => startEditing(s)}
                         >
                           {s.name}
@@ -365,7 +365,7 @@ export default function ScenariosPage() {
                       {editingId !== s.id && (
                         <button
                           onClick={() => startEditing(s)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 transition"
+                          className="p-1.5 text-neutral-400 hover:text-turquoise-600 transition"
                           title="Rename"
                         >
                           <Pencil className="h-4 w-4" />
@@ -373,7 +373,7 @@ export default function ScenariosPage() {
                       )}
                       <button
                         onClick={() => handleDuplicate(s)}
-                        className="p-1.5 text-slate-400 hover:text-slate-600 transition"
+                        className="p-1.5 text-neutral-400 hover:text-neutral-600 transition"
                         title="Duplicate"
                       >
                         <Copy className="h-4 w-4" />
@@ -381,7 +381,7 @@ export default function ScenariosPage() {
                       {s.name !== "Default" && (
                         <button
                           onClick={() => setDeleteTarget(s)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 transition"
+                          className="p-1.5 text-neutral-400 hover:text-rose-600 transition"
                           title="Delete"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -397,8 +397,8 @@ export default function ScenariosPage() {
           {/* Comparison results */}
           {comparing && (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-600 mr-2" />
-              <span className="text-sm text-slate-600">
+              <Loader2 className="h-5 w-5 animate-spin text-turquoise-600 mr-2" />
+              <span className="text-sm text-neutral-600">
                 Running forecast comparison...
               </span>
             </div>
@@ -406,21 +406,21 @@ export default function ScenariosPage() {
 
           {forecasts.length >= 2 && !comparing && (
             <>
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-100">
-                    <GitCompareArrows className="h-4 w-4 text-indigo-600" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-turquoise-100">
+                    <GitCompareArrows className="h-4 w-4 text-turquoise-600" />
                   </div>
-                  <h2 className="text-lg font-semibold text-slate-900">
+                  <h2 className="text-lg font-semibold text-neutral-900">
                     Comparison
                   </h2>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+                  <table className="min-w-full divide-y divide-neutral-200">
+                    <thead className="bg-neutral-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                           Metric
                         </th>
                         {forecasts.map((f, i) => (
@@ -434,7 +434,7 @@ export default function ScenariosPage() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
+                    <tbody className="divide-y divide-neutral-200">
                       <ComparisonRow
                         label="Projected ARR"
                         values={forecasts.map((f) =>
@@ -498,12 +498,12 @@ export default function ScenariosPage() {
           )}
 
           {forecasts.length === 1 && !comparing && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-              <GitCompareArrows className="mx-auto h-10 w-10 text-slate-300" />
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+              <GitCompareArrows className="mx-auto h-10 w-10 text-neutral-300" />
+              <h3 className="mt-4 text-lg font-semibold text-neutral-900">
                 Select at least 2 scenarios to compare
               </h3>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-neutral-500">
                 Check multiple scenarios above to see a side-by-side comparison.
               </p>
             </div>
@@ -533,14 +533,14 @@ function ComparisonRow({
   values: string[];
 }) {
   return (
-    <tr className="hover:bg-slate-50/60">
-      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">
+    <tr className="hover:bg-neutral-50/60">
+      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-neutral-900">
         {label}
       </td>
       {values.map((v, i) => (
         <td
           key={i}
-          className="whitespace-nowrap px-4 py-3 text-sm text-right font-semibold tabular-nums text-slate-700"
+          className="whitespace-nowrap px-4 py-3 text-sm text-right font-semibold tabular-nums text-neutral-700"
         >
           {v}
         </td>

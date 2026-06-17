@@ -60,13 +60,13 @@ export function SubscribeCheckout({
       className={
         variant === "compact"
           ? "space-y-4"
-          : "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          : "rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
       }
     >
       {variant === "default" && (
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">{PLAN_NAME}</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <h2 className="text-xl font-semibold text-neutral-900">{PLAN_NAME}</h2>
+          <p className="mt-1 text-sm text-neutral-500">
             {locked
               ? "Your trial has ended. Subscribe to continue using Burnlytics."
               : "Full access to forecasting, metrics, and exports."}
@@ -75,7 +75,7 @@ export function SubscribeCheckout({
       )}
 
       <div className="flex flex-wrap gap-2">
-        <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+        <div className="inline-flex rounded-full border border-neutral-200 bg-neutral-50 p-1">
           {(["eur", "usd"] as const).map((c) => (
             <button
               key={c}
@@ -83,15 +83,15 @@ export function SubscribeCheckout({
               onClick={() => setCurrency(c)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium uppercase transition-colors ${
                 currency === c
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-neutral-900 shadow-sm"
+                  : "text-neutral-600 hover:text-neutral-900"
               }`}
             >
               {c}
             </button>
           ))}
         </div>
-        <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+        <div className="inline-flex rounded-full border border-neutral-200 bg-neutral-50 p-1">
           {(["monthly", "annual"] as const).map((i) => (
             <button
               key={i}
@@ -99,8 +99,8 @@ export function SubscribeCheckout({
               onClick={() => setInterval(i)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
                 interval === i
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-neutral-900 shadow-sm"
+                  : "text-neutral-600 hover:text-neutral-900"
               }`}
             >
               {i}
@@ -110,11 +110,11 @@ export function SubscribeCheckout({
       </div>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-4xl font-bold text-slate-900">
+        <span className="text-4xl font-bold text-neutral-900">
           {symbol}
           {price.amount}
         </span>
-        <span className="text-sm text-slate-500">{price.period}</span>
+        <span className="text-sm text-neutral-500">{price.period}</span>
       </div>
       {interval === "annual" && price.effectiveMonthly && (
         <p className="text-sm text-emerald-700">
@@ -124,9 +124,9 @@ export function SubscribeCheckout({
       )}
 
       {variant === "default" && (
-        <ul className="space-y-2 border-t border-slate-100 pt-4">
+        <ul className="space-y-2 border-t border-neutral-100 pt-4">
           {PLAN_FEATURES.map((feature) => (
-            <li key={feature} className="text-sm text-slate-600">
+            <li key={feature} className="text-sm text-neutral-600">
               {feature}
             </li>
           ))}
@@ -134,7 +134,7 @@ export function SubscribeCheckout({
       )}
 
       {showTrialNote && !locked && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-neutral-500">
           {TRIAL_DAYS}-day free trial on signup. No credit card required to start.
         </p>
       )}
@@ -149,7 +149,7 @@ export function SubscribeCheckout({
         type="button"
         onClick={handleCheckout}
         disabled={loading}
-        className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50"
+        className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50"
       >
         {loading ? (
           <Loader2 className="mx-auto h-4 w-4 animate-spin" />

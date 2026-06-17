@@ -180,7 +180,7 @@ export default function AssumptionsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-6xl space-y-8 px-6 py-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
@@ -203,7 +203,7 @@ export default function AssumptionsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
@@ -211,7 +211,7 @@ export default function AssumptionsPage() {
             subtitle="Global defaults that shape runway, fundraising, and the core drivers behind your forecast."
             actions={
               saveLabel ? (
-                <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-sm text-neutral-500">
                   {combinedSaving ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
@@ -224,12 +224,12 @@ export default function AssumptionsPage() {
           />
 
           {isDefault && (
-            <div className="flex flex-col gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 rounded-2xl border border-turquoise-200 bg-gradient-to-br from-turquoise-50 to-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-neutral-900">
                   These are the starter defaults
                 </p>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-neutral-600">
                   Edit any field to tailor them, or accept them to continue setup.
                   Edits auto-save.
                 </p>
@@ -238,7 +238,7 @@ export default function AssumptionsPage() {
                 type="button"
                 onClick={handleConfirmDefaults}
                 disabled={confirming || !planId}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {confirming ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -294,14 +294,14 @@ export default function AssumptionsPage() {
                 <SectionCard
                   title="Cash & fundraising"
                   description="Set the cash position and funding targets that define how much room you have to operate."
-                  icon={<Wallet className="h-5 w-5 text-indigo-600" />}
-                  iconBg="bg-indigo-50"
+                  icon={<Wallet className="h-5 w-5 text-turquoise-600" />}
+                  iconBg="bg-turquoise-50"
                 >
-                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
-                    <p className="text-sm font-semibold text-indigo-900">
+                  <div className="rounded-2xl border border-turquoise-100 bg-turquoise-50/70 p-4">
+                    <p className="text-sm font-semibold text-turquoise-900">
                       Why this matters
                     </p>
-                    <p className="mt-1 text-sm leading-relaxed text-indigo-900/80">
+                    <p className="mt-1 text-sm leading-relaxed text-turquoise-900/80">
                       A founder usually wants to know: “When do I run out of cash,
                       and how much should I raise?”
                     </p>
@@ -465,7 +465,7 @@ export default function AssumptionsPage() {
                       type="number"
                     />
                   </div>
-                  <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
+                  <p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-3 text-xs leading-relaxed text-neutral-500">
                     TODO: detailed category-level expense assumptions and any
                     month-by-month inputs should live on the Expenses page instead
                     of here.
@@ -488,22 +488,22 @@ export default function AssumptionsPage() {
 
             <section>
               <div className="sticky top-24 space-y-6">
-                <div className="rounded-2xl border border-indigo-100 bg-white p-6 shadow-sm">
+                <div className="rounded-2xl border border-turquoise-100 bg-white p-6 shadow-sm">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
-                      <Target className="h-5 w-5 text-indigo-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-turquoise-50">
+                      <Target className="h-5 w-5 text-turquoise-600" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-900">
+                      <h2 className="text-lg font-semibold text-neutral-900">
                         Funding focus
                       </h2>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-neutral-500">
                         The key defaults that shape runway and fundraising decisions.
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-5 space-y-3 rounded-2xl bg-slate-50 p-4">
+                  <div className="mt-5 space-y-3 rounded-2xl bg-neutral-50 p-4">
                     <DecisionPoint
                       title="Starting cash"
                       value={formatCurrency(assumptions.cashOnHand)}
@@ -532,8 +532,8 @@ export default function AssumptionsPage() {
 
                   {/* TODO: Wire runway, cash-out month, and suggested raise needed from forecast summary.
                       These require loading forecast results on this page or computing inline. */}
-                  <div className="mt-4 space-y-3 rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/40 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                  <div className="mt-4 space-y-3 rounded-2xl border border-dashed border-turquoise-200 bg-turquoise-50/40 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-turquoise-600">
                       Derived outputs
                     </p>
                     <DecisionPoint
@@ -554,8 +554,8 @@ export default function AssumptionsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
                     Current global defaults
                   </h3>
 
@@ -638,16 +638,16 @@ export default function AssumptionsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6">
+                <div className="rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-50 to-white p-6">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-                      <Info className="h-4 w-4 text-indigo-600" />
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-turquoise-50">
+                      <Info className="h-4 w-4 text-turquoise-600" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-900">
+                      <h3 className="text-sm font-semibold text-neutral-900">
                         How this fits in
                       </h3>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                      <p className="mt-2 text-sm leading-relaxed text-neutral-600">
                         This page is for global defaults only. Put stream-specific
                         revenue assumptions on the Revenue page and detailed cost
                         assumptions on the Expenses page so this stays focused on
@@ -660,14 +660,14 @@ export default function AssumptionsPage() {
                 <div className="flex gap-3">
                   <Link
                     href="/app/revenue"
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
                   >
                     Go to Revenue
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
                     href="/app/expenses"
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
                   >
                     Go to Expenses
                     <ArrowRight className="h-4 w-4" />
@@ -703,8 +703,8 @@ function SectionCard({
     <div
       className={`rounded-2xl bg-white p-6 shadow-sm ${
         featured
-          ? "border-2 border-indigo-100"
-          : "border border-slate-200"
+          ? "border-2 border-turquoise-100"
+          : "border border-neutral-200"
       }`}
     >
       <div className="mb-6 flex items-center gap-3">
@@ -714,8 +714,8 @@ function SectionCard({
           {icon}
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <p className="text-sm text-slate-500">{description}</p>
+          <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
+          <p className="text-sm text-neutral-500">{description}</p>
         </div>
       </div>
 
@@ -751,18 +751,18 @@ function InputField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-sm font-medium text-neutral-700">
           {label}
         </label>
         {optional && (
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+          <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500">
             Optional
           </span>
         )}
       </div>
       <div className="relative">
         {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
             {prefix}
           </span>
         )}
@@ -781,21 +781,21 @@ function InputField({
               onChange={(e) => onChange(e.target.value)}
               step={type === "number" ? "any" : undefined}
               min={type === "number" ? "0" : undefined}
-              className={`w-full rounded-xl bg-white py-2.5 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100 ${
+              className={`w-full rounded-xl bg-white py-2.5 text-sm text-neutral-900 shadow-sm transition placeholder:text-neutral-400 focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100 ${
                 optional
-                  ? "border border-dashed border-slate-300"
-                  : "border border-slate-200"
+                  ? "border border-dashed border-neutral-300"
+                  : "border border-neutral-200"
               } ${prefix ? "pl-8" : "pl-3"} ${suffix ? "pr-12" : "pr-3"}`}
             />
             {suffix && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
                 {suffix}
               </span>
             )}
           </>
         )}
       </div>
-      <p className="text-xs leading-relaxed text-slate-500">{helper}</p>
+      <p className="text-xs leading-relaxed text-neutral-500">{helper}</p>
     </div>
   );
 }
@@ -811,11 +811,11 @@ function DecisionPoint({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
         {title}
       </p>
-      <p className="mt-1 text-base font-semibold text-slate-900">{value}</p>
-      <p className="mt-1 text-xs leading-relaxed text-slate-500">{detail}</p>
+      <p className="mt-1 text-base font-semibold text-neutral-900">{value}</p>
+      <p className="mt-1 text-xs leading-relaxed text-neutral-500">{detail}</p>
     </div>
   );
 }
@@ -829,7 +829,7 @@ function SummaryGroup({
 }) {
   return (
     <div>
-      <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
         {title}
       </h4>
       <div className="space-y-3">{children}</div>
@@ -846,10 +846,10 @@ interface SummaryRowProps {
 function SummaryRow({ label, value, variant = "default" }: SummaryRowProps) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className="text-sm text-slate-600">{label}</span>
+      <span className="text-sm text-neutral-600">{label}</span>
       <span
         className={`text-right text-sm font-semibold ${
-          variant === "highlight" ? "text-indigo-600" : "text-slate-900"
+          variant === "highlight" ? "text-turquoise-600" : "text-neutral-900"
         }`}
       >
         {value}

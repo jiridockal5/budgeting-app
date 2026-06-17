@@ -43,17 +43,17 @@ function OnboardingChecklistSteps({
   const completedCount = steps.filter((s) => status[s.key]).length;
 
   return (
-    <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-turquoise-200 bg-gradient-to-br from-turquoise-50 to-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-neutral-900">
             Get started with your forecast
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-neutral-600">
             Complete these steps to generate your first financial projection.
           </p>
         </div>
-        <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-indigo-600">
+        <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-turquoise-600">
           {completedCount}/{steps.length} complete
         </div>
       </div>
@@ -68,26 +68,26 @@ function OnboardingChecklistSteps({
               className={`flex items-center gap-4 rounded-xl border px-4 py-3 transition ${
                 done
                   ? "border-emerald-200 bg-emerald-50/50"
-                  : "border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/30"
+                  : "border-neutral-200 bg-white hover:border-turquoise-200 hover:bg-turquoise-50/30"
               }`}
             >
               {done ? (
                 <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-500" />
               ) : (
-                <Circle className="h-5 w-5 flex-shrink-0 text-slate-300" />
+                <Circle className="h-5 w-5 flex-shrink-0 text-neutral-300" />
               )}
               <div className="min-w-0 flex-1">
                 <p
                   className={`text-sm font-medium ${
-                    done ? "text-emerald-700 line-through" : "text-slate-900"
+                    done ? "text-emerald-700 line-through" : "text-neutral-900"
                   }`}
                 >
                   {step.label}
                 </p>
-                <p className="text-xs text-slate-500">{step.description}</p>
+                <p className="text-xs text-neutral-500">{step.description}</p>
               </div>
               {!done && (
-                <ArrowRight className="h-4 w-4 flex-shrink-0 text-slate-400" />
+                <ArrowRight className="h-4 w-4 flex-shrink-0 text-neutral-400" />
               )}
             </Link>
           );
@@ -95,9 +95,9 @@ function OnboardingChecklistSteps({
       </div>
 
       <div className="mt-4">
-        <div className="h-1.5 w-full rounded-full bg-slate-200">
+        <div className="h-1.5 w-full rounded-full bg-neutral-200">
           <div
-            className="h-1.5 rounded-full bg-indigo-500 transition-all duration-500"
+            className="h-1.5 rounded-full bg-turquoise-400 transition-all duration-500"
             style={{ width: `${(completedCount / steps.length) * 100}%` }}
           />
         </div>
@@ -147,7 +147,7 @@ export function OnboardingChecklist({
   if (!completionReady) {
     return (
       <div
-        className="h-28 rounded-2xl border border-slate-200 bg-slate-50/80"
+        className="h-28 rounded-2xl border border-neutral-200 bg-neutral-50/80"
         aria-busy="true"
         aria-label="Loading completion state"
       />
@@ -163,15 +163,15 @@ export function OnboardingChecklist({
               <CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-neutral-900">
                 You&apos;re set up
               </h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-neutral-600">
                 View your runway and burn to see how the numbers come together.
               </p>
               <Link
                 href="/app/runway"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800"
               >
                 <Timer className="h-4 w-4" aria-hidden />
                 View runway
@@ -181,7 +181,7 @@ export function OnboardingChecklist({
           <button
             type="button"
             onClick={dismissCompletion}
-            className="self-start text-sm font-medium text-slate-500 transition hover:text-slate-800"
+            className="self-start text-sm font-medium text-neutral-500 transition hover:text-neutral-800"
           >
             Dismiss
           </button>

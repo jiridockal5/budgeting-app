@@ -66,7 +66,7 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto flex max-w-5xl items-center justify-center px-6 py-10">
         <AuthCard
           title="Create an account"

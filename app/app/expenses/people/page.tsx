@@ -11,15 +11,15 @@ export default function PeopleCostsPage() {
 
   if (controller.loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-4 w-80" />
           </div>
           <Skeleton className="h-24 w-full rounded-2xl" />
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-200">
+          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+            <div className="px-6 py-4 bg-neutral-50/50 border-b border-neutral-200">
               <Skeleton className="h-6 w-32" />
             </div>
             <div className="p-6">
@@ -38,7 +38,7 @@ export default function PeopleCostsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader

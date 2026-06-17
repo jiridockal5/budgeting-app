@@ -41,8 +41,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       const showDbHelp = error && isDatabaseError(error.message);
 
       return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-          <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
+        <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
+          <div className="mx-auto max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-lg">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
                 <svg
@@ -60,10 +60,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 </svg>
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="text-lg font-semibold text-neutral-900">
                   {showDbHelp ? "Database connection issue" : "Something went wrong"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-neutral-600">
                   {showDbHelp ? (
                     <>
                       Cannot connect to the database. Check that your Supabase project is running
@@ -77,11 +77,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </div>
             </div>
             {process.env.NODE_ENV === "development" && error && (
-              <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <summary className="cursor-pointer text-sm font-medium text-slate-700">
+              <details className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                <summary className="cursor-pointer text-sm font-medium text-neutral-700">
                   Error details (development only)
                 </summary>
-                <pre className="mt-2 overflow-auto text-xs text-slate-600">
+                <pre className="mt-2 overflow-auto text-xs text-neutral-600">
                   {error.toString()}
                   {error.stack}
                 </pre>
@@ -92,7 +92,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 this.setState({ hasError: false, error: null });
                 window.location.reload();
               }}
-              className="mt-6 w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
+              className="mt-6 w-full rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800"
             >
               Reload page
             </button>

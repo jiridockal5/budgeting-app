@@ -43,7 +43,7 @@ export default function RunwayPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
@@ -84,7 +84,7 @@ export default function RunwayPage() {
         : "border-red-200 bg-red-50";
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
@@ -93,7 +93,7 @@ export default function RunwayPage() {
             actions={
               <Link
                 href="/app/assumptions"
-                className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+                className="inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800"
               >
                 Edit cash & assumptions
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -120,16 +120,16 @@ export default function RunwayPage() {
           >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
               <div>
-                <p className="text-sm font-medium text-slate-600 uppercase tracking-wider">
+                <p className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
                   Estimated Runway
                 </p>
                 <p className={`mt-2 text-5xl font-bold tabular-nums ${runwayColor}`}>
                   {isInfinite ? "∞" : `${Math.round(runwayMonths)} months`}
                 </p>
                 {runoutDate && (
-                  <p className="mt-2 text-sm text-slate-600">
+                  <p className="mt-2 text-sm text-neutral-600">
                     Cash runs out around{" "}
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-neutral-900">
                       {runoutDate}
                     </span>
                   </p>
@@ -168,12 +168,12 @@ export default function RunwayPage() {
 
           {/* Runway progress bar */}
           {!isInfinite && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4">
                 Cash Countdown
               </h2>
               <div className="relative">
-                <div className="h-4 w-full rounded-full bg-slate-200">
+                <div className="h-4 w-full rounded-full bg-neutral-200">
                   <div
                     className={`h-4 rounded-full transition-all duration-700 ${
                       runwayMonths > 18
@@ -187,7 +187,7 @@ export default function RunwayPage() {
                     }}
                   />
                 </div>
-                <div className="mt-2 flex justify-between text-xs text-slate-500">
+                <div className="mt-2 flex justify-between text-xs text-neutral-500">
                   <span>Today</span>
                   <span>
                     {runoutDate
@@ -204,14 +204,14 @@ export default function RunwayPage() {
           {cashOnHand === 0 && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
               <Banknote className="mx-auto h-10 w-10 text-amber-400" />
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">
+              <h3 className="mt-4 text-lg font-semibold text-neutral-900">
                 Set your starting cash balance
               </h3>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-neutral-600">
                 Go to{" "}
                 <Link
                   href="/app/assumptions"
-                  className="text-indigo-600 hover:underline font-medium"
+                  className="text-turquoise-600 hover:underline font-medium"
                 >
                   Assumptions
                 </Link>{" "}
@@ -233,52 +233,52 @@ function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
     : 0;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-slate-200 bg-slate-50/50 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-900">
+    <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+      <div className="border-b border-neutral-200 bg-neutral-50/50 px-6 py-4">
+        <h2 className="text-lg font-semibold text-neutral-900">
           Monthly Cashflow
         </h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-neutral-600">
           Cash inflows, outflows, burn, and ending cash balance by month.
         </p>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+        <table className="min-w-full divide-y divide-neutral-200">
+          <thead className="bg-neutral-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Month
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Cash inflows
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Cash outflows
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Cash burn
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Cash balance
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 bg-white">
+          <tbody className="divide-y divide-neutral-200 bg-white">
             {firstMonth && (
-              <tr className="bg-slate-50/70">
-                <td className="whitespace-nowrap px-4 py-3 text-sm font-semibold text-slate-900">
+              <tr className="bg-neutral-50/70">
+                <td className="whitespace-nowrap px-4 py-3 text-sm font-semibold text-neutral-900">
                   Starting balance
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-500 tabular-nums">
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-neutral-500 tabular-nums">
                   {formatCurrency(0)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-500 tabular-nums">
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-neutral-500 tabular-nums">
                   {formatCurrency(0)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-500 tabular-nums">
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-neutral-500 tabular-nums">
                   {formatCurrency(0)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-900 tabular-nums">
+                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-neutral-900 tabular-nums">
                   {formatCurrency(startingCash)}
                 </td>
               </tr>
@@ -286,14 +286,14 @@ function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
             {months.map((month) => {
               const cashBurn = month.totalCashIn - month.totalExpense;
               return (
-                <tr key={month.date} className="hover:bg-slate-50/60">
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">
+                <tr key={month.date} className="hover:bg-neutral-50/60">
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-neutral-900">
                     {month.date}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-700 tabular-nums">
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-neutral-700 tabular-nums">
                     {formatCurrency(month.totalCashIn)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-700 tabular-nums">
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-neutral-700 tabular-nums">
                     {formatCurrency(month.totalExpense)}
                   </td>
                   <td
@@ -304,7 +304,7 @@ function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
                     {cashBurn >= 0 ? "+" : "-"}
                     {formatCurrency(Math.abs(cashBurn))}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-900 tabular-nums">
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-neutral-900 tabular-nums">
                     {formatCurrency(month.cashRemaining)}
                   </td>
                 </tr>
@@ -327,12 +327,12 @@ function RunwayStat({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white/80 px-4 py-3">
+    <div className="rounded-xl border border-neutral-200 bg-white/80 px-4 py-3">
       <div className="flex items-center gap-2 mb-1">
         {icon}
-        <span className="text-xs text-slate-500">{label}</span>
+        <span className="text-xs text-neutral-500">{label}</span>
       </div>
-      <p className="text-lg font-bold text-slate-900 tabular-nums">{value}</p>
+      <p className="text-lg font-bold text-neutral-900 tabular-nums">{value}</p>
     </div>
   );
 }

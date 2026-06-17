@@ -36,11 +36,11 @@ export function StackedExpenseChart({ months }: StackedExpenseChartProps) {
     }));
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-slate-900">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-neutral-900">
         Expense Breakdown
       </h3>
-      <p className="text-sm text-slate-500 mt-1">
+      <p className="text-sm text-neutral-500 mt-1">
         Headcount vs non-headcount expenses over time.
       </p>
       <div className="mt-5 h-64">
@@ -49,16 +49,16 @@ export function StackedExpenseChart({ months }: StackedExpenseChartProps) {
             data={data}
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "#a3a3a3" }}
               tickLine={false}
-              axisLine={{ stroke: "#e2e8f0" }}
+              axisLine={{ stroke: "#e5e5e5" }}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: "#a3a3a3" }}
               tickLine={false}
               axisLine={false}
               tickFormatter={defaultFormat}
@@ -67,7 +67,7 @@ export function StackedExpenseChart({ months }: StackedExpenseChartProps) {
             <Tooltip
               contentStyle={{
                 backgroundColor: "white",
-                border: "1px solid #e2e8f0",
+                border: "1px solid #e5e5e5",
                 borderRadius: "8px",
                 fontSize: "13px",
               }}
@@ -81,7 +81,7 @@ export function StackedExpenseChart({ months }: StackedExpenseChartProps) {
               dataKey="headcount"
               name="Headcount"
               stackId="expenses"
-              fill="#8b5cf6"
+              fill="#5bb5aa"
               radius={[0, 0, 0, 0]}
             />
             <Bar

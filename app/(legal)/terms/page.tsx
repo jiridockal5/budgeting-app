@@ -9,7 +9,7 @@ const LAST_UPDATED = "June 11, 2026";
 
 export default function TermsPage() {
   return (
-    <article className="space-y-4 text-[15px] leading-7 text-neutral-700 [&_a]:text-indigo-600 [&_a]:underline [&_h1]:text-3xl [&_h1]:font-semibold [&_h1]:tracking-tight [&_h1]:text-neutral-900 [&_h2]:mt-10 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-neutral-900 [&_li]:ml-5 [&_strong]:text-neutral-900 [&_ul]:list-disc [&_ul]:space-y-2">
+    <article className="space-y-4 text-[15px] leading-7 text-neutral-700 [&_a]:text-turquoise-600 [&_a]:underline [&_h1]:text-3xl [&_h1]:font-semibold [&_h1]:tracking-tight [&_h1]:text-neutral-900 [&_h2]:mt-10 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-neutral-900 [&_li]:ml-5 [&_strong]:text-neutral-900 [&_ul]:list-disc [&_ul]:space-y-2">
       <h1>Terms of Service</h1>
       <p className="text-sm text-neutral-500">Last updated: {LAST_UPDATED}</p>
 

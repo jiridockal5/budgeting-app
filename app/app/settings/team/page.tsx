@@ -52,9 +52,9 @@ const ROLE_COLORS: Record<string, string> = {
   OWNER: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   ADMIN: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   MEMBER:
-    "bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300",
+    "bg-neutral-100 text-neutral-800 dark:bg-neutral-700/50 dark:text-neutral-300",
   VIEWER:
-    "bg-gray-100 text-gray-600 dark:bg-gray-700/50 dark:text-gray-400",
+    "bg-neutral-100 text-neutral-600 dark:bg-neutral-700/50 dark:text-neutral-400",
 };
 
 export default function TeamPage() {
@@ -198,7 +198,7 @@ export default function TeamPage() {
         actions={
           <button
             onClick={() => setShowCreateOrg(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 transition-colors"
           >
             <Building2 className="h-4 w-4" />
             New Organization
@@ -207,23 +207,23 @@ export default function TeamPage() {
       />
 
       {showCreateOrg && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-800">
+          <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">
             Create Organization
           </h3>
-          <form onSubmit={handleCreateOrg} className="flex gap-3">
+          <form onSubmit={handleCreateOrg} className="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
               placeholder="Organization name"
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-700 dark:text-white focus:ring-2 focus:ring-turquoise-400 focus:outline-none"
               autoFocus
             />
             <button
               type="submit"
               disabled={creating || !orgName.trim()}
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
             >
               {creating && <Loader2 className="h-4 w-4 animate-spin" />}
               Create
@@ -234,7 +234,7 @@ export default function TeamPage() {
                 setShowCreateOrg(false);
                 setOrgName("");
               }}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 dark:border-neutral-600 dark:text-neutral-300 dark:hover:bg-neutral-700 transition-colors"
             >
               Cancel
             </button>
@@ -243,17 +243,17 @@ export default function TeamPage() {
       )}
 
       {orgs.length === 0 && !showCreateOrg ? (
-        <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center dark:border-gray-600">
-          <Building2 className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
+        <div className="rounded-lg border-2 border-dashed border-neutral-300 p-12 text-center dark:border-neutral-600">
+          <Building2 className="mx-auto h-12 w-12 text-neutral-400 dark:text-neutral-500" />
+          <h3 className="mt-4 text-lg font-medium text-neutral-900 dark:text-white">
             No organizations yet
           </h3>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
             Create an organization to collaborate with your team on forecasts.
           </p>
           <button
             onClick={() => setShowCreateOrg(true)}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 transition-colors"
           >
             <Building2 className="h-4 w-4" />
             Create Organization
@@ -318,13 +318,13 @@ function OrgCard({
   onRemove: (memberId: string, email: string) => void;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+    <div className="rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800">
+      <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 dark:border-neutral-700">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
             {org.name}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
             {org.members.length} member{org.members.length !== 1 ? "s" : ""} &middot;{" "}
             {org._count.plans} plan{org._count.plans !== 1 ? "s" : ""}
           </p>
@@ -333,7 +333,7 @@ function OrgCard({
           onClick={() =>
             setShowInvite(showInvite === org.id ? null : org.id)
           }
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-600 dark:text-neutral-300 dark:hover:bg-neutral-700 transition-colors"
         >
           <UserPlus className="h-4 w-4" />
           Invite
@@ -341,13 +341,13 @@ function OrgCard({
       </div>
 
       {showInvite === org.id && (
-        <div className="border-b border-gray-200 px-6 py-4 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
+        <div className="border-b border-neutral-200 px-6 py-4 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800/50">
           <form
             onSubmit={onInvite}
             className="flex flex-wrap items-end gap-3"
           >
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">
                 Email
               </label>
               <input
@@ -355,12 +355,12 @@ function OrgCard({
                 placeholder="colleague@company.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-700 dark:text-white focus:ring-2 focus:ring-turquoise-400 focus:outline-none"
                 autoFocus
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1">
                 Role
               </label>
               <select
@@ -370,7 +370,7 @@ function OrgCard({
                     e.target.value as "ADMIN" | "MEMBER" | "VIEWER"
                   )
                 }
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-700 dark:text-white focus:ring-2 focus:ring-turquoise-400 focus:outline-none"
               >
                 <option value="ADMIN">Admin</option>
                 <option value="MEMBER">Member</option>
@@ -380,7 +380,7 @@ function OrgCard({
             <button
               type="submit"
               disabled={inviting || !inviteEmail.trim()}
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
             >
               {inviting && <Loader2 className="h-4 w-4 animate-spin" />}
               Send Invite
@@ -389,7 +389,7 @@ function OrgCard({
         </div>
       )}
 
-      <div className="divide-y divide-gray-100 dark:divide-gray-700">
+      <div className="divide-y divide-neutral-100 dark:divide-neutral-700">
         {org.members.map((member) => {
           const Icon = ROLE_ICONS[member.role] ?? Users;
           return (
@@ -398,11 +398,11 @@ function OrgCard({
               className="flex items-center justify-between px-6 py-3"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                  <Icon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-700">
+                  <Icon className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  <span className="text-sm font-medium text-neutral-900 dark:text-white">
                     {member.inviteEmail || member.userId}
                   </span>
                   {!member.inviteAccepted && (
@@ -428,7 +428,7 @@ function OrgCard({
                         member.inviteEmail || member.userId
                       )
                     }
-                    className="rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    className="rounded p-1 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     title="Remove member"
                   >
                     <Trash2 className="h-4 w-4" />

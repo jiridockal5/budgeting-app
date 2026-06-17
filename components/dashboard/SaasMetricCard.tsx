@@ -36,9 +36,9 @@ export function SaasMetricCard({
   const showPlaceholder = isPlaceholder || value === "—";
 
   return (
-    <div className="group flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md">
+    <div className="group flex flex-col rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition-all hover:border-neutral-300 hover:shadow-md">
       {/* Metric label */}
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
         {name}
       </span>
 
@@ -46,20 +46,20 @@ export function SaasMetricCard({
       <div className="mt-2 flex items-baseline gap-2">
         <span
           className={`text-2xl font-bold tabular-nums ${
-            showPlaceholder ? "text-slate-400" : "text-slate-900"
+            showPlaceholder ? "text-neutral-400" : "text-neutral-900"
           }`}
         >
           {value}
         </span>
         {showPlaceholder && (
-          <span className="text-[10px] font-medium text-slate-400">
+          <span className="text-[10px] font-medium text-neutral-400">
             awaiting data
           </span>
         )}
       </div>
 
       {/* Helper text */}
-      <p className="mt-2 text-xs leading-relaxed text-slate-500">{helper}</p>
+      <p className="mt-2 text-xs leading-relaxed text-neutral-500">{helper}</p>
     </div>
   );
 }

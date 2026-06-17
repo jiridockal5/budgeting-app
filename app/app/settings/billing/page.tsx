@@ -86,7 +86,7 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-4xl px-6 py-8 space-y-8">
           <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
@@ -106,7 +106,7 @@ export default function BillingPage() {
         : "Trial ended — subscribe to continue";
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-4xl px-6 py-8">
         <div className="space-y-8">
           <PageHeader
@@ -114,31 +114,31 @@ export default function BillingPage() {
             subtitle="Manage your subscription and billing details."
           />
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-xl ${
                     status?.state === "paid"
-                      ? "bg-indigo-100"
+                      ? "bg-turquoise-100"
                       : status?.state === "trial"
                         ? "bg-amber-100"
-                        : "bg-slate-100"
+                        : "bg-neutral-100"
                   }`}
                 >
                   {status?.state === "paid" ? (
-                    <Zap className="h-5 w-5 text-indigo-600" />
+                    <Zap className="h-5 w-5 text-turquoise-600" />
                   ) : status?.state === "trial" ? (
                     <Clock className="h-5 w-5 text-amber-600" />
                   ) : (
-                    <Clock className="h-5 w-5 text-slate-600" />
+                    <Clock className="h-5 w-5 text-neutral-600" />
                   )}
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">
+                  <h2 className="text-lg font-semibold text-neutral-900">
                     {status?.plan.name ?? "Burnlytics"}
                   </h2>
-                  <p className="text-sm text-slate-500">{statusLabel}</p>
+                  <p className="text-sm text-neutral-500">{statusLabel}</p>
                 </div>
               </div>
 
@@ -150,7 +150,7 @@ export default function BillingPage() {
                         ? "bg-emerald-100 text-emerald-700"
                         : status.subscription.status === "PAST_DUE"
                           ? "bg-amber-100 text-amber-700"
-                          : "bg-slate-100 text-slate-700"
+                          : "bg-neutral-100 text-neutral-700"
                     }`}
                   >
                     {status.subscription.status}
@@ -164,12 +164,12 @@ export default function BillingPage() {
               )}
             </div>
 
-            <div className="mt-4 border-t border-slate-100 pt-4">
+            <div className="mt-4 border-t border-neutral-100 pt-4">
               <ul className="space-y-2">
                 {status?.plan.features.map((f) => (
                   <li
                     key={f}
-                    className="flex items-center gap-2 text-sm text-slate-600"
+                    className="flex items-center gap-2 text-sm text-neutral-600"
                   >
                     <Check className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                     {f}
@@ -179,7 +179,7 @@ export default function BillingPage() {
             </div>
 
             {status?.subscription?.currentPeriodEnd && (
-              <p className="mt-4 text-xs text-slate-500">
+              <p className="mt-4 text-xs text-neutral-500">
                 Current period ends:{" "}
                 {new Date(
                   status.subscription.currentPeriodEnd
@@ -196,7 +196,7 @@ export default function BillingPage() {
             <button
               onClick={handleManage}
               disabled={managing}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-5 py-3 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50 disabled:opacity-50"
             >
               {managing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

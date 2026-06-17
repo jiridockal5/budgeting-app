@@ -55,9 +55,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white px-5 py-3 text-sm text-slate-600 shadow-lg">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white px-5 py-3 text-sm text-neutral-600 shadow-lg">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-turquoise-400 border-t-transparent" />
           Loading...
         </div>
       </div>
@@ -68,23 +68,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AccessGate>
-      <div className="flex min-h-screen bg-slate-50 text-slate-900">
+      <div className="flex min-h-screen bg-neutral-50 text-neutral-900">
         {!isSubscribeOnly && <Sidebar />}
 
         <div className="flex flex-1 flex-col">
           {!isSubscribeOnly && <TrialBanner />}
           {!isSubscribeOnly && (
-          <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+          <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/90 backdrop-blur">
           <div className="flex items-center justify-end gap-4 pl-14 pr-6 py-4 lg:pl-6 lg:px-8">
             <div className="hidden text-right md:block">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
                 Signed in as
               </p>
-              <p className="text-sm font-semibold text-slate-900">{email}</p>
+              <p className="text-sm font-semibold text-neutral-900">{email}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-900 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
+              className="rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-sm font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50"
             >
               Logout
             </button>
@@ -92,7 +92,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
           )}
 
-        <div className="flex-1 overflow-y-auto bg-slate-50">{children}</div>
+        <div className="flex-1 overflow-y-auto bg-neutral-50">{children}</div>
       </div>
     </div>
     </AccessGate>
