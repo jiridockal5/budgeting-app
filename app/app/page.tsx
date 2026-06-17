@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import type { Expense, Person } from "@prisma/client";
+import { Info } from "lucide-react";
 import { SaasMetricCard } from "@/components/dashboard/SaasMetricCard";
 import { Skeleton, MetricCardSkeleton, ChartCardSkeleton } from "@/components/ui/Skeleton";
 import { ChartCard } from "@/components/dashboard/ChartCard";
@@ -248,6 +249,11 @@ export default function DashboardPage() {
   const arrChartData = displayMonths.length > 0 ? buildArrChartData(displayMonths) : [];
   const burnChartData = displayMonths.length > 0 ? buildBurnChartData(displayMonths) : [];
   const hasData = forecast && displayMonths.length > 0;
+  const showingSampleForecast =
+    hasData &&
+    (!onboarding.hasAssumptions ||
+      !onboarding.hasRevenue ||
+      !onboarding.hasExpenses);
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -317,6 +323,22 @@ export default function DashboardPage() {
             <h2 id="metrics-heading" className="sr-only">
               Key Performance Metrics
             </h2>
+
+            {showingSampleForecast && (
+              <div className="mb-4 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+                <Info
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-sky-600"
+                  aria-hidden
+                />
+                <p>
+                  <span className="font-medium">Sample forecast.</span> These
+                  numbers use built-in defaults so you can preview the
+                  dashboard — they are not your company&apos;s data. Complete
+                  the setup steps above to see your own forecast.
+                </p>
+              </div>
+            )}
+
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
               {metrics.map((metric) => (
                 <SaasMetricCard
@@ -387,6 +409,12 @@ export default function DashboardPage() {
               </h2>
               <p className="mt-1 text-sm text-slate-600">
                 Visual trends for ARR growth and cash runway.
+                {showingSampleForecast && (
+                  <span className="text-sky-700">
+                    {" "}
+                    Charts below also reflect sample defaults.
+                  </span>
+                )}
               </p>
             </div>
 
