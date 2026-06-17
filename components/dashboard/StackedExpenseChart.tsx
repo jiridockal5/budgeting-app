@@ -1,99 +1,111 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+  VisXYContainer,
+  VisStackedBar,
+  VisAxis,
+  VisTooltip,
+} from "@unovis/react";
+import { StackedBar } from "@unovis/ts";
+import { ChartShell } from "@/components/charts/ChartShell";
+import { ChartLegend } from "@/components/charts/ChartLegend";
+import {
+  defaultCurrencyFormat,
+  indexAccessor,
+  indexData,
+  makeTickLabelFormatter,
+  sampleMonths,
+} from "@/lib/chartTheme";
 import type { ForecastMonth } from "@/lib/revenueForecast";
 
 interface StackedExpenseChartProps {
   months: ForecastMonth[];
 }
 
-function defaultFormat(value: number): string {
-  if (Math.abs(value) >= 1_000_000)
-    return `€${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `€${(value / 1_000).toFixed(0)}K`;
-  return `€${value.toFixed(0)}`;
+interface ExpenseDatum {
+  date: string;
+  headcount: number;
+  nonHeadcount: number;
+  index: number;
 }
 
-export function StackedExpenseChart({ months }: StackedExpenseChartProps) {
-  if (months.length === 0) return null;
+const SERIES = [
+  { key: "headcount" as const, name: "Headcount", color: "#5bb5aa" },
+  { key: "nonHeadcount" as const, name: "Non-headcount", color: "#f59e0b" },
+];
 
-  const step = months.length > 24 ? Math.ceil(months.length / 24) : 1;
-  const data = months
-    .filter((_, i) => i % step === 0 || i === months.length - 1)
-    .map((m) => ({
-      date: m.date,
-      headcount: Math.round(m.headcountExpense),
-      nonHeadcount: Math.round(m.nonHeadcountExpense),
-    }));
+export function StackedExpenseChart({ months }: StackedExpenseChartProps) {
+  const data = useMemo(
+    () =>
+      months.length === 0
+        ? []
+        : indexData(
+            sampleMonths(months).map((m) => ({
+              date: m.date,
+              headcount: Math.round(m.headcountExpense),
+              nonHeadcount: Math.round(m.nonHeadcountExpense),
+            }))
+          ),
+    [months]
+  );
+
+  const labels = useMemo(() => data.map((d) => d.date), [data]);
+  const x = useCallback(indexAccessor, []);
+  const y = useMemo(
+    () => SERIES.map((s) => (d: ExpenseDatum) => d[s.key]),
+    []
+  );
+  const tickFormat = useMemo(() => makeTickLabelFormatter(labels), [labels]);
+
+  const tooltipTriggers = useMemo(
+    () => ({
+      [StackedBar.selectors.bar]: (_: unknown, i: number) => {
+        const point = data[i];
+        if (!point) return "";
+        const rows = SERIES.map(
+          (s) =>
+            `<div><strong>${s.name}</strong>: ${defaultCurrencyFormat(point[s.key])}</div>`
+        ).join("");
+        return `<div style="font-size:13px;line-height:1.5"><div style="margin-bottom:4px;color:#737373">${point.date}</div>${rows}</div>`;
+      },
+    }),
+    [data]
+  );
+
+  if (data.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-neutral-900">
-        Expense Breakdown
-      </h3>
-      <p className="text-sm text-neutral-500 mt-1">
-        Headcount vs non-headcount expenses over time.
-      </p>
-      <div className="mt-5 h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: "#a3a3a3" }}
-              tickLine={false}
-              axisLine={{ stroke: "#e5e5e5" }}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: "#a3a3a3" }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={defaultFormat}
-              width={60}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "white",
-                border: "1px solid #e5e5e5",
-                borderRadius: "8px",
-                fontSize: "13px",
-              }}
-              formatter={(value: number | undefined, name: string | undefined) => [
-                defaultFormat(value ?? 0),
-                name ?? "",
-              ]}
-            />
-            <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
-            <Bar
-              dataKey="headcount"
-              name="Headcount"
-              stackId="expenses"
-              fill="#5bb5aa"
-              radius={[0, 0, 0, 0]}
-            />
-            <Bar
-              dataKey="nonHeadcount"
-              name="Non-headcount"
-              stackId="expenses"
-              fill="#f59e0b"
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <ChartShell
+      title="Expense Breakdown"
+      description="Headcount vs non-headcount expenses over time."
+    >
+      <VisXYContainer data={data} height="100%">
+        <VisStackedBar
+          x={x}
+          y={y}
+          color={(_, i) => SERIES[i]?.color ?? "#5bb5aa"}
+          roundedCorners={4}
+        />
+        <VisAxis
+          type="x"
+          gridLine={false}
+          domainLine
+          tickLine={false}
+          numTicks={Math.min(6, data.length)}
+          tickFormat={tickFormat}
+        />
+        <VisAxis
+          type="y"
+          gridLine
+          domainLine={false}
+          tickLine={false}
+          numTicks={5}
+          tickFormat={(tick) => defaultCurrencyFormat(Number(tick))}
+        />
+        <VisTooltip triggers={tooltipTriggers} />
+      </VisXYContainer>
+      <ChartLegend items={SERIES.map((s) => ({ name: s.name, color: s.color }))} />
+    </ChartShell>
   );
 }

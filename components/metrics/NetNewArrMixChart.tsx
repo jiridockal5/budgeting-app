@@ -1,13 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
-} from "recharts";
+  VisSingleContainer,
+  VisDonut,
+  VisTooltip,
+  VisBulletLegend,
+} from "@unovis/react";
+import { Donut } from "@unovis/ts";
+import { ChartShell } from "@/components/charts/ChartShell";
+import { MRR_MIX_COLORS } from "@/lib/chartTheme";
 import type { NetNewArrMix } from "@/lib/revenueForecast";
 import { formatPct } from "./formatters";
 
@@ -18,17 +20,11 @@ interface NetNewArrMixChartProps {
   totalChurnedMrr: number;
 }
 
-const COLORS = {
-  new: "#10b981",
-  expansion: "#3b82f6",
-  churn: "#ef4444",
-};
-
-const COLOR_BY_NAME: Record<string, string> = {
-  "New MRR": COLORS.new,
-  "Expansion MRR": COLORS.expansion,
-  "Churned MRR": COLORS.churn,
-};
+interface MixDatum {
+  name: string;
+  value: number;
+  pct: number;
+}
 
 export function NetNewArrMixChart({
   mix,
@@ -36,57 +32,50 @@ export function NetNewArrMixChart({
   totalExpansionMrr,
   totalChurnedMrr,
 }: NetNewArrMixChartProps) {
-  const data = [
-    { name: "New MRR", value: totalNewMrr, pct: mix.newPct },
-    { name: "Expansion MRR", value: totalExpansionMrr, pct: mix.expansionPct },
-    { name: "Churned MRR", value: totalChurnedMrr, pct: mix.churnPct },
-  ].filter((d) => d.value > 0);
+  const data = useMemo(
+    () =>
+      [
+        { name: "New MRR", value: totalNewMrr, pct: mix.newPct },
+        { name: "Expansion MRR", value: totalExpansionMrr, pct: mix.expansionPct },
+        { name: "Churned MRR", value: totalChurnedMrr, pct: mix.churnPct },
+      ].filter((d) => d.value > 0),
+    [mix, totalNewMrr, totalExpansionMrr, totalChurnedMrr]
+  );
+
+  const tooltipTriggers = useMemo(
+    () => ({
+      [Donut.selectors.segment]: (d: MixDatum) =>
+        `<div style="font-size:13px"><strong>${d.name}</strong><br/>${formatPct(d.pct)} of movement</div>`,
+    }),
+    []
+  );
 
   if (data.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-neutral-900">Net New ARR Mix</h3>
-      <p className="text-sm text-neutral-500 mt-1">
-        Composition of MRR movement over the forecast period.
-      </p>
-      <div className="mt-5 h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={55}
-              outerRadius={85}
-              paddingAngle={2}
-            >
-              {data.map((entry) => (
-                <Cell
-                  key={entry.name}
-                  fill={COLOR_BY_NAME[entry.name] ?? "#a3a3a3"}
-                />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "white",
-                border: "1px solid #e5e5e5",
-                borderRadius: "8px",
-                fontSize: "13px",
-              }}
-              formatter={(value, _name, item) => {
-                const pct = (item?.payload as { pct?: number; name?: string })?.pct ?? 0;
-                const name = (item?.payload as { name?: string })?.name ?? "";
-                return [`${formatPct(pct)} of movement`, name];
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: "12px" }} />
-          </PieChart>
-        </ResponsiveContainer>
+    <ChartShell
+      title="Net New ARR Mix"
+      description="Composition of MRR movement over the forecast period."
+    >
+      <VisSingleContainer data={data} height="100%">
+        <VisDonut<MixDatum>
+          value={(d) => d.value}
+          color={(d) => MRR_MIX_COLORS[d.name] ?? "#a3a3a3"}
+          arcWidth={30}
+          padAngle={0.02}
+          cornerRadius={2}
+        />
+        <VisTooltip triggers={tooltipTriggers} />
+      </VisSingleContainer>
+      <div className="mt-3 flex justify-center">
+        <VisBulletLegend
+          className="chart-legend"
+          items={data.map((d) => ({
+            name: d.name,
+            color: MRR_MIX_COLORS[d.name] ?? "#a3a3a3",
+          }))}
+        />
       </div>
-    </div>
+    </ChartShell>
   );
 }

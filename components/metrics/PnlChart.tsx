@@ -1,16 +1,23 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import {
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  Line,
-  ComposedChart,
-} from "recharts";
+  VisXYContainer,
+  VisStackedBar,
+  VisLine,
+  VisAxis,
+  VisTooltip,
+} from "@unovis/react";
+import { StackedBar, Line } from "@unovis/ts";
+import { ChartShell } from "@/components/charts/ChartShell";
+import { ChartLegend } from "@/components/charts/ChartLegend";
+import {
+  PNL_BAR_COLORS,
+  indexAccessor,
+  indexData,
+  makeTickLabelFormatter,
+  sampleMonths,
+} from "@/lib/chartTheme";
 import type { ForecastMonth } from "@/lib/revenueForecast";
 import { formatCompact } from "./formatters";
 
@@ -18,84 +25,127 @@ interface PnlChartProps {
   months: ForecastMonth[];
 }
 
+const OPEX_KEYS = ["cos", "gtm", "rnd", "cs", "ops"] as const;
+const OPEX_LABELS = ["Cost of Sales", "GTM", "R&D", "CS", "Ops"];
+
+interface PnlDatum {
+  date: string;
+  revenue: number;
+  cos: number;
+  gtm: number;
+  rnd: number;
+  cs: number;
+  ops: number;
+  ebit: number;
+  index: number;
+}
+
 export function PnlChart({ months }: PnlChartProps) {
+  const data = useMemo(
+    () =>
+      indexData(
+        sampleMonths(months).map((m) => ({
+          date: m.date,
+          revenue: Math.round(m.totalMrr),
+          cos: Math.round(m.cosExpense),
+          gtm: Math.round(m.gtmExpense),
+          rnd: Math.round(m.rndExpense),
+          cs: Math.round(m.csExpense),
+          ops: Math.round(m.opsExpense),
+          ebit: Math.round(m.ebit),
+        }))
+      ),
+    [months]
+  );
+
+  const labels = useMemo(() => data.map((d) => d.date), [data]);
+  const x = useCallback(indexAccessor, []);
+  const stackedY = useMemo(
+    () => OPEX_KEYS.map((key) => (d: PnlDatum) => d[key]),
+    []
+  );
+  const tickFormat = useMemo(() => makeTickLabelFormatter(labels), [labels]);
+
+  const legendItems = useMemo(
+    () => [
+      ...OPEX_LABELS.map((name, i) => ({
+        name,
+        color: PNL_BAR_COLORS[i],
+      })),
+      { name: "Revenue", color: "#10b981" },
+      { name: "EBIT", color: "#7ecfc7" },
+    ],
+    []
+  );
+
+  const tooltipTriggers = useMemo(
+    () => ({
+      [StackedBar.selectors.bar]: (_: unknown, i: number) => {
+        const point = data[i];
+        if (!point) return "";
+        const rows = [
+          ...OPEX_KEYS.map(
+            (key, idx) =>
+              `<div><strong>${OPEX_LABELS[idx]}</strong>: ${formatCompact(point[key])}</div>`
+          ),
+          `<div><strong>Revenue</strong>: ${formatCompact(point.revenue)}</div>`,
+          `<div><strong>EBIT</strong>: ${formatCompact(point.ebit)}</div>`,
+        ].join("");
+        return `<div style="font-size:13px;line-height:1.5"><div style="margin-bottom:4px;color:#737373">${point.date}</div>${rows}</div>`;
+      },
+      [Line.selectors.line]: (_: unknown, i: number) => {
+        const point = data[i];
+        if (!point) return "";
+        return `<div style="font-size:13px"><strong>${point.date}</strong></div>`;
+      },
+    }),
+    [data]
+  );
+
   if (months.length === 0) return null;
 
-  const step = months.length > 24 ? Math.ceil(months.length / 24) : 1;
-  const data = months
-    .filter((_, i) => i % step === 0 || i === months.length - 1)
-    .map((m) => ({
-      date: m.date,
-      revenue: Math.round(m.totalMrr),
-      cos: Math.round(m.cosExpense),
-      gtm: Math.round(m.gtmExpense),
-      rnd: Math.round(m.rndExpense),
-      cs: Math.round(m.csExpense),
-      ops: Math.round(m.opsExpense),
-      ebit: Math.round(m.ebit),
-    }));
-
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-neutral-900">Monthly P&L</h3>
-      <p className="text-sm text-neutral-500 mt-1">
-        Recognized revenue, cost of sales, operating expenses, and EBIT over time.
-      </p>
-      <div className="mt-5 h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: "#a3a3a3" }}
-              tickLine={false}
-              axisLine={{ stroke: "#e5e5e5" }}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: "#a3a3a3" }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={formatCompact}
-              width={60}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "white",
-                border: "1px solid #e5e5e5",
-                borderRadius: "8px",
-                fontSize: "13px",
-              }}
-              formatter={(value: number | undefined, name: string | undefined) => [
-                formatCompact(value ?? 0),
-                name ?? "",
-              ]}
-            />
-            <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
-            <Bar dataKey="cos" name="Cost of Sales" stackId="opex" fill="#fca5a5" />
-            <Bar dataKey="gtm" name="GTM" stackId="opex" fill="#fcd34d" />
-            <Bar dataKey="rnd" name="R&D" stackId="opex" fill="#a8ddd8" />
-            <Bar dataKey="cs" name="CS" stackId="opex" fill="#93c5fd" />
-            <Bar dataKey="ops" name="Ops" stackId="opex" fill="#a3a3a3" radius={[4, 4, 0, 0]} />
-            <Line
-              type="monotone"
-              dataKey="revenue"
-              name="Revenue"
-              stroke="#10b981"
-              strokeWidth={2}
-              dot={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="ebit"
-              name="EBIT"
-              stroke="#7ecfc7"
-              strokeWidth={2}
-              dot={false}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <ChartShell
+      title="Monthly P&L"
+      description="Recognized revenue, cost of sales, operating expenses, and EBIT over time."
+      chartHeightClass="h-72"
+    >
+      <VisXYContainer data={data} height="100%">
+        <VisStackedBar
+          x={x}
+          y={stackedY}
+          color={(_, i) => PNL_BAR_COLORS[i] ?? "#a3a3a3"}
+          roundedCorners={4}
+        />
+        <VisLine
+          x={x}
+          y={(d: PnlDatum) => d.revenue}
+          color={() => "#10b981"}
+        />
+        <VisLine
+          x={x}
+          y={(d: PnlDatum) => d.ebit}
+          color={() => "#7ecfc7"}
+        />
+        <VisAxis
+          type="x"
+          gridLine={false}
+          domainLine
+          tickLine={false}
+          numTicks={Math.min(6, data.length)}
+          tickFormat={tickFormat}
+        />
+        <VisAxis
+          type="y"
+          gridLine
+          domainLine={false}
+          tickLine={false}
+          numTicks={5}
+          tickFormat={(tick) => formatCompact(Number(tick))}
+        />
+        <VisTooltip triggers={tooltipTriggers} />
+      </VisXYContainer>
+      <ChartLegend items={legendItems} />
+    </ChartShell>
   );
 }

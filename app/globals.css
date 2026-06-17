@@ -102,3 +102,35 @@ dialog::backdrop {
   background: rgba(23, 23, 23, 0.4);
   backdrop-filter: blur(4px);
 }
+
+/* Unovis chart theme */
+.chart-theme {
+  --vis-font-family: var(--font-sans);
+  --vis-color0: #5bb5aa;
+  --vis-color1: #10b981;
+  --vis-color2: #3b82f6;
+  --vis-color3: #f59e0b;
+  --vis-color4: #ef4444;
+  --vis-color5: #737373;
+  --vis-axis-tick-label-color: #a3a3a3;
+  --vis-axis-tick-label-font-size: 11px;
+  --vis-axis-grid-color: #f5f5f5;
+  --vis-axis-grid-line-dasharray: none;
+  --vis-axis-domain-color: #e5e5e5;
+  --vis-area-fill-opacity: 0.2;
+  --vis-area-stroke-width: 2px;
+  --vis-line-width: 2px;
+  --vis-stacked-bar-stroke-width: 0;
+  --vis-grouped-bar-stroke-width: 0;
+  --vis-tooltip-background-color: rgba(255, 255, 255, 0.98);
+  --vis-tooltip-border-color: #e5e5e5;
+  --vis-tooltip-text-color: #171717;
+  --vis-tooltip-shadow-color: rgba(23, 23, 23, 0.08);
+  --vis-tooltip-padding: 8px 12px;
+  --vis-tooltip-border-radius: 8px;
+}
+
+.chart-theme .chart-legend {
+  --vis-bullet-legend-label-color: #737373;
+  --vis-bullet-legend-label-font-size: 12px;
+}

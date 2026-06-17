@@ -1,20 +1,27 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+  VisXYContainer,
+  VisArea,
+  VisAxis,
+  VisTooltip,
+} from "@unovis/react";
+import { Area } from "@unovis/ts";
+import { ChartShell } from "@/components/charts/ChartShell";
+import { ChartLegend } from "@/components/charts/ChartLegend";
+import {
+  defaultCurrencyFormat,
+  indexData,
+  makeTickLabelFormatter,
+} from "@/lib/chartTheme";
 
 interface ChartDataPoint {
   date: string;
   [key: string]: string | number;
 }
+
+type IndexedChartPoint = ChartDataPoint & { index: number };
 
 interface ChartSeries {
   dataKey: string;
@@ -32,102 +39,95 @@ interface ChartCardProps {
   placeholder?: string;
 }
 
-function defaultFormat(value: number): string {
-  if (Math.abs(value) >= 1_000_000) return `€${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `€${(value / 1_000).toFixed(0)}K`;
-  return `€${value.toFixed(0)}`;
-}
-
 export function ChartCard({
   title,
   description,
   data,
   series,
-  formatValue = defaultFormat,
+  formatValue = defaultCurrencyFormat,
   placeholder = "Chart coming soon",
 }: ChartCardProps) {
-  const hasData = data && data.length > 0 && series && series.length > 0;
+  const hasData = Boolean(data && data.length > 0 && series && series.length > 0);
+  const indexedData = useMemo(() => indexData(data ?? []), [data]);
+  const isStacked = Boolean(series?.some((s) => s.stackId));
+  const labels = useMemo(() => indexedData.map((d) => d.date), [indexedData]);
+
+  const x = useCallback((d: IndexedChartPoint) => d.index, []);
+  const tickFormat = useMemo(() => makeTickLabelFormatter(labels), [labels]);
+
+  const tooltipTriggers = useMemo(() => {
+    if (!series) return {};
+    return {
+      [Area.selectors.area]: (_: unknown, i: number) => {
+        const point = indexedData[i];
+        if (!point) return "";
+        const rows = series
+          .map((s) => {
+            const value = point[s.dataKey];
+            if (typeof value !== "number") return "";
+            return `<div><strong>${s.name}</strong>: ${formatValue(value)}</div>`;
+          })
+          .filter(Boolean)
+          .join("");
+        return `<div style="font-size:13px;line-height:1.5"><div style="margin-bottom:4px;color:#737373">${point.date}</div>${rows}</div>`;
+      },
+    };
+  }, [indexedData, series, formatValue]);
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-lg font-semibold text-neutral-900">{title}</h3>
-        {description ? (
-          <p className="text-sm text-neutral-500">{description}</p>
-        ) : null}
-      </div>
-
-      {hasData ? (
-        <div className="mt-5 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-              <defs>
-                {series.map((s) => (
-                  <linearGradient
-                    key={s.dataKey}
-                    id={`gradient-${s.dataKey}`}
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor={s.color} stopOpacity={0.2} />
-                    <stop offset="95%" stopColor={s.color} stopOpacity={0} />
-                  </linearGradient>
-                ))}
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 11, fill: "#a3a3a3" }}
-                tickLine={false}
-                axisLine={{ stroke: "#e5e5e5" }}
-                interval="preserveStartEnd"
+    <ChartShell
+      title={title}
+      description={description}
+      hasData={hasData}
+      placeholder={placeholder}
+    >
+      {hasData && series ? (
+        <>
+          <VisXYContainer data={indexedData} height="100%">
+            {isStacked ? (
+              <VisArea
+                x={x}
+                y={series.map((s) => (d: IndexedChartPoint) => Number(d[s.dataKey] ?? 0))}
+                color={(_, i) => series[i]?.color ?? "#5bb5aa"}
+                line
+                opacity={0.25}
               />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#a3a3a3" }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={formatValue}
-                width={60}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "white",
-                  border: "1px solid #e5e5e5",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                }}
-                formatter={(value?: number, name?: string) => [
-                  formatValue(value ?? 0),
-                  name ?? "",
-                ]}
-              />
-              <Legend
-                wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }}
-              />
-              {series.map((s) => (
-                <Area
+            ) : (
+              series.map((s) => (
+                <VisArea
                   key={s.dataKey}
-                  type="monotone"
-                  dataKey={s.dataKey}
-                  name={s.name}
-                  stroke={s.color}
-                  fill={`url(#gradient-${s.dataKey})`}
-                  strokeWidth={2}
-                  stackId={s.stackId}
-                  dot={false}
+                  x={x}
+                  y={(d: IndexedChartPoint) => Number(d[s.dataKey] ?? 0)}
+                  color={s.color}
+                  line
+                  opacity={0.25}
                 />
-              ))}
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="mt-5 flex h-64 items-center justify-center rounded-lg border border-dashed border-neutral-200 bg-neutral-50 text-sm font-medium text-neutral-500">
-          {placeholder}
-        </div>
-      )}
-    </div>
+              ))
+            )}
+            <VisAxis
+              type="x"
+              gridLine={false}
+              domainLine
+              tickLine={false}
+              numTicks={Math.min(6, indexedData.length)}
+              tickFormat={tickFormat}
+            />
+            <VisAxis
+              type="y"
+              gridLine
+              domainLine={false}
+              tickLine={false}
+              numTicks={5}
+              tickFormat={(tick) => formatValue(Number(tick))}
+            />
+            <VisTooltip triggers={tooltipTriggers} />
+          </VisXYContainer>
+          <ChartLegend
+            items={series.map((s) => ({ name: s.name, color: s.color }))}
+          />
+        </>
+      ) : null}
+    </ChartShell>
   );
 }
 
