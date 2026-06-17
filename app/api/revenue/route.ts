@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getServerUser } from "@/lib/serverUser";
+import { resolveDbUser } from "@/lib/server/dbUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 import { captureRouteException } from "@/lib/monitoring";
@@ -60,12 +60,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { id: userId } = await getServerUser();
-    const denied = await requireAppAccess(userId);
+    const user = await resolveDbUser();
+    const denied = await requireAppAccess(user.id);
     if (denied) return denied;
 
     const plan = await prisma.plan.findFirst({
-      where: { id: parsed.data.planId, userId },
+      where: { id: parsed.data.planId, userId: user.id },
     });
 
     if (!plan) {
@@ -127,12 +127,12 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
-    const { id: userId } = await getServerUser();
-    const denied = await requireAppAccess(userId);
+    const user = await resolveDbUser();
+    const denied = await requireAppAccess(user.id);
     if (denied) return denied;
 
     const plan = await prisma.plan.findFirst({
-      where: { id: input.planId, userId },
+      where: { id: input.planId, userId: user.id },
     });
 
     if (!plan) {

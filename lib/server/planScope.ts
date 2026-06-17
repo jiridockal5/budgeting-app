@@ -2,8 +2,8 @@ import type { Plan } from "@prisma/client";
 import type { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonErr } from "@/lib/server/apiEnvelope";
+import { resolveDbUser } from "@/lib/server/dbUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
-import { getServerUser } from "@/lib/serverUser";
 
 export type ScopedPlan =
   | { ok: true; userId: string; plan: Plan }
@@ -14,13 +14,13 @@ export type ScopedPlan =
  * Use this for any route keyed by planId to avoid duplicated auth checks.
  */
 export async function getScopedPlan(planId: string): Promise<ScopedPlan> {
-  const { id: userId } = await getServerUser();
-  const denied = await requireAppAccess(userId);
+  const user = await resolveDbUser();
+  const denied = await requireAppAccess(user.id);
   if (denied) {
     return { ok: false, response: denied };
   }
   const plan = await prisma.plan.findFirst({
-    where: { id: planId, userId },
+    where: { id: planId, userId: user.id },
   });
   if (!plan) {
     return {
@@ -28,5 +28,5 @@ export async function getScopedPlan(planId: string): Promise<ScopedPlan> {
       response: jsonErr("Plan not found for this user", 404),
     };
   }
-  return { ok: true, userId, plan };
+  return { ok: true, userId: user.id, plan };
 }

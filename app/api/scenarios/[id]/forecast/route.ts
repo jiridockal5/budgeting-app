@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getServerUser } from "@/lib/serverUser";
+import { resolveDbUser } from "@/lib/server/dbUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
 import { captureRouteException } from "@/lib/monitoring";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
@@ -37,8 +37,8 @@ function mapFrequency(
 export async function GET(_request: NextRequest, context: RouteParams) {
   try {
     const { id } = await context.params;
-    const { id: userId } = await getServerUser();
-    const denied = await requireAppAccess(userId);
+    const user = await resolveDbUser();
+    const denied = await requireAppAccess(user.id);
     if (denied) return denied;
 
     const scenario = await prisma.forecastScenario.findFirst({
@@ -54,7 +54,7 @@ export async function GET(_request: NextRequest, context: RouteParams) {
       },
     });
 
-    if (!scenario || scenario.plan.userId !== userId) {
+    if (!scenario || scenario.plan.userId !== user.id) {
       return NextResponse.json(
         { success: false, error: "Scenario not found" },
         { status: 404 }

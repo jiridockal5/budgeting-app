@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
+import { resolveDbUser } from "@/lib/server/dbUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
-import { getUserAccessInfo, getTrialEndDate } from "@/lib/planGating";
+import { getUserAccessInfo } from "@/lib/planGating";
 import { captureRouteException } from "@/lib/monitoring";
 
 const patchSchema = z.object({
@@ -17,26 +18,8 @@ const patchSchema = z.object({
  */
 export async function GET() {
   try {
-    const { id: supabaseUserId, email } = await getServerUser();
-
-    // First, ensure we have a user in our database that matches the Supabase user
-    let user = await prisma.user.findFirst({
-      where: {
-        OR: [{ id: supabaseUserId }, { email: email ?? undefined }],
-      },
-    });
-
-    // If no user exists, create one
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: supabaseUserId,
-          email: email ?? "unknown@example.com",
-          name: email?.split("@")[0] ?? "User",
-          growthTrialEndsAt: getTrialEndDate(),
-        },
-      });
-    }
+    const { email } = await getServerUser();
+    const user = await resolveDbUser();
 
     // Find the user's first plan
     let plan = await prisma.plan.findFirst({
@@ -99,17 +82,7 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     const { email } = await getServerUser();
-
-    const user = await prisma.user.findFirst({
-      where: { email: email ?? undefined },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 }
-      );
-    }
+    const user = await resolveDbUser();
 
     const denied = await requireAppAccess(user.id);
     if (denied) return denied;

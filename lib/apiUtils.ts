@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { prisma } from "./prisma";
-import { getServerUser } from "./serverUser";
+import { resolveDbUser } from "./server/dbUser";
 import { captureRouteException } from "./monitoring";
 
 export type ApiHandler = () => Promise<NextResponse>;
@@ -53,9 +53,9 @@ export async function withErrorHandling(
 }
 
 export async function requirePlanAccess(planId: string) {
-  const { id: userId } = await getServerUser();
+  const user = await resolveDbUser();
   const plan = await prisma.plan.findFirst({
-    where: { id: planId, userId },
+    where: { id: planId, userId: user.id },
   });
 
   if (!plan) {
@@ -64,7 +64,7 @@ export async function requirePlanAccess(planId: string) {
     });
   }
 
-  return { plan, userId };
+  return { plan, userId: user.id };
 }
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
