@@ -8,7 +8,6 @@ const footerLinks = {
     links: [
       { label: "Features", href: "#product" },
       { label: "Metrics", href: "#metrics" },
-      { label: "Pricing", href: "/pricing" },
       { label: "FAQ", href: "#faq" },
     ],
   },

@@ -20,7 +20,6 @@ export { HowItWorks } from "./HowItWorks";
 export { FeatureBento } from "./FeatureBento";
 export { MetricsGrid } from "./MetricsGrid";
 export { UseCasesTabs } from "./UseCasesTabs";
-export { PricingSection } from "./PricingSection";
 export { FAQ } from "./FAQ";
 export { FinalCTA } from "./FinalCTA";
 export { Footer } from "./Footer";

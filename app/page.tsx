@@ -7,7 +7,6 @@ import {
   FeatureBento,
   MetricsGrid,
   UseCasesTabs,
-  PricingSection,
   FAQ,
   FinalCTA,
   Footer,
@@ -89,9 +88,6 @@ export default async function HomePage() {
 
         {/* Use Cases Tabs */}
         <UseCasesTabs />
-
-        {/* Pricing */}
-        <PricingSection />
 
         {/* FAQ */}
         <FAQ />

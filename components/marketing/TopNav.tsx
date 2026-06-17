@@ -9,7 +9,6 @@ import { TurquoiseBrandGlow } from "./TurquoiseGlow";
 const navLinks = [
   { href: "#product", label: "Product" },
   { href: "#metrics", label: "Metrics" },
-  { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
 ];
 
