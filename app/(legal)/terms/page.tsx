@@ -41,15 +41,19 @@ export default function TermsPage() {
         only for business purposes.
       </p>
 
-      <h2>3. Trial, fees, and payment</h2>
+      <h2>3. Access, fees, and payment</h2>
       <p>
-        New accounts receive a free trial (currently 7 days). After the trial,
-        continued use of the Service requires a paid subscription. Prices are
-        shown at checkout and billed in advance on a monthly or annual basis
-        via our payment processor, Stripe. Subscriptions renew automatically
-        until cancelled. You can cancel at any time from the billing settings;
-        cancellation takes effect at the end of the current billing period.
-        Except where required by law, fees are non-refundable.
+        The Service is currently offered free of charge with full access and
+        no time limit. No credit card is required to sign up or use the
+        Service. We may introduce paid subscription plans in the future. If we
+        do, we will notify you by email or in-app notice at least 14 days
+        before any fees take effect for your account. Optional paid plans,
+        when offered, will be billed in advance on a monthly or annual basis
+        via our payment processor, Stripe, and will renew automatically until
+        cancelled. You can cancel a paid subscription at any time from the
+        billing settings; cancellation takes effect at the end of the current
+        billing period. Except where required by law, fees already paid are
+        non-refundable.
       </p>
 
       <h2>4. Your data</h2>

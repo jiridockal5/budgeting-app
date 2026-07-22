@@ -10,7 +10,6 @@ import {
   getPublicStripePriceId,
   PLAN_FEATURES,
   PLAN_NAME,
-  TRIAL_DAYS,
 } from "@/config/plans";
 
 interface SubscribeCheckoutProps {
@@ -135,7 +134,8 @@ export function SubscribeCheckout({
 
       {showTrialNote && !locked && (
         <p className="text-xs text-neutral-500">
-          {TRIAL_DAYS}-day free trial on signup. No credit card required to start.
+          Burnlytics is currently free with unlimited access. No credit card
+          required.
         </p>
       )}
 

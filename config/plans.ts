@@ -1,6 +1,11 @@
 export const TRIAL_DAYS = 7;
 
-/** When false, all authenticated users get full app access (billing code kept for later). */
+/**
+ * When false, all authenticated users get full app access with no paywall
+ * (current product stance: free with unlimited trial). Stripe checkout,
+ * portal, and webhooks remain available for a future paid launch — flip to
+ * true only when ready to enforce trial → subscription lockout.
+ */
 export const BILLING_GATE_ENABLED = false;
 
 export type BillingCurrency = "eur" | "usd";

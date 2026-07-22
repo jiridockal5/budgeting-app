@@ -34,7 +34,7 @@ const faqs = [
   {
     question: "Does Burnlytics cost anything?",
     answer:
-      "No — Burnlytics is free to use. Sign up and get full access right away, no credit card required.",
+      "No — Burnlytics is free to use with full access and no time limit. Sign up and get started right away, no credit card required. We may introduce paid plans later; if we do, you'll get clear notice in advance.",
   },
   {
     question: "Is my data private?",

@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { SubscribeCheckout } from "@/components/billing/SubscribeCheckout";
-import type { AccessState } from "@/config/plans";
+import { BILLING_GATE_ENABLED, type AccessState } from "@/config/plans";
 
 interface BillingStatus {
   state: AccessState;
@@ -98,8 +98,9 @@ export default function BillingPage() {
     );
   }
 
-  const statusLabel =
-    status?.state === "paid"
+  const statusLabel = !BILLING_GATE_ENABLED
+    ? "Free access — unlimited trial"
+    : status?.state === "paid"
       ? "Active subscription"
       : status?.state === "trial"
         ? `Trial — ${status.trialDaysLeft ?? 0} day(s) left`
@@ -111,7 +112,11 @@ export default function BillingPage() {
         <div className="space-y-8">
           <PageHeader
             title="Billing"
-            subtitle="Manage your subscription and billing details."
+            subtitle={
+              BILLING_GATE_ENABLED
+                ? "Manage your subscription and billing details."
+                : "Burnlytics is currently free. Subscription options will appear here if paid plans launch."
+            }
           />
 
           <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -119,14 +124,14 @@ export default function BillingPage() {
               <div className="flex items-center gap-3">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                    status?.state === "paid"
+                    !BILLING_GATE_ENABLED || status?.state === "paid"
                       ? "bg-turquoise-100"
                       : status?.state === "trial"
                         ? "bg-amber-100"
                         : "bg-neutral-100"
                   }`}
                 >
-                  {status?.state === "paid" ? (
+                  {!BILLING_GATE_ENABLED || status?.state === "paid" ? (
                     <Zap className="h-5 w-5 text-turquoise-600" />
                   ) : status?.state === "trial" ? (
                     <Clock className="h-5 w-5 text-amber-600" />
@@ -192,7 +197,32 @@ export default function BillingPage() {
             )}
           </div>
 
-          {status?.state === "paid" ? (
+          {!BILLING_GATE_ENABLED ? (
+            <>
+              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                <p className="text-sm leading-6 text-neutral-600">
+                  Full access is included at no charge for now — no credit card
+                  required, and no trial countdown. If we introduce paid plans,
+                  we&apos;ll notify you at least 14 days in advance.
+                </p>
+              </div>
+              {status?.subscription && (
+                <button
+                  onClick={handleManage}
+                  disabled={managing}
+                  className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-5 py-3 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50 disabled:opacity-50"
+                >
+                  {managing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-4 w-4" />
+                  )}
+                  Manage subscription
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </>
+          ) : status?.state === "paid" ? (
             <button
               onClick={handleManage}
               disabled={managing}

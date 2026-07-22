@@ -1,22 +1,31 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { SubscribeCheckout } from "@/components/billing/SubscribeCheckout";
 import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/lib/supabaseClient";
-import { TRIAL_DAYS } from "@/config/plans";
+import { BILLING_GATE_ENABLED, TRIAL_DAYS } from "@/config/plans";
 
 export default function SubscribePage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!BILLING_GATE_ENABLED) {
+      router.replace("/app");
+      return;
+    }
     if (searchParams.get("cancelled") === "true") {
       toast("Checkout cancelled", "info");
     }
-  }, [searchParams, toast]);
+  }, [searchParams, toast, router]);
+
+  if (!BILLING_GATE_ENABLED) {
+    return null;
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
