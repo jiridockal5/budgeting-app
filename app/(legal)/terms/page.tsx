@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "Terms of Service for the Burnlytics forecasting application.",
 };
 
-const LAST_UPDATED = "June 11, 2026";
+const LAST_UPDATED = "July 22, 2026";
 
 export default function TermsPage() {
   return (
@@ -16,9 +16,11 @@ export default function TermsPage() {
       <p>
         These Terms of Service (&quot;Terms&quot;) govern your access to and use
         of Burnlytics (the &quot;Service&quot;), a financial forecasting
-        application operated by [COMPANY LEGAL NAME], [COMPANY ADDRESS]
-        (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). By creating an
-        account or using the Service, you agree to these Terms.
+        application operated by Jiří Dočkal, a self-employed individual (sole
+        trader) registered in the Czech Republic, Company ID (IČO) 05438861,
+        with registered address at Lužánecká 1887/8, 602 00 Brno, Czech
+        Republic (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). By creating
+        an account or using the Service, you agree to these Terms.
       </p>
 
       <h2>1. The Service</h2>
@@ -118,16 +120,16 @@ export default function TermsPage() {
 
       <h2>11. Governing law</h2>
       <p>
-        These Terms are governed by the laws of [JURISDICTION], without regard
-        to conflict-of-law rules. The courts of [JURISDICTION] have exclusive
-        jurisdiction, subject to any mandatory consumer protection rules that
-        apply to you.
+        These Terms are governed by the laws of the Czech Republic, without
+        regard to conflict-of-law rules. The courts of the Czech Republic have
+        exclusive jurisdiction, subject to any mandatory consumer protection
+        rules that apply to you.
       </p>
 
       <h2>12. Contact</h2>
       <p>
-        Questions about these Terms: <a href="mailto:[SUPPORT EMAIL]">[SUPPORT
-        EMAIL]</a>.
+        Questions about these Terms:{" "}
+        <a href="mailto:jiri.dockal5@gmail.com">jiri.dockal5@gmail.com</a>.
       </p>
     </article>
   );

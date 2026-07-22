@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "Privacy Policy for the Burnlytics forecasting application.",
 };
 
-const LAST_UPDATED = "June 11, 2026";
+const LAST_UPDATED = "July 22, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -14,10 +14,13 @@ export default function PrivacyPage() {
       <p className="text-sm text-neutral-500">Last updated: {LAST_UPDATED}</p>
 
       <p>
-        This Privacy Policy explains how [COMPANY LEGAL NAME], [COMPANY
-        ADDRESS] (&quot;we&quot;, &quot;us&quot;) collects and processes
-        personal data when you use Burnlytics (the &quot;Service&quot;). We
-        are the data controller for the processing described here.
+        This Privacy Policy explains how Jiří Dočkal, a self-employed
+        individual (sole trader) registered in the Czech Republic, Company ID
+        (IČO) 05438861, with registered address at Lužánecká 1887/8, 602 00
+        Brno, Czech Republic (&quot;we&quot;, &quot;us&quot;) collects and
+        processes personal data when you use Burnlytics (the
+        &quot;Service&quot;). We are the data controller for the processing
+        described here.
       </p>
 
       <h2>1. Data we collect</h2>
@@ -108,7 +111,7 @@ export default function PrivacyPage() {
         copy of your personal data, to restrict or object to processing, and
         to lodge a complaint with a supervisory authority. You can exercise
         deletion yourself in the app; for other requests contact us at{" "}
-        <a href="mailto:[SUPPORT EMAIL]">[SUPPORT EMAIL]</a>.
+        <a href="mailto:jiri.dockal5@gmail.com">jiri.dockal5@gmail.com</a>.
       </p>
 
       <h2>7. Security</h2>
@@ -128,7 +131,7 @@ export default function PrivacyPage() {
       <h2>9. Contact</h2>
       <p>
         Privacy questions and requests:{" "}
-        <a href="mailto:[SUPPORT EMAIL]">[SUPPORT EMAIL]</a>.
+        <a href="mailto:jiri.dockal5@gmail.com">jiri.dockal5@gmail.com</a>.
       </p>
     </article>
   );
