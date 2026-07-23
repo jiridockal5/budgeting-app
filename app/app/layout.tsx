@@ -76,15 +76,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {!isSubscribeOnly && (
           <header className="sticky top-0 z-30 border-b border-turquoise-200 bg-turquoise-50 backdrop-blur">
           <div className="flex items-center justify-end gap-4 pl-14 pr-6 py-4 lg:pl-6 lg:px-8">
-            <div className="hidden text-right md:block">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+            <div className="min-w-0 text-right">
+              <p className="hidden text-[11px] font-medium uppercase tracking-wider text-neutral-500 md:block">
                 Signed in as
               </p>
-              <p className="text-sm font-semibold text-neutral-900">{email}</p>
+              <p className="truncate text-sm font-semibold text-neutral-900">
+                {email}
+              </p>
             </div>
             <button
               onClick={handleLogout}
-              className="rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-sm font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+              className="rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-sm font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-turquoise-400 focus-visible:ring-offset-2"
             >
               Logout
             </button>

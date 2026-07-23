@@ -43,6 +43,10 @@ export function ConfirmDialog({
     <dialog
       ref={dialogRef}
       onClose={onCancel}
+      onCancel={(e) => {
+        // Block Escape-close while the confirm action is in flight
+        if (confirmPending) e.preventDefault();
+      }}
       className="fixed inset-0 z-50 m-auto w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-0 shadow-xl backdrop:bg-neutral-900/40 backdrop:backdrop-blur-sm"
     >
       <div className="p-6">
@@ -60,8 +64,9 @@ export function ConfirmDialog({
         <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
+            disabled={confirmPending}
             onClick={onCancel}
-            className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
+            className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {cancelLabel}
           </button>

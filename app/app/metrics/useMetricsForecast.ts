@@ -6,6 +6,7 @@ import {
   normalizeAssumptions,
   type GlobalAssumptions,
 } from "@/lib/assumptions";
+import { setActiveCurrency } from "@/lib/currency";
 import { parseApiError } from "@/lib/apiErrorUtils";
 import {
   computeSummary,
@@ -35,6 +36,7 @@ export function useMetricsForecast() {
           throw new Error(planData.error || "Failed to load plan");
 
         setTotalMonths(planData.data.months);
+        setActiveCurrency(planData.data.currency);
 
         const [forecastRes, assumptionsRes] = await Promise.all([
           fetch(`/api/forecast?planId=${planData.data.id}`),

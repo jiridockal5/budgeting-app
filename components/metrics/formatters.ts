@@ -1,10 +1,7 @@
-import { formatCurrency } from "@/lib/assumptions";
+import { formatCompactCurrency } from "@/lib/currency";
 
 export function formatCompact(value: number): string {
-  if (Math.abs(value) >= 1_000_000)
-    return `€${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `€${Math.round(value / 1_000)}K`;
-  return formatCurrency(Math.round(value));
+  return formatCompactCurrency(value);
 }
 
 export function formatPct(value: number): string {

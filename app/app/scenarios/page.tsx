@@ -16,8 +16,8 @@ import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ChartCard } from "@/components/dashboard/ChartCard";
-import { formatCurrency } from "@/lib/assumptions";
-import type { ForecastResult, ForecastMonth } from "@/lib/revenueForecast";
+import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
+import type { ForecastResult, ForecastMonth, RevenueConfig } from "@/lib/revenueForecast";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 
 interface Scenario {
@@ -37,10 +37,7 @@ interface ScenarioForecast {
 const COLORS = ["#7ecfc7", "#10b981", "#f59e0b", "#ef4444", "#5bb5aa"];
 
 function formatCompact(value: number): string {
-  if (Math.abs(value) >= 1_000_000)
-    return `€${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `€${Math.round(value / 1_000)}K`;
-  return formatCurrency(Math.round(value));
+  return formatCompactCurrency(value);
 }
 
 function formatPct(value: number): string {
@@ -55,9 +52,13 @@ export default function ScenariosPage() {
   const [comparing, setComparing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [newName, setNewName] = useState("");
+  const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Scenario | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [planRevenueConfig, setPlanRevenueConfig] =
+    useState<RevenueConfig | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -68,13 +69,22 @@ export default function ScenariosPage() {
       const planData = await planRes.json();
       if (!planData.success) throw new Error(planData.error);
       setPlanId(planData.data.id);
+      setActiveCurrency(planData.data.currency);
 
-      const scenRes = await fetch(
-        `/api/scenarios?planId=${planData.data.id}`
-      );
+      const [scenRes, revenueRes] = await Promise.all([
+        fetch(`/api/scenarios?planId=${planData.data.id}`),
+        fetch(`/api/revenue?planId=${planData.data.id}`),
+      ]);
       const scenData = await scenRes.json();
       if (!scenData.success) throw new Error(scenData.error);
       setScenarios(scenData.data);
+
+      // New scenarios start from the plan's current revenue model so
+      // comparisons reflect the user's numbers, not built-in samples.
+      const revenueData = await revenueRes.json().catch(() => null);
+      if (revenueData?.success && revenueData.data?.config) {
+        setPlanRevenueConfig(revenueData.data.config as RevenueConfig);
+      }
 
       if (scenData.data.length > 0) {
         setSelectedIds(scenData.data.map((s: Scenario) => s.id));
@@ -123,7 +133,8 @@ export default function ScenariosPage() {
   }, [selectedIds, loading, runComparison]);
 
   const handleCreate = async () => {
-    if (!planId || !newName.trim()) return;
+    if (!planId || !newName.trim() || creating) return;
+    setCreating(true);
     try {
       const res = await fetch("/api/scenarios", {
         method: "POST",
@@ -131,7 +142,7 @@ export default function ScenariosPage() {
         body: JSON.stringify({
           planId,
           name: newName.trim(),
-          config: DEFAULT_REVENUE_CONFIG,
+          config: planRevenueConfig ?? DEFAULT_REVENUE_CONFIG,
         }),
       });
       const data = await res.json();
@@ -144,6 +155,8 @@ export default function ScenariosPage() {
         err instanceof Error ? err.message : "Failed to create scenario",
         "error"
       );
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -172,18 +185,22 @@ export default function ScenariosPage() {
   };
 
   const handleDelete = async (id: string) => {
+    setDeleteBusy(true);
     try {
       const res = await fetch(`/api/scenarios/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       toast("Scenario deleted");
       setSelectedIds((prev) => prev.filter((sid) => sid !== id));
+      setDeleteTarget(null);
       loadScenarios();
     } catch (err) {
       toast(
         err instanceof Error ? err.message : "Failed to delete",
         "error"
       );
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -301,11 +318,15 @@ export default function ScenariosPage() {
               />
               <button
                 onClick={handleCreate}
-                disabled={!newName.trim()}
+                disabled={!newName.trim() || creating}
                 className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Plus className="h-4 w-4" />
-                Create
+                {creating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {creating ? "Creating…" : "Create"}
               </button>
             </div>
 
@@ -513,11 +534,14 @@ export default function ScenariosPage() {
             open={deleteTarget !== null}
             title="Delete scenario?"
             description={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
+            confirmPending={deleteBusy}
+            confirmPendingLabel="Deleting…"
             onConfirm={() => {
               if (deleteTarget) handleDelete(deleteTarget.id);
-              setDeleteTarget(null);
             }}
-            onCancel={() => setDeleteTarget(null)}
+            onCancel={() => {
+              if (!deleteBusy) setDeleteTarget(null);
+            }}
           />
         </div>
       </div>

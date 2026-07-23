@@ -40,90 +40,58 @@ function LoginForm() {
 
   // Check Supabase configuration on mount
   useEffect(() => {
-    const checkConfig = () => {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-      if (!url || !key) {
-        setError(
-          "Supabase configuration is missing. Please check your environment variables.",
-        );
-        console.error("Supabase Config Check:", {
-          url: url || "NOT SET",
-          key: key ? "SET" : "NOT SET",
-        });
-      } else {
-        console.log("Supabase Config Check:", {
-          url: url.substring(0, 30) + "...",
-          keySet: true,
-        });
-      }
-    };
-
-    checkConfig();
+    if (!url || !key) {
+      setError(
+        "Supabase configuration is missing. Please check your environment variables.",
+      );
+    }
   }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
-    console.log("HANDLE_SIGN_IN_CALLED");
     e.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
-  
+
     try {
-      // Validate inputs
       if (!email || !password) {
         setError("Please enter both email and password");
         return;
       }
-  
-      console.log("Attempting to sign in...", {
-        email,
-        supabaseUrl:
-          process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + "...",
-      });
-  
+
       const { data, error: signInError } =
         await supabase.auth.signInWithPassword({
           email,
           password,
         });
-  
+
       if (signInError) {
-        console.error("SIGNIN_ERROR:", {
-          message: signInError.message,
-          status: signInError.status,
-          name: signInError.name,
-        });
-  
         let errorMessage = signInError.message;
         if (signInError.message === "Failed to fetch") {
           errorMessage =
             "Unable to connect to authentication service. Please check your internet connection and try again. If the problem persists, verify your Supabase configuration.";
         }
-  
+
         setError(errorMessage);
         return;
       }
-  
+
       if (data.session) {
-        console.log("Sign in successful, redirecting to:", redirectTo);
-  
-        // 🔁 Refresh, aby se props/state dorovnaly
+        // Refresh server components, then hard-redirect outside Suspense so
+        // the fresh session cookie is picked up by the middleware.
         router.refresh();
-  
-        // 🔒 Tvrdý redirect MIMO Suspense
         setTimeout(() => {
           window.location.assign(redirectTo);
         }, 10);
-  
+
         return;
       }
-  
+
       setError("Sign in failed. Please try again.");
     } catch (err) {
-      console.error("SIGNIN_EXCEPTION:", err);
-  
       let errorMessage = "An unexpected error occurred";
       if (err instanceof Error) {
         errorMessage = err.message;
@@ -132,13 +100,13 @@ function LoginForm() {
             "Network error: Unable to connect to authentication service. Please check your Supabase URL and network connection.";
         }
       }
-  
+
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-  
+
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,6 +163,16 @@ function LoginForm() {
     setError(null);
     setMessage(null);
   };
+
+  // Close the reset-password overlay with Escape
+  useEffect(() => {
+    if (!showForgotPassword) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowForgotPassword(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showForgotPassword]);
 
   return (
     <main className="min-h-screen bg-neutral-50">

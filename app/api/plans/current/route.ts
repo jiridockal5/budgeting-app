@@ -10,6 +10,7 @@ import { captureRouteException } from "@/lib/monitoring";
 const patchSchema = z.object({
   months: z.number().int().min(1).max(120).optional(),
   startMonth: z.string().regex(/^\d{4}-\d{2}$/, "Expected YYYY-MM format").optional(),
+  currency: z.enum(["EUR", "USD", "GBP"]).optional(),
 });
 
 /**
@@ -109,7 +110,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updates: { months?: number; startMonth?: Date } = {};
+    const updates: { months?: number; startMonth?: Date; currency?: string } = {};
 
     if (parsed.data.months !== undefined) {
       updates.months = parsed.data.months;
@@ -118,6 +119,10 @@ export async function PATCH(request: NextRequest) {
     if (parsed.data.startMonth !== undefined) {
       const [year, month] = parsed.data.startMonth.split("-").map(Number);
       updates.startMonth = new Date(Date.UTC(year, month - 1, 1));
+    }
+
+    if (parsed.data.currency !== undefined) {
+      updates.currency = parsed.data.currency;
     }
 
     const updated = await prisma.plan.update({

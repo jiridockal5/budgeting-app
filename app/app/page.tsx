@@ -12,7 +12,8 @@ import { StackedExpenseChart } from "@/components/dashboard/StackedExpenseChart"
 import { OnboardingChecklist, type OnboardingStatus } from "@/components/dashboard/OnboardingChecklist";
 import { PeriodTabs } from "@/components/dashboard/PeriodTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { formatCurrency, normalizeAssumptions, DEFAULT_ASSUMPTIONS, type GlobalAssumptions } from "@/lib/assumptions";
+import { normalizeAssumptions, DEFAULT_ASSUMPTIONS, type GlobalAssumptions } from "@/lib/assumptions";
+import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
 import { parseApiError } from "@/lib/apiErrorUtils";
 import { fetchJsonEnvelope } from "@/lib/clientFetch";
 import { computeSummary, type ForecastResult, type ForecastMonth, type AssumptionsInput } from "@/lib/revenueForecast";
@@ -22,10 +23,7 @@ import { computeSummary, type ForecastResult, type ForecastMonth, type Assumptio
 // ============================================================================
 
 function formatCompact(value: number): string {
-  if (Math.abs(value) >= 1_000_000)
-    return `€${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `€${Math.round(value / 1_000)}K`;
-  return formatCurrency(Math.round(value));
+  return formatCompactCurrency(value);
 }
 
 function formatPct(value: number): string {
@@ -157,6 +155,7 @@ export default function DashboardPage() {
         const planResult = await fetchJsonEnvelope<{
           id: string;
           months: number;
+          currency: string;
         }>("/api/plans/current");
         if (!planResult.ok) {
           throw new Error(planResult.error);
@@ -164,6 +163,7 @@ export default function DashboardPage() {
         const id = planResult.data.id;
         setPlanId(id);
         setTotalMonths(planResult.data.months);
+        setActiveCurrency(planResult.data.currency);
 
         const [fr, ar, rr, pr, er] = await Promise.all([
           fetchJsonEnvelope<ForecastResult>(
@@ -254,6 +254,29 @@ export default function DashboardPage() {
     (!onboarding.hasAssumptions ||
       !onboarding.hasRevenue ||
       !onboarding.hasExpenses);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-neutral-50">
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <Skeleton className="h-10 w-72 rounded-xl" />
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <MetricCardSkeleton key={i} />
+            ))}
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ChartCardSkeleton />
+            <ChartCardSkeleton />
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-neutral-50">

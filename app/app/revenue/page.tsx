@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   Settings2,
@@ -21,9 +21,11 @@ import {
   formatPercentage,
   normalizeAssumptions,
 } from "@/lib/assumptions";
+import { currencySymbol, setActiveCurrency } from "@/lib/currency";
 import type { RevenueConfig } from "@/lib/revenueForecast";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
 
 /**
@@ -42,9 +44,12 @@ export default function RevenuePage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDefault, setIsDefault] = useState(false);
   const [assumptions, setAssumptions] =
     useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
   const [config, setConfig] = useState<RevenueConfig>(DEFAULT_REVENUE_CONFIG);
+  const { toast } = useToast();
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // ── Load plan + revenue config on mount ──
   useEffect(() => {
@@ -59,6 +64,7 @@ export default function RevenuePage() {
           throw new Error(planData.error || "Failed to load plan");
         const id = planData.data.id;
         setPlanId(id);
+        setActiveCurrency(planData.data.currency);
 
         const [revenueRes, assumptionsRes] = await Promise.all([
           fetch(`/api/revenue?planId=${id}`),
@@ -72,6 +78,9 @@ export default function RevenuePage() {
 
         if (revenueData.success && revenueData.data.config) {
           setConfig(revenueData.data.config as RevenueConfig);
+        }
+        if (revenueData.success) {
+          setIsDefault(Boolean(revenueData.data.isDefault));
         }
         if (assumptionsData.success) {
           setAssumptions(normalizeAssumptions(assumptionsData.data));
@@ -104,6 +113,16 @@ export default function RevenuePage() {
     enabled: !loading && !!planId,
   });
   const saveLabel = useAutoSaveLabel(autoSave);
+
+  // Once a save lands, the config is user-owned rather than starter defaults.
+  useEffect(() => {
+    if (autoSave.lastSaved && isDefault) setIsDefault(false);
+  }, [autoSave.lastSaved, isDefault]);
+
+  // Surface save failures immediately; the inline banner can be off-screen.
+  useEffect(() => {
+    if (autoSave.error) toast(autoSave.error, "error");
+  }, [autoSave.error, toast]);
 
   // ── Preview calculations ──
   const plgNewCustomers = Math.round(
@@ -185,19 +204,58 @@ export default function RevenuePage() {
             </div>
           )}
 
+          {/* Starter defaults notice */}
+          {isDefault && (
+            <div className="flex items-start gap-3 rounded-2xl border border-turquoise-200 bg-gradient-to-br from-turquoise-50 to-white p-5 shadow-sm">
+              <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-turquoise-600" aria-hidden />
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">
+                  You&apos;re looking at starter defaults
+                </p>
+                <p className="mt-1 text-sm text-neutral-600">
+                  These numbers are sample values so you can see how the model
+                  works. Adjust any field below to make the forecast yours —
+                  changes auto-save.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Assumptions Snapshot Card */}
           <AssumptionsSnapshot assumptions={assumptions} />
 
           {/* Stream Tabs */}
           <div className="space-y-6">
-            <div className="flex flex-wrap gap-2 p-1 bg-neutral-100 rounded-xl w-fit">
-              {streamTabs.map((tab) => (
+            <div
+              role="tablist"
+              aria-label="Revenue streams"
+              className="flex flex-wrap gap-2 p-1 bg-neutral-100 rounded-xl w-fit"
+            >
+              {streamTabs.map((tab, index) => (
                 <button
                   key={tab.key}
+                  ref={(el) => {
+                    tabRefs.current[index] = el;
+                  }}
+                  role="tab"
+                  id={`stream-tab-${tab.key}`}
+                  aria-selected={activeStream === tab.key}
+                  aria-controls={`stream-panel-${tab.key}`}
+                  tabIndex={activeStream === tab.key ? 0 : -1}
                   onClick={() => setActiveStream(tab.key)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+                    e.preventDefault();
+                    const dir = e.key === "ArrowRight" ? 1 : -1;
+                    const next =
+                      (index + dir + streamTabs.length) % streamTabs.length;
+                    setActiveStream(streamTabs[next].key);
+                    tabRefs.current[next]?.focus();
+                  }}
                   className={`
                     inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium
                     transition-all duration-200 ease-out
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-turquoise-400
                     ${
                       activeStream === tab.key
                         ? "bg-white text-neutral-900 shadow-sm"
@@ -218,7 +276,12 @@ export default function RevenuePage() {
               ))}
             </div>
 
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div
+              role="tabpanel"
+              id={`stream-panel-${activeStream}`}
+              aria-labelledby={`stream-tab-${activeStream}`}
+              className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+            >
               {activeStream === "plg" && (
                 <PlgStreamForm
                   config={config.plg}
@@ -417,14 +480,14 @@ function BillingMixFields({
         value={getMonthlyArpa(config)}
         onChange={(v) => onChange({ monthlyArpa: parseFloat(v) || 0 })}
         helper={monthlyHelper}
-        prefix="€"
+        prefix={currencySymbol()}
       />
       <StreamInputField
         label={annualLabel}
         value={config.avgAcv}
         onChange={(v) => onChange({ avgAcv: parseFloat(v) || 0 })}
         helper={annualHelper}
-        prefix="€"
+        prefix={currencySymbol()}
       />
     </>
   );

@@ -20,6 +20,7 @@ import {
   formatCurrency,
   formatPercentage,
 } from "@/lib/assumptions";
+import { currencySymbol } from "@/lib/currency";
 import {
   COST_METHOD_LABELS,
   type CostMethod,
@@ -462,7 +463,9 @@ export function HeadcountSection({
           </div>
           <div>
             <label className="block text-xs font-medium text-neutral-600 mb-1">
-              {form.type === "employee" ? "Base Salary (€/mo)" : "Rate (€/mo)"}
+              {form.type === "employee"
+                ? `Base Salary (${currencySymbol()}/mo)`
+                : `Rate (${currencySymbol()}/mo)`}
             </label>
             <input
               type="number"
@@ -610,6 +613,14 @@ export function NonHeadcountSection({
   onBulkDelete,
   onBulkDuplicate,
 }: NonHeadcountSectionProps) {
+  const [customPct, setCustomPct] = useState("");
+  const applyCustomPct = () => {
+    const pct = parseFloat(customPct);
+    if (Number.isFinite(pct) && pct !== 0) {
+      onBulkScale(pct);
+      setCustomPct("");
+    }
+  };
   const allSelected = rows.length > 0 && rows.every((r) => selectedIds.has(r.id));
   const toggleAll = () =>
     setSelectedIds(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
@@ -684,18 +695,31 @@ export function NonHeadcountSection({
           >
             −10%
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              const input = window.prompt("Adjust selected costs by percent (e.g. 15 or -20):");
-              if (input == null) return;
-              const pct = parseFloat(input);
-              if (Number.isFinite(pct)) onBulkScale(pct);
-            }}
-            className="rounded-md border border-turquoise-200 bg-white px-2.5 py-1 text-xs font-medium text-turquoise-700 hover:bg-turquoise-50"
-          >
-            Custom %…
-          </button>
+          <div className="flex items-center gap-1">
+            <label htmlFor="bulk-custom-pct" className="sr-only">
+              Adjust selected costs by percent
+            </label>
+            <input
+              id="bulk-custom-pct"
+              type="number"
+              step="1"
+              value={customPct}
+              onChange={(e) => setCustomPct(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") applyCustomPct();
+              }}
+              placeholder="±%"
+              className="w-16 rounded-md border border-turquoise-200 bg-white px-2 py-1 text-xs text-turquoise-900 placeholder:text-turquoise-300 focus:border-turquoise-300 focus:outline-none focus:ring-1 focus:ring-turquoise-100"
+            />
+            <button
+              type="button"
+              onClick={applyCustomPct}
+              disabled={!Number.isFinite(parseFloat(customPct))}
+              className="rounded-md border border-turquoise-200 bg-white px-2.5 py-1 text-xs font-medium text-turquoise-700 hover:bg-turquoise-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Apply
+            </button>
+          </div>
           <button
             type="button"
             onClick={onBulkDuplicate}
@@ -1155,7 +1179,7 @@ export function CostMethodFields({
       {method === "fixed" && (
         <>
           {labeled(
-            "Amount (€)",
+            `Amount (${currencySymbol()})`,
             <input
               type="number"
               min="0"
@@ -1196,7 +1220,7 @@ export function CostMethodFields({
       {method === "growing" && form.config?.method === "growing" && (
         <>
           {labeled(
-            "Starting amount (€/mo)",
+            `Starting amount (${currencySymbol()}/mo)`,
             <input
               type="number"
               min="0"
@@ -1283,7 +1307,7 @@ export function CostMethodFields({
       {method === "perCustomer" && form.config?.method === "perCustomer" && (
         <>
           {labeled(
-            "€ per customer / mo",
+            `${currencySymbol()} per customer / mo`,
             <input
               type="number"
               step="1"
@@ -1325,7 +1349,7 @@ export function CostMethodFields({
       {method === "perEmployee" && form.config?.method === "perEmployee" && (
         <>
           {labeled(
-            "€ per head / mo",
+            `${currencySymbol()} per head / mo`,
             <input
               type="number"
               step="1"

@@ -1,44 +1,42 @@
-import type { ForecastMonth, ForecastResult } from "./revenueForecast";
-import { formatCurrency } from "./assumptions";
+import type { ForecastResult } from "./revenueForecast";
+import { formatCompactCurrency, getActiveCurrency } from "./currency";
 
 function formatCompact(value: number): string {
-  if (Math.abs(value) >= 1_000_000)
-    return `€${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `€${Math.round(value / 1_000)}K`;
-  return formatCurrency(Math.round(value));
+  return formatCompactCurrency(value);
 }
 
 export function exportForecastCSV(forecast: ForecastResult) {
+  const ccy = getActiveCurrency();
   const headers = [
     "Month",
-    "MRR",
-    "ARR",
-    "PLG MRR",
-    "Sales MRR",
-    "Partner MRR",
+    `MRR (${ccy})`,
+    `ARR (${ccy})`,
+    `PLG MRR (${ccy})`,
+    `Sales MRR (${ccy})`,
+    `Partner MRR (${ccy})`,
     "Total Customers",
-    "New MRR",
-    "New Customer Cash In",
-    "Existing Customer Cash In",
-    "Total Cash In",
-    "Churned MRR",
-    "Expansion MRR",
-    "COS Expense",
-    "GTM Expense",
-    "R&D Expense",
-    "CS Expense",
-    "Ops Expense",
-    "Headcount Expense",
-    "Non-Headcount Expense",
-    "Total Expense",
-    "Gross Profit",
+    `New MRR (${ccy})`,
+    `New Customer Cash In (${ccy})`,
+    `Existing Customer Cash In (${ccy})`,
+    `Total Cash In (${ccy})`,
+    `Churned MRR (${ccy})`,
+    `Expansion MRR (${ccy})`,
+    `COS Expense (${ccy})`,
+    `GTM Expense (${ccy})`,
+    `R&D Expense (${ccy})`,
+    `CS Expense (${ccy})`,
+    `Ops Expense (${ccy})`,
+    `Headcount Expense (${ccy})`,
+    `Non-Headcount Expense (${ccy})`,
+    `Total Expense (${ccy})`,
+    `Gross Profit (${ccy})`,
     "Gross Margin %",
-    "Operating Expenses",
-    "EBIT",
+    `Operating Expenses (${ccy})`,
+    `EBIT (${ccy})`,
     "EBIT Margin %",
-    "Net Burn",
-    "Cumulative Burn",
-    "Cash Remaining",
+    `Net Burn (${ccy})`,
+    `Cumulative Burn (${ccy})`,
+    `Cash Remaining (${ccy})`,
   ];
 
   const rows = forecast.months.map((m) => [

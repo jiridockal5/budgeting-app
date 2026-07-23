@@ -72,9 +72,10 @@ export function MetricsPageShell({
                     </button>
                     <button
                       onClick={() => exportSummaryPDF(forecast)}
+                      title="Opens a print-ready report — choose 'Save as PDF' in the print dialog"
                       className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
                     >
-                      Print PDF
+                      Print report
                     </button>
                   </>
                 )}

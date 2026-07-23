@@ -16,6 +16,7 @@ import {
   type PersonType,
 } from "@/lib/expenses";
 import { useToast } from "@/components/ui/Toast";
+import { setActiveCurrency } from "@/lib/currency";
 import { fetchJsonEnvelope } from "@/lib/clientFetch";
 
 function getCurrentMonth(): string {
@@ -176,9 +177,10 @@ export function useExpensesController() {
 
   const { toast } = useToast();
   const [deleteTarget, setDeleteTarget] = useState<{
-    type: "headcount" | "expense";
+    type: "headcount" | "expense" | "bulk";
     id: string;
     name: string;
+    count?: number;
   } | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
@@ -190,13 +192,14 @@ export function useExpensesController() {
         setError(null);
         setLoadWarnings(null);
 
-        const planResult = await fetchJsonEnvelope<{ id: string }>(
+        const planResult = await fetchJsonEnvelope<{ id: string; currency: string }>(
           "/api/plans/current"
         );
         if (!planResult.ok) throw new Error(planResult.error);
 
         const id = planResult.data.id;
         setPlanId(id);
+        setActiveCurrency(planResult.data.currency);
 
         const [peopleRes, expensesRes, assumptionsRes] = await Promise.all([
           fetchJsonEnvelope<Person[]>(
@@ -537,15 +540,44 @@ export function useExpensesController() {
     }
   };
 
-  const handleBulkDeleteNonPeople = async () => {
+  const handleBulkDeleteNonPeople = async (): Promise<boolean> => {
     const ids = [...selectedNonPeople];
-    if (ids.length === 0) return;
-    let ok = 0;
-    for (const id of ids) {
-      if (await handleDeleteNonHeadcount(id)) ok += 1;
+    if (ids.length === 0 || !planId) return false;
+
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const res = await fetch(`/api/expenses/${id}?planId=${planId}`, {
+            method: "DELETE",
+          });
+          const data = (await res.json()) as { success: boolean };
+          return res.ok && data.success ? id : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    const deleted = new Set(results.filter((id): id is string => id !== null));
+    if (deleted.size > 0) {
+      setNonHeadcountRows((prev) => prev.filter((row) => !deleted.has(row.id)));
+      if (editingNonHeadcountId && deleted.has(editingNonHeadcountId)) {
+        handleCancelEditNonHeadcount();
+      }
     }
     setSelectedNonPeople(new Set());
-    if (ok > 0) toast(`${ok} cost${ok !== 1 ? "s" : ""} deleted`);
+
+    const failed = ids.length - deleted.size;
+    if (failed > 0) {
+      toast(
+        `${failed} cost${failed !== 1 ? "s" : ""} could not be deleted`,
+        "error"
+      );
+    } else {
+      toast(`${deleted.size} cost${deleted.size !== 1 ? "s" : ""} deleted`);
+    }
+    // Close the dialog either way; partial failures are reported via toast.
+    return true;
   };
 
   const handleDuplicateNonPeople = async () => {
@@ -615,6 +647,17 @@ export function useExpensesController() {
     setDeleteTarget({ type: "expense", id, name: row?.name ?? "this expense" });
   };
 
+  const requestBulkDeleteNonPeople = () => {
+    const count = selectedNonPeople.size;
+    if (count === 0) return;
+    setDeleteTarget({
+      type: "bulk",
+      id: "",
+      name: `${count} selected cost${count !== 1 ? "s" : ""}`,
+      count,
+    });
+  };
+
   const confirmDeleteTarget = async () => {
     if (!deleteTarget || deleteBusy) return;
     setDeleteBusy(true);
@@ -622,7 +665,9 @@ export function useExpensesController() {
       const ok =
         deleteTarget.type === "headcount"
           ? await handleDeleteHeadcount(deleteTarget.id)
-          : await handleDeleteNonHeadcount(deleteTarget.id);
+          : deleteTarget.type === "bulk"
+            ? await handleBulkDeleteNonPeople()
+            : await handleDeleteNonHeadcount(deleteTarget.id);
       if (ok) setDeleteTarget(null);
     } finally {
       setDeleteBusy(false);
@@ -679,6 +724,7 @@ export function useExpensesController() {
     nonHeadcountSummary,
     requestDeleteHeadcount,
     requestDeleteNonHeadcount,
+    requestBulkDeleteNonPeople,
     confirmDeleteTarget,
     cancelDeleteTarget,
   };

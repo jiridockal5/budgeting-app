@@ -5,6 +5,8 @@
  * forecasts for the current plan.
  */
 
+import { formatCurrencyValue } from "@/lib/currency";
+
 export interface CashFundraisingAssumptions {
   /** Starting cash balance in EUR */
   cashOnHand: number;
@@ -110,15 +112,11 @@ export const ASSUMPTION_HELPERS: Record<keyof GlobalAssumptions, string> = {
 };
 
 /**
- * Formats a number as currency (EUR)
+ * Formats a number as currency using the plan's active currency
+ * (see lib/currency.ts). Pass an explicit code to override.
  */
-export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+export function formatCurrency(value: number, currency?: string | null): string {
+  return formatCurrencyValue(value, currency);
 }
 
 /**

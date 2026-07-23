@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X, ChevronRight } from "lucide-react";
 import { navItems } from "@/config/navItems";
 import { TURQUOISE_GLOW } from "@/lib/turquoise";
@@ -130,6 +130,21 @@ export function Sidebar() {
 
   const closeMobileMenu = () => setMobileOpen(false);
 
+  // Close drawer with Escape and lock body scroll while it is open
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
   return (
     <>
       {/* Mobile menu button */}
@@ -151,6 +166,10 @@ export function Sidebar() {
 
       {/* Mobile sidebar */}
       <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        aria-hidden={!mobileOpen}
         className={`fixed inset-y-0 left-0 z-40 flex w-[250px] flex-col border-r border-neutral-200 bg-white transition-transform duration-200 lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}

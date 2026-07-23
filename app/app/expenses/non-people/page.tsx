@@ -88,7 +88,7 @@ export default function NonPeopleCostsPage() {
             selectedIds={controller.selectedNonPeople}
             setSelectedIds={controller.setSelectedNonPeople}
             onBulkScale={controller.handleBulkScale}
-            onBulkDelete={controller.handleBulkDeleteNonPeople}
+            onBulkDelete={controller.requestBulkDeleteNonPeople}
             onBulkDuplicate={controller.handleDuplicateNonPeople}
           />
 
@@ -114,10 +114,20 @@ export default function NonPeopleCostsPage() {
 
           <ConfirmDialog
             open={controller.deleteTarget !== null}
-            title={`Delete ${
-              controller.deleteTarget?.type === "headcount" ? "role" : "expense"
-            }?`}
-            description={`Are you sure you want to delete "${controller.deleteTarget?.name}"? This action cannot be undone.`}
+            title={
+              controller.deleteTarget?.type === "bulk"
+                ? `Delete ${controller.deleteTarget.name}?`
+                : `Delete ${
+                    controller.deleteTarget?.type === "headcount"
+                      ? "role"
+                      : "expense"
+                  }?`
+            }
+            description={
+              controller.deleteTarget?.type === "bulk"
+                ? `Are you sure you want to delete ${controller.deleteTarget.name}? This action cannot be undone.`
+                : `Are you sure you want to delete "${controller.deleteTarget?.name}"? This action cannot be undone.`
+            }
             confirmPending={controller.deleteBusy}
             confirmPendingLabel="Deleting…"
             onConfirm={controller.confirmDeleteTarget}

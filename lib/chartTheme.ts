@@ -1,4 +1,5 @@
 import { TURQUOISE } from "@/lib/turquoise";
+import { currencySymbol } from "@/lib/currency";
 
 export const CHART_PALETTE = [
   TURQUOISE[500],
@@ -49,10 +50,11 @@ export function makeTickLabelFormatter(labels: string[]) {
 }
 
 export function defaultCurrencyFormat(value: number): string {
+  const symbol = currencySymbol();
   if (Math.abs(value) >= 1_000_000)
-    return `€${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `€${(value / 1_000).toFixed(0)}K`;
-  return `€${value.toFixed(0)}`;
+    return `${symbol}${(value / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1_000) return `${symbol}${(value / 1_000).toFixed(0)}K`;
+  return `${symbol}${value.toFixed(0)}`;
 }
 
 export function sampleMonths<T>(months: T[], maxPoints = 24): T[] {

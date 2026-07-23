@@ -6,13 +6,12 @@ import { ArrowRight, Banknote, AlertTriangle, TrendingDown } from "lucide-react"
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { formatCurrency } from "@/lib/assumptions";
+import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
+import { exportForecastCSV } from "@/lib/export";
 import type { ForecastMonth, ForecastResult } from "@/lib/revenueForecast";
 
 function formatCompact(value: number): string {
-  if (Math.abs(value) >= 1_000_000)
-    return `€${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `€${Math.round(value / 1_000)}K`;
-  return formatCurrency(Math.round(value));
+  return formatCompactCurrency(value);
 }
 
 export default function RunwayPage() {
@@ -27,6 +26,7 @@ export default function RunwayPage() {
         const planRes = await fetch("/api/plans/current");
         const planData = await planRes.json();
         if (!planData.success) throw new Error(planData.error);
+        setActiveCurrency(planData.data.currency);
 
         const res = await fetch(`/api/forecast?planId=${planData.data.id}`);
         const data = await res.json();
@@ -91,13 +91,24 @@ export default function RunwayPage() {
             title="Runway"
             subtitle="How long your cash will last at the current burn rate."
             actions={
-              <Link
-                href="/app/assumptions"
-                className="inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800"
-              >
-                Edit cash & assumptions
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+              <div className="flex items-center gap-2">
+                {forecast && (
+                  <button
+                    type="button"
+                    onClick={() => exportForecastCSV(forecast)}
+                    className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50"
+                  >
+                    Export CSV
+                  </button>
+                )}
+                <Link
+                  href="/app/assumptions"
+                  className="inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800"
+                >
+                  Edit cash & assumptions
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             }
           />
 

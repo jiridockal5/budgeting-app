@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
 import {
   ArrowRight,
   CalendarRange,
@@ -17,6 +17,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MonthPicker } from "@/components/ui/MonthPicker";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 import {
   ASSUMPTION_HELPERS,
   DEFAULT_ASSUMPTIONS,
@@ -26,7 +27,15 @@ import {
   GlobalAssumptions,
   normalizeAssumptions,
 } from "@/lib/assumptions";
-import { dateToMonth } from "@/lib/revenueForecast";
+import {
+  CURRENCY_LABELS,
+  SUPPORTED_CURRENCIES,
+  currencySymbol,
+  normalizeCurrency,
+  setActiveCurrency,
+  type CurrencyCode,
+} from "@/lib/currency";
+import { dateToMonth, type ForecastSummary } from "@/lib/revenueForecast";
 import { parseApiError } from "@/lib/apiErrorUtils";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
 
@@ -43,15 +52,27 @@ type NumericField =
   | "commissionRate"
   | "inflationRate";
 
+interface DerivedOutputs {
+  runwayMonths: number;
+  cashOutMonth: string | null;
+  suggestedRaise: number | null;
+}
+
 export default function AssumptionsPage() {
   const [assumptions, setAssumptions] =
     useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
   const [planId, setPlanId] = useState<string | null>(null);
-  const [planSettings, setPlanSettings] = useState({ startMonth: "", months: 24 });
+  const [planSettings, setPlanSettings] = useState({
+    startMonth: "",
+    months: 24,
+    currency: "EUR" as CurrencyCode,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDefault, setIsDefault] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [derived, setDerived] = useState<DerivedOutputs | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function loadData() {
@@ -70,6 +91,7 @@ export default function AssumptionsPage() {
         setPlanSettings({
           startMonth: dateToMonth(planData.data.startMonth),
           months: planData.data.months,
+          currency: setActiveCurrency(planData.data.currency),
         });
 
         const assumptionsRes = await fetch(
@@ -168,15 +190,74 @@ export default function AssumptionsPage() {
   });
 
   const combinedSaving = autoSave.saving || planAutoSave.saving;
-  const combinedLastSaved = autoSave.lastSaved && planAutoSave.lastSaved
-    ? new Date(Math.max(autoSave.lastSaved.getTime(), planAutoSave.lastSaved.getTime()))
-    : autoSave.lastSaved || planAutoSave.lastSaved;
+  const combinedLastSaved = useMemo(
+    () =>
+      autoSave.lastSaved && planAutoSave.lastSaved
+        ? new Date(
+            Math.max(
+              autoSave.lastSaved.getTime(),
+              planAutoSave.lastSaved.getTime()
+            )
+          )
+        : autoSave.lastSaved || planAutoSave.lastSaved,
+    [autoSave.lastSaved, planAutoSave.lastSaved]
+  );
   const combinedError = autoSave.error || planAutoSave.error;
   const saveLabel = useAutoSaveLabel({
     saving: combinedSaving,
     lastSaved: combinedLastSaved,
     error: combinedError,
   });
+
+  // Surface save failures immediately — the inline banner sits below the fold.
+  useEffect(() => {
+    if (combinedError) toast(combinedError, "error");
+  }, [combinedError, toast]);
+
+  const assumptionsRef = useRef(assumptions);
+  assumptionsRef.current = assumptions;
+
+  // ── Derived outputs (runway, cash-out, suggested raise) ──
+  // Recomputed on load and after every saved change so the sidebar reflects
+  // the numbers a founder is actually tuning for.
+  useEffect(() => {
+    if (!planId) return;
+    let cancelled = false;
+
+    async function loadDerived() {
+      try {
+        const res = await fetch(
+          `/api/forecast?planId=${encodeURIComponent(planId!)}`
+        );
+        const data = await res.json();
+        if (!data.success || cancelled) return;
+
+        const summary = data.data.summary as ForecastSummary;
+        const months = data.data.months as { date: string; cashRemaining: number }[];
+        const zeroMonth = months.find((m) => m.cashRemaining <= 0);
+
+        const target = assumptionsRef.current.targetRunwayMonths;
+        const burn = summary.monthlyBurn;
+        const suggestedRaise =
+          target != null && summary.runwayMonths < target && burn > 0
+            ? Math.ceil(((target - summary.runwayMonths) * burn) / 10000) * 10000
+            : null;
+
+        setDerived({
+          runwayMonths: summary.runwayMonths,
+          cashOutMonth: zeroMonth?.date ?? null,
+          suggestedRaise,
+        });
+      } catch {
+        // Non-critical sidebar data; leave previous values in place.
+      }
+    }
+
+    loadDerived();
+    return () => {
+      cancelled = true;
+    };
+  }, [planId, combinedLastSaved]);
 
   if (loading) {
     return (
@@ -288,6 +369,34 @@ export default function AssumptionsPage() {
                       suffix="months"
                       type="number"
                     />
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="plan-currency"
+                        className="block text-sm font-medium text-neutral-700"
+                      >
+                        Currency
+                      </label>
+                      <select
+                        id="plan-currency"
+                        value={planSettings.currency}
+                        onChange={(e) => {
+                          const currency = normalizeCurrency(e.target.value);
+                          setActiveCurrency(currency);
+                          setPlanSettings((prev) => ({ ...prev, currency }));
+                        }}
+                        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm transition focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
+                      >
+                        {SUPPORTED_CURRENCIES.map((code) => (
+                          <option key={code} value={code}>
+                            {CURRENCY_LABELS[code]}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs leading-relaxed text-neutral-500">
+                        Used for all amounts across the forecast, charts, and
+                        exports.
+                      </p>
+                    </div>
                   </div>
                 </SectionCard>
 
@@ -307,14 +416,13 @@ export default function AssumptionsPage() {
                     </p>
                   </div>
 
-                  {/* TODO: Reintroduce minCashBuffer under an "Advanced settings" section in a future version. */}
                   <div className="grid gap-5 sm:grid-cols-2">
                     <InputField
                       label="Starting cash"
                       value={assumptions.cashOnHand}
                       onChange={(value) => updateNumericField("cashOnHand", value)}
                       helper={ASSUMPTION_HELPERS.cashOnHand}
-                      prefix="€"
+                      prefix={currencySymbol(planSettings.currency)}
                       type="number"
                     />
                     <InputField
@@ -333,7 +441,7 @@ export default function AssumptionsPage() {
                         })
                       }
                       helper={ASSUMPTION_HELPERS.plannedRaiseAmount}
-                      prefix="€"
+                      prefix={currencySymbol(planSettings.currency)}
                       type="number"
                       optional
                     />
@@ -466,9 +574,15 @@ export default function AssumptionsPage() {
                     />
                   </div>
                   <p className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-3 text-xs leading-relaxed text-neutral-500">
-                    TODO: detailed category-level expense assumptions and any
-                    month-by-month inputs should live on the Expenses page instead
-                    of here.
+                    Looking for specific cost lines? Detailed category-level and
+                    month-by-month cost inputs live on the{" "}
+                    <Link
+                      href="/app/expenses"
+                      className="font-medium text-turquoise-600 hover:underline"
+                    >
+                      Expenses page
+                    </Link>
+                    .
                   </p>
                 </SectionCard>
 
@@ -530,26 +644,42 @@ export default function AssumptionsPage() {
                     />
                   </div>
 
-                  {/* TODO: Wire runway, cash-out month, and suggested raise needed from forecast summary.
-                      These require loading forecast results on this page or computing inline. */}
                   <div className="mt-4 space-y-3 rounded-2xl border border-dashed border-turquoise-200 bg-turquoise-50/40 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-turquoise-600">
-                      Derived outputs
+                      Live forecast outputs
                     </p>
                     <DecisionPoint
                       title="Runway"
-                      value="—"
-                      detail="Projected months of funding remaining."
+                      value={
+                        derived == null
+                          ? "—"
+                          : derived.runwayMonths >= 999
+                            ? "Profitable"
+                            : `${Math.round(derived.runwayMonths)} months`
+                      }
+                      detail="Projected months of funding remaining. Updates as you save changes."
                     />
                     <DecisionPoint
                       title="Cash-out month"
-                      value="—"
+                      value={
+                        derived == null
+                          ? "—"
+                          : derived.cashOutMonth
+                            ? formatMonth(derived.cashOutMonth)
+                            : "Beyond forecast"
+                      }
                       detail="Estimated month when cash reaches zero."
                     />
                     <DecisionPoint
                       title="Suggested raise needed"
-                      value="—"
-                      detail="Estimated funding required to hit target runway."
+                      value={
+                        derived == null
+                          ? "—"
+                          : derived.suggestedRaise != null
+                            ? formatCurrency(derived.suggestedRaise)
+                            : "On target"
+                      }
+                      detail="Estimated funding required to hit your target runway."
                     />
                   </div>
                 </div>
