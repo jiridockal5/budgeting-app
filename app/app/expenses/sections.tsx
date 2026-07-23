@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { MonthPicker } from "@/components/ui/MonthPicker";
+import { NumberInput } from "@/components/ui/NumberInput";
 import {
   type GlobalAssumptions,
   formatCurrency,
@@ -467,15 +468,12 @@ export function HeadcountSection({
                 ? `Base Salary (${currencySymbol()}/mo)`
                 : `Rate (${currencySymbol()}/mo)`}
             </label>
-            <input
-              type="number"
-              min="0"
-              step="100"
+            <NumberInput
               value={form.baseSalary || ""}
-              onChange={(e) =>
+              onChange={(value) =>
                 setForm((prev) => ({
                   ...prev,
-                  baseSalary: parseFloat(e.target.value) || 0,
+                  baseSalary: parseFloat(value) || 0,
                 }))
               }
               placeholder="5000"
@@ -486,16 +484,12 @@ export function HeadcountSection({
             <label className="block text-xs font-medium text-neutral-600 mb-1">
               FTE
             </label>
-            <input
-              type="number"
-              min="0"
-              max="1"
-              step="0.1"
+            <NumberInput
               value={form.fte}
-              onChange={(e) =>
+              onChange={(value) =>
                 setForm((prev) => ({
                   ...prev,
-                  fte: parseFloat(e.target.value) || 1,
+                  fte: parseFloat(value) || 1,
                 }))
               }
               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
@@ -699,12 +693,11 @@ export function NonHeadcountSection({
             <label htmlFor="bulk-custom-pct" className="sr-only">
               Adjust selected costs by percent
             </label>
-            <input
+            <NumberInput
               id="bulk-custom-pct"
-              type="number"
-              step="1"
+              allowNegative
               value={customPct}
-              onChange={(e) => setCustomPct(e.target.value)}
+              onChange={setCustomPct}
               onKeyDown={(e) => {
                 if (e.key === "Enter") applyCustomPct();
               }}
@@ -1180,15 +1173,12 @@ export function CostMethodFields({
         <>
           {labeled(
             `Amount (${currencySymbol()})`,
-            <input
-              type="number"
-              min="0"
-              step="100"
+            <NumberInput
               value={form.amount || ""}
-              onChange={(e) =>
+              onChange={(value) =>
                 setForm((prev) => ({
                   ...prev,
-                  amount: parseFloat(e.target.value) || 0,
+                  amount: parseFloat(value) || 0,
                 }))
               }
               placeholder="1000"
@@ -1221,15 +1211,12 @@ export function CostMethodFields({
         <>
           {labeled(
             `Starting amount (${currencySymbol()}/mo)`,
-            <input
-              type="number"
-              min="0"
-              step="100"
+            <NumberInput
               value={form.amount || ""}
-              onChange={(e) =>
+              onChange={(value) =>
                 setForm((prev) => ({
                   ...prev,
-                  amount: parseFloat(e.target.value) || 0,
+                  amount: parseFloat(value) || 0,
                 }))
               }
               placeholder="1000"
@@ -1238,12 +1225,11 @@ export function CostMethodFields({
           )}
           {labeled(
             "Growth rate (%)",
-            <input
-              type="number"
-              step="1"
+            <NumberInput
+              allowNegative
               value={form.config.growthRate}
-              onChange={(e) =>
-                patchConfig({ growthRate: parseFloat(e.target.value) || 0 })
+              onChange={(value) =>
+                patchConfig({ growthRate: parseFloat(value) || 0 })
               }
               className={fieldClass}
             />
@@ -1277,12 +1263,10 @@ export function CostMethodFields({
         <>
           {labeled(
             "Percent (%)",
-            <input
-              type="number"
-              step="1"
+            <NumberInput
               value={form.config.percent}
-              onChange={(e) =>
-                patchConfig({ percent: parseFloat(e.target.value) || 0 })
+              onChange={(value) =>
+                patchConfig({ percent: parseFloat(value) || 0 })
               }
               className={fieldClass}
             />
@@ -1308,12 +1292,10 @@ export function CostMethodFields({
         <>
           {labeled(
             `${currencySymbol()} per customer / mo`,
-            <input
-              type="number"
-              step="1"
+            <NumberInput
               value={form.config.amountPerUnit}
-              onChange={(e) =>
-                patchConfig({ amountPerUnit: parseFloat(e.target.value) || 0 })
+              onChange={(value) =>
+                patchConfig({ amountPerUnit: parseFloat(value) || 0 })
               }
               className={fieldClass}
             />
@@ -1350,12 +1332,10 @@ export function CostMethodFields({
         <>
           {labeled(
             `${currencySymbol()} per head / mo`,
-            <input
-              type="number"
-              step="1"
+            <NumberInput
               value={form.config.amountPerUnit}
-              onChange={(e) =>
-                patchConfig({ amountPerUnit: parseFloat(e.target.value) || 0 })
+              onChange={(value) =>
+                patchConfig({ amountPerUnit: parseFloat(value) || 0 })
               }
               className={fieldClass}
             />
@@ -1487,14 +1467,13 @@ export function ScheduleEditor({
                         }}
                       />
                     </div>
-                    <input
-                      type="number"
+                    <NumberInput
                       value={step.amount}
-                      onChange={(e) => {
+                      onChange={(value) => {
                         const next = [...steps];
                         next[idx] = {
                           ...next[idx],
-                          amount: parseFloat(e.target.value) || 0,
+                          amount: parseFloat(value) || 0,
                         };
                         setConfig({ steps: next });
                       }}
@@ -1529,16 +1508,15 @@ export function ScheduleEditor({
                   <label className="block text-[10px] text-neutral-400 mb-0.5">
                     {month}
                   </label>
-                  <input
-                    type="number"
+                  <NumberInput
                     value={overrides[month] ?? ""}
                     placeholder="—"
-                    onChange={(e) => {
+                    onChange={(value) => {
                       const next = { ...overrides };
-                      if (e.target.value === "") {
+                      if (value === "") {
                         delete next[month];
                       } else {
-                        next[month] = parseFloat(e.target.value) || 0;
+                        next[month] = parseFloat(value) || 0;
                       }
                       setConfig({ overrides: next });
                     }}

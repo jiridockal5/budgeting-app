@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MonthPicker } from "@/components/ui/MonthPicker";
+import { NumberInput } from "@/components/ui/NumberInput";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import {
@@ -911,14 +912,29 @@ function InputField({
             placeholder="Select month"
             allowClear={optional || label === "Planned raise month"}
           />
+        ) : type === "number" ? (
+          <>
+            <NumberInput
+              value={value}
+              onChange={onChange}
+              className={`w-full rounded-xl bg-white py-2.5 text-sm text-neutral-900 shadow-sm transition placeholder:text-neutral-400 focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100 ${
+                optional
+                  ? "border border-dashed border-neutral-300"
+                  : "border border-neutral-200"
+              } ${prefix ? "pl-8" : "pl-3"} ${suffix ? "pr-12" : "pr-3"}`}
+            />
+            {suffix && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
+                {suffix}
+              </span>
+            )}
+          </>
         ) : (
           <>
             <input
               type={type}
               value={displayValue}
               onChange={(e) => onChange(e.target.value)}
-              step={type === "number" ? "any" : undefined}
-              min={type === "number" ? "0" : undefined}
               className={`w-full rounded-xl bg-white py-2.5 text-sm text-neutral-900 shadow-sm transition placeholder:text-neutral-400 focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100 ${
                 optional
                   ? "border border-dashed border-neutral-300"

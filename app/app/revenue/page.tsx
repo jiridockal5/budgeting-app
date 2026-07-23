@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { NumberInput } from "@/components/ui/NumberInput";
 import {
   GlobalAssumptions,
   DEFAULT_ASSUMPTIONS,
@@ -832,12 +833,10 @@ function StreamInputField({
             {prefix}
           </span>
         )}
-        <input
-          type="number"
+        <NumberInput
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          step="any"
-          min="0"
+          onChange={onChange}
+          min={0}
           className={`
             w-full rounded-xl border border-neutral-200 bg-white py-2.5 text-sm text-neutral-900
             shadow-sm transition placeholder:text-neutral-400
