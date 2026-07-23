@@ -61,21 +61,21 @@ export interface GlobalAssumptions
 }
 
 export const DEFAULT_ASSUMPTIONS: GlobalAssumptions = {
-  cashOnHand: 500000,
+  cashOnHand: 0,
   plannedRaiseMonth: null,
   plannedRaiseAmount: null,
   fundraisingFees: 0,
-  minCashBuffer: 100000,
-  targetRunwayMonths: 18,
-  churnRate: 3,
-  expansionRate: 5,
-  paymentTimingDays: 30,
+  minCashBuffer: null,
+  targetRunwayMonths: null,
+  churnRate: 0,
+  expansionRate: 0,
+  paymentTimingDays: 0,
   priceUplift: null,
-  salaryTaxRate: 35,
-  salaryGrowthRate: 5,
-  commissionRate: 10,
-  inflationRate: 2,
-  baseAcv: 12000,
+  salaryTaxRate: 0,
+  salaryGrowthRate: 0,
+  commissionRate: 0,
+  inflationRate: 0,
+  baseAcv: 0,
 };
 
 /**

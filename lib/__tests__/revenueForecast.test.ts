@@ -10,8 +10,56 @@ import {
 } from "../revenueForecast";
 import { DEFAULT_ASSUMPTIONS } from "../assumptions";
 
+/** Non-zero fixtures for growth / tax tests (product defaults are now blank). */
+const SAMPLE_REVENUE_CONFIG: RevenueConfig = {
+  plg: {
+    monthlyTrials: 500,
+    trialConversionRate: 8,
+    avgAcv: 12000,
+    monthlyDealShare: 0,
+    monthlyArpa: 1000,
+    churnRate: 3,
+    expansionRate: 5,
+  },
+  sales: {
+    monthlySqls: 50,
+    closeRate: 25,
+    avgAcv: 12000,
+    monthlyDealShare: 0,
+    monthlyArpa: 1000,
+    churnRate: 3,
+    expansionRate: 5,
+  },
+  partners: {
+    monthlyReferrals: 20,
+    closeRate: 40,
+    avgAcv: 12000,
+    monthlyDealShare: 0,
+    monthlyArpa: 1000,
+    commissionRate: 20,
+  },
+};
+
+const SAMPLE_ASSUMPTIONS: AssumptionsInput = {
+  cashOnHand: 500000,
+  plannedRaiseMonth: null,
+  plannedRaiseAmount: null,
+  fundraisingFees: 0,
+  minCashBuffer: 100000,
+  targetRunwayMonths: 18,
+  churnRate: 3,
+  expansionRate: 5,
+  paymentTimingDays: 30,
+  priceUplift: null,
+  salaryTaxRate: 35,
+  salaryGrowthRate: 5,
+  commissionRate: 10,
+  inflationRate: 2,
+  baseAcv: 12000,
+};
+
 const defaultAssumptions: AssumptionsInput = {
-  ...DEFAULT_ASSUMPTIONS,
+  ...SAMPLE_ASSUMPTIONS,
 };
 
 const emptyExpenses: ExpenseInput = {
@@ -40,7 +88,7 @@ describe("buildForecast", () => {
     const result = buildForecast(
       12,
       "2025-01",
-      DEFAULT_REVENUE_CONFIG,
+      SAMPLE_REVENUE_CONFIG,
       emptyExpenses,
       defaultAssumptions
     );
@@ -60,11 +108,24 @@ describe("buildForecast", () => {
     expect(result.summary.projectedArr).toBe(0);
   });
 
+  it("product starter defaults are blank (zero revenue)", () => {
+    const result = buildForecast(
+      6,
+      "2025-01",
+      DEFAULT_REVENUE_CONFIG,
+      emptyExpenses,
+      DEFAULT_ASSUMPTIONS
+    );
+    expect(result.months[5].totalMrr).toBe(0);
+    expect(result.summary.projectedArr).toBe(0);
+    expect(result.summary.cashOnHand).toBe(0);
+  });
+
   it("MRR increases over time with positive revenue config", () => {
     const result = buildForecast(
       12,
       "2025-01",
-      DEFAULT_REVENUE_CONFIG,
+      SAMPLE_REVENUE_CONFIG,
       emptyExpenses,
       defaultAssumptions
     );
@@ -76,7 +137,7 @@ describe("buildForecast", () => {
     const result = buildForecast(
       12,
       "2025-01",
-      DEFAULT_REVENUE_CONFIG,
+      SAMPLE_REVENUE_CONFIG,
       emptyExpenses,
       defaultAssumptions
     );
@@ -144,7 +205,7 @@ describe("buildForecast", () => {
     const result = buildForecast(
       12,
       "2025-01",
-      DEFAULT_REVENUE_CONFIG,
+      SAMPLE_REVENUE_CONFIG,
       expenses,
       defaultAssumptions
     );
@@ -166,7 +227,7 @@ describe("buildForecast", () => {
     const result = buildForecast(
       1,
       "2025-01",
-      DEFAULT_REVENUE_CONFIG,
+      SAMPLE_REVENUE_CONFIG,
       expenses,
       defaultAssumptions
     );
@@ -183,7 +244,7 @@ describe("buildForecast", () => {
       ],
     };
 
-    const result = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const result = buildForecast(1, "2025-01", SAMPLE_REVENUE_CONFIG, expenses, defaultAssumptions);
     expect(result.months[0].nonHeadcountExpense).toBe(1000);
   });
 
@@ -195,7 +256,7 @@ describe("buildForecast", () => {
       ],
     };
 
-    const result = buildForecast(6, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const result = buildForecast(6, "2025-01", SAMPLE_REVENUE_CONFIG, expenses, defaultAssumptions);
     expect(result.months[0].nonHeadcountExpense).toBe(0);
     expect(result.months[1].nonHeadcountExpense).toBe(0);
     expect(result.months[2].nonHeadcountExpense).toBe(5000);
@@ -210,7 +271,7 @@ describe("buildForecast", () => {
       nonHeadcount: [],
     };
 
-    const result = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const result = buildForecast(1, "2025-01", SAMPLE_REVENUE_CONFIG, expenses, defaultAssumptions);
     expect(result.months[0].netBurn).toBeGreaterThan(0);
   });
 
@@ -267,7 +328,7 @@ describe("buildForecast", () => {
     const result = buildForecast(
       12,
       "2025-01",
-      DEFAULT_REVENUE_CONFIG,
+      SAMPLE_REVENUE_CONFIG,
       emptyExpenses,
       defaultAssumptions
     );
@@ -282,7 +343,7 @@ describe("buildForecast", () => {
   });
 
   it("handles empty months", () => {
-    const result = buildForecast(0, "2025-01", DEFAULT_REVENUE_CONFIG, emptyExpenses, defaultAssumptions);
+    const result = buildForecast(0, "2025-01", SAMPLE_REVENUE_CONFIG, emptyExpenses, defaultAssumptions);
     expect(result.months).toHaveLength(0);
     expect(result.summary.projectedArr).toBe(0);
   });
@@ -298,8 +359,8 @@ describe("buildForecast", () => {
     };
     const noInflation = { ...defaultAssumptions, salaryGrowthRate: 0, salaryTaxRate: 35 };
 
-    const emp = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, employee, noInflation);
-    const con = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, contractor, noInflation);
+    const emp = buildForecast(1, "2025-01", SAMPLE_REVENUE_CONFIG, employee, noInflation);
+    const con = buildForecast(1, "2025-01", SAMPLE_REVENUE_CONFIG, contractor, noInflation);
 
     expect(emp.months[0].headcountExpense).toBeCloseTo(5000 * 1.35, 2);
     expect(con.months[0].headcountExpense).toBeCloseTo(5000, 2);
@@ -312,7 +373,7 @@ describe("buildForecast", () => {
       ],
       nonHeadcount: [],
     };
-    const result = buildForecast(4, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const result = buildForecast(4, "2025-01", SAMPLE_REVENUE_CONFIG, expenses, defaultAssumptions);
     expect(result.months[1].headcountExpense).toBeGreaterThan(0); // Feb: active
     expect(result.months[2].headcountExpense).toBe(0); // Mar: departed
   });
@@ -374,7 +435,7 @@ describe("flexible cost model", () => {
 
   it("percentOfRevenue scales with total MRR", () => {
     const revenue: RevenueConfig = {
-      ...DEFAULT_REVENUE_CONFIG,
+      ...SAMPLE_REVENUE_CONFIG,
     };
     const result = buildForecast(
       1,
@@ -401,7 +462,7 @@ describe("flexible cost model", () => {
     const result = buildForecast(
       1,
       "2025-01",
-      DEFAULT_REVENUE_CONFIG,
+      SAMPLE_REVENUE_CONFIG,
       nonHeadcount([
         {
           name: "Support",
@@ -525,8 +586,8 @@ describe("buildForecast headcount scaling", () => {
       nonHeadcount: [],
     };
 
-    const fullResult = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, fullTimeExpenses, defaultAssumptions);
-    const halfResult = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, halfTimeExpenses, defaultAssumptions);
+    const fullResult = buildForecast(1, "2025-01", SAMPLE_REVENUE_CONFIG, fullTimeExpenses, defaultAssumptions);
+    const halfResult = buildForecast(1, "2025-01", SAMPLE_REVENUE_CONFIG, halfTimeExpenses, defaultAssumptions);
 
     expect(halfResult.months[0].headcountExpense).toBeCloseTo(
       fullResult.months[0].headcountExpense / 2,
@@ -548,7 +609,7 @@ describe("category expense rollups and P&L", () => {
         { name: "Office", category: "ops", amount: 300, frequency: "monthly", startMonth: "2025-01" },
       ],
     };
-    const result = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const result = buildForecast(1, "2025-01", SAMPLE_REVENUE_CONFIG, expenses, defaultAssumptions);
     const m = result.months[0];
     const categorySum =
       m.cosExpense + m.gtmExpense + m.rndExpense + m.csExpense + m.opsExpense;
@@ -565,7 +626,7 @@ describe("category expense rollups and P&L", () => {
         { name: "Hosting", category: "cos", amount: 2000, frequency: "monthly", startMonth: "2025-01" },
       ],
     };
-    const result = buildForecast(3, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const result = buildForecast(3, "2025-01", SAMPLE_REVENUE_CONFIG, expenses, defaultAssumptions);
     const last = result.months[2];
     expect(last.totalMrr).toBeGreaterThan(0);
     expect(last.grossProfit).toBeCloseTo(last.totalMrr - last.cosExpense, 2);
@@ -586,7 +647,7 @@ describe("category expense rollups and P&L", () => {
         { name: "Hosting", category: "cos", amount: 1000, frequency: "monthly", startMonth: "2025-01" },
       ],
     };
-    const result = buildForecast(1, "2025-01", DEFAULT_REVENUE_CONFIG, expenses, defaultAssumptions);
+    const result = buildForecast(1, "2025-01", SAMPLE_REVENUE_CONFIG, expenses, defaultAssumptions);
     const m = result.months[0];
     const expectedOpEx = m.gtmExpense + m.rndExpense + m.csExpense + m.opsExpense;
     expect(m.operatingExpenses).toBeCloseTo(expectedOpEx, 2);
@@ -598,7 +659,7 @@ describe("category expense rollups and P&L", () => {
     const result = buildForecast(
       12,
       "2025-01",
-      DEFAULT_REVENUE_CONFIG,
+      SAMPLE_REVENUE_CONFIG,
       {
         headcount: [
           { role: "AE", category: "gtm", baseSalary: 5000, fte: 1, startMonth: "2025-01" },
