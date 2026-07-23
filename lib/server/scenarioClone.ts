@@ -106,8 +106,7 @@ export async function cloneScenarioInputs(
  * empty people/expenses. Onboarding treats this as incomplete until the user saves.
  */
 export async function seedFreshScenarioInputs(
-  scenarioId: string,
-  _planId: string
+  scenarioId: string
 ): Promise<void> {
   await prisma.globalAssumptions.deleteMany({ where: { scenarioId } });
   await prisma.person.deleteMany({ where: { scenarioId } });

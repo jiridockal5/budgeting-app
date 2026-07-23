@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await seedFreshScenarioInputs(scenario.id, plan.id);
+    await seedFreshScenarioInputs(scenario.id);
 
     return NextResponse.json(
       { success: true, data: scenario },

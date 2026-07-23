@@ -84,6 +84,6 @@ export async function ensureDefaultScenario(plan: Plan): Promise<ForecastScenari
       config: Prisma.DbNull,
     },
   });
-  await seedFreshScenarioInputs(scenario.id, plan.id);
+  await seedFreshScenarioInputs(scenario.id);
   return scenario;
 }
