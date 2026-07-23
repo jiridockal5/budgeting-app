@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
+import { ScenarioSelect } from "@/components/scenario/ScenarioSelect";
 import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
 import type { ForecastResult, ForecastMonth } from "@/lib/revenueForecast";
 
@@ -379,17 +380,14 @@ export default function ScenariosPage() {
                   </button>
                 </div>
                 {createMode === "copy" && (
-                  <select
+                  <ScenarioSelect
+                    options={scenarios}
                     value={sourceScenarioId}
-                    onChange={(e) => setSourceScenarioId(e.target.value)}
-                    className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
-                  >
-                    {scenarios.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSourceScenarioId}
+                    label="Copy from scenario"
+                    menuLabel="Copy from"
+                    placeholder="Choose scenario"
+                  />
                 )}
                 {createMode === "fresh" && (
                   <p className="text-xs text-neutral-500">

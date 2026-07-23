@@ -47,7 +47,21 @@ WHERE fs."planId" = ex."planId"
   AND fs."name" = 'Default'
   AND ex."scenarioId" IS NULL;
 
--- 4) Backfill non-Default scenarios: clone Default assumptions
+-- 4) Drop old planId uniqueness BEFORE cloning (one assumptions row per plan → per scenario)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'global_assumptions_planId_key'
+  ) THEN
+    ALTER TABLE "global_assumptions" DROP CONSTRAINT "global_assumptions_planId_key";
+  END IF;
+END $$;
+
+-- Also drop unique index variants if the constraint name differs
+DROP INDEX IF EXISTS "global_assumptions_planId_key";
+
+-- 5) Backfill non-Default scenarios: clone Default assumptions
 INSERT INTO "global_assumptions" (
   "id", "planId", "scenarioId",
   "cashOnHand", "plannedRaiseMonth", "plannedRaiseAmount", "fundraisingFees",
@@ -125,26 +139,15 @@ WHERE ns."name" <> 'Default'
     WHERE existing."scenarioId" = ns."id"
   );
 
--- 5) Drop any orphan rows that still lack scenarioId (should be none)
+-- 6) Drop any orphan rows that still lack scenarioId (should be none)
 DELETE FROM "global_assumptions" WHERE "scenarioId" IS NULL;
 DELETE FROM "people" WHERE "scenarioId" IS NULL;
 DELETE FROM "expenses" WHERE "scenarioId" IS NULL;
 
--- 6) Enforce NOT NULL + FKs + indexes
+-- 7) Enforce NOT NULL + FKs + indexes
 ALTER TABLE "global_assumptions" ALTER COLUMN "scenarioId" SET NOT NULL;
 ALTER TABLE "people" ALTER COLUMN "scenarioId" SET NOT NULL;
 ALTER TABLE "expenses" ALTER COLUMN "scenarioId" SET NOT NULL;
-
--- Drop old planId uniqueness on assumptions (name may vary by earlier migrations)
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'global_assumptions_planId_key'
-  ) THEN
-    ALTER TABLE "global_assumptions" DROP CONSTRAINT "global_assumptions_planId_key";
-  END IF;
-END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS "global_assumptions_scenarioId_key" ON "global_assumptions"("scenarioId");
 CREATE INDEX IF NOT EXISTS "global_assumptions_planId_idx" ON "global_assumptions"("planId");
