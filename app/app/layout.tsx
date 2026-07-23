@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Sidebar from "@/components/layout/Sidebar";
 import { AccessGate, TrialBanner } from "@/components/billing/AccessGate";
+import { ActiveScenarioProvider } from "@/components/scenario/ActiveScenarioProvider";
+import { ScenarioSwitcher } from "@/components/scenario/ScenarioSwitcher";
 
 type Session = Awaited<
   ReturnType<typeof supabase.auth.getSession>
@@ -28,14 +30,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         data: { session },
       } = await supabase.auth.getSession();
 
-      // Middleware handles redirect, but we still need session for UI
       setSession(session);
       setLoading(false);
     };
 
     loadSession();
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -68,36 +68,46 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AccessGate>
-      <div className="flex min-h-screen bg-neutral-50 text-neutral-900">
-        {!isSubscribeOnly && <Sidebar />}
+      <ActiveScenarioProvider>
+        <div className="flex min-h-screen bg-neutral-50 text-neutral-900">
+          {!isSubscribeOnly && <Sidebar />}
 
-        <div className="flex flex-1 flex-col">
-          {!isSubscribeOnly && <TrialBanner />}
-          {!isSubscribeOnly && (
-          <header className="sticky top-0 z-30 border-b border-turquoise-200 bg-turquoise-50 backdrop-blur">
-          <div className="flex items-center justify-end gap-4 pl-14 pr-6 py-4 lg:pl-6 lg:px-8">
-            <div className="min-w-0 text-right">
-              <p className="hidden text-[11px] font-medium uppercase tracking-wider text-neutral-500 md:block">
-                Signed in as
-              </p>
-              <p className="truncate text-sm font-semibold text-neutral-900">
-                {email}
-              </p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-sm font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-turquoise-400 focus-visible:ring-offset-2"
-            >
-              Logout
-            </button>
+          <div className="flex flex-1 flex-col">
+            {!isSubscribeOnly && <TrialBanner />}
+            {!isSubscribeOnly && (
+              <header className="sticky top-0 z-30 border-b border-turquoise-200 bg-turquoise-50 backdrop-blur">
+                <div className="flex items-center justify-end gap-3 pl-14 pr-6 py-4 lg:gap-4 lg:pl-6 lg:px-8">
+                  <div className="mr-auto hidden lg:block">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+                      Editing scenario
+                    </p>
+                    <ScenarioSwitcher />
+                  </div>
+                  <div className="lg:hidden">
+                    <ScenarioSwitcher />
+                  </div>
+                  <div className="min-w-0 text-right">
+                    <p className="hidden text-[11px] font-medium uppercase tracking-wider text-neutral-500 md:block">
+                      Signed in as
+                    </p>
+                    <p className="truncate text-sm font-semibold text-neutral-900">
+                      {email}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-sm font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-turquoise-400 focus-visible:ring-offset-2"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </header>
+            )}
+
+            <div className="flex-1 overflow-y-auto bg-neutral-50">{children}</div>
           </div>
-        </header>
-          )}
-
-        <div className="flex-1 overflow-y-auto bg-neutral-50">{children}</div>
-      </div>
-    </div>
+        </div>
+      </ActiveScenarioProvider>
     </AccessGate>
   );
 }
-

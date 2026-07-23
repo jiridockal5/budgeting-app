@@ -6,6 +6,7 @@ import { resolveDbUser } from "@/lib/server/dbUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
 import { getUserAccessInfo } from "@/lib/planGating";
 import { captureRouteException } from "@/lib/monitoring";
+import { ensureDefaultScenario } from "@/lib/server/planScope";
 
 const patchSchema = z.object({
   months: z.number().int().min(1).max(120).optional(),
@@ -28,7 +29,7 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     });
 
-    // If no plan exists, create a default one
+    // If no plan exists, create a default one with a Default scenario
     if (!plan) {
       const denied = await requireAppAccess(user.id);
       if (denied) return denied;
@@ -42,6 +43,7 @@ export async function GET() {
           months: 24,
         },
       });
+      await ensureDefaultScenario(plan);
     }
 
     const access = await getUserAccessInfo(user.id, email);

@@ -8,6 +8,7 @@ import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { formatCurrency } from "@/lib/assumptions";
 import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
 import { exportForecastCSV } from "@/lib/export";
+import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
 import type { ForecastMonth, ForecastResult } from "@/lib/revenueForecast";
 
 function formatCompact(value: number): string {
@@ -15,11 +16,14 @@ function formatCompact(value: number): string {
 }
 
 export default function RunwayPage() {
+  const { planId, scenarioId, loading: scenarioLoading } = useActiveScenario();
   const [forecast, setForecast] = useState<ForecastResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (scenarioLoading || !planId || !scenarioId) return;
+
     async function loadData() {
       try {
         setLoading(true);
@@ -28,7 +32,8 @@ export default function RunwayPage() {
         if (!planData.success) throw new Error(planData.error);
         setActiveCurrency(planData.data.currency);
 
-        const res = await fetch(`/api/forecast?planId=${planData.data.id}`);
+        const qs = `planId=${encodeURIComponent(planData.data.id)}&scenarioId=${encodeURIComponent(scenarioId!)}`;
+        const res = await fetch(`/api/forecast?${qs}`);
         const data = await res.json();
         if (!data.success) throw new Error(data.error);
         setForecast(data.data);
@@ -39,9 +44,9 @@ export default function RunwayPage() {
       }
     }
     loadData();
-  }, []);
+  }, [planId, scenarioId, scenarioLoading]);
 
-  if (loading) {
+  if (loading || scenarioLoading || !scenarioId) {
     return (
       <main className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-6xl px-6 py-8 space-y-8">

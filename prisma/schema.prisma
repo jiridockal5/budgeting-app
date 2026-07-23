@@ -105,7 +105,7 @@ model Plan {
   expenses       Expense[]
   people         Person[]
   metrics        Metric[]
-  assumptions       GlobalAssumptions?
+  assumptions       GlobalAssumptions[]
   forecastScenarios ForecastScenario[]
 
   createdAt DateTime @default(now())
@@ -116,8 +116,10 @@ model Plan {
 
 model GlobalAssumptions {
   id               String   @id @default(cuid())
-  planId           String   @unique
+  planId           String
   plan             Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  scenarioId       String   @unique
+  scenario         ForecastScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
 
   // Cash & fundraising
   cashOnHand         Decimal  @default(0) @db.Decimal(14, 2) // Starting cash balance in EUR
@@ -147,6 +149,7 @@ model GlobalAssumptions {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  @@index([planId])
   @@map("global_assumptions")
 }
 
@@ -169,6 +172,8 @@ model Expense {
   id         String            @id @default(cuid())
   planId     String
   plan       Plan              @relation(fields: [planId], references: [id], onDelete: Cascade)
+  scenarioId String
+  scenario   ForecastScenario  @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
 
   name       String
   category   String
@@ -182,6 +187,7 @@ model Expense {
   updatedAt  DateTime          @updatedAt
 
   @@index([planId])
+  @@index([scenarioId])
   @@map("expenses")
 }
 
@@ -207,8 +213,11 @@ model Person {
 
   planId String
   plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  scenarioId String
+  scenario   ForecastScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
 
   @@index([planId])
+  @@index([scenarioId])
   @@map("people")
 }
 
@@ -238,6 +247,9 @@ model ForecastScenario {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  assumptions        GlobalAssumptions?
+  people             Person[]
+  expenses           Expense[]
   plgAssumptions     PLGRevenueAssumptions?
   salesAssumptions   SalesRevenueAssumptions?
   partnerAssumptions PartnerRevenueAssumptions?

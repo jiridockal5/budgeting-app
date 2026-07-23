@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { GlobalAssumptions as DbGlobalAssumptions, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { resolveDbUser } from "@/lib/server/dbUser";
-import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
 import { captureRouteException } from "@/lib/monitoring";
+import { getScopedScenario } from "@/lib/server/planScope";
 
-// Validation schema for assumptions input
 const assumptionsInputSchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
   cashOnHand: z.number().min(0).optional(),
   plannedRaiseMonth: z.string().regex(/^\d{4}-\d{2}$/).nullable().optional(),
   plannedRaiseAmount: z.number().min(0).nullable().optional(),
@@ -29,12 +28,13 @@ const assumptionsInputSchema = z.object({
 
 const querySchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
 });
 
-// Serialize Prisma Decimal values to numbers
 const serializeAssumptions = (assumptions: DbGlobalAssumptions) => ({
   id: assumptions.id,
   planId: assumptions.planId,
+  scenarioId: assumptions.scenarioId,
   cashOnHand: assumptions.cashOnHand instanceof Prisma.Decimal
     ? assumptions.cashOnHand.toNumber()
     : Number(assumptions.cashOnHand ?? 0),
@@ -88,50 +88,42 @@ const serializeAssumptions = (assumptions: DbGlobalAssumptions) => ({
 });
 
 /**
- * GET /api/assumptions?planId=xxx
- * Fetches assumptions for a plan, or returns defaults if none exist
+ * GET /api/assumptions?planId=xxx&scenarioId=xxx
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse({
       planId: searchParams.get("planId") ?? "",
+      scenarioId: searchParams.get("scenarioId") ?? "",
     });
 
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "planId is required" },
+        { success: false, error: "planId and scenarioId are required" },
         { status: 400 }
       );
     }
 
-    const user = await resolveDbUser();
-    const denied = await requireAppAccess(user.id);
-    if (denied) return denied;
-
-    // Verify plan belongs to user
-    const plan = await prisma.plan.findFirst({
-      where: { id: parsed.data.planId, userId: user.id },
-    });
-
-    if (!plan) {
+    const scoped = await getScopedScenario(parsed.data.scenarioId);
+    if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== parsed.data.planId) {
       return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
+        { success: false, error: "Scenario does not belong to this plan" },
         { status: 404 }
       );
     }
 
-    // Fetch assumptions for this plan
     const assumptions = await prisma.globalAssumptions.findUnique({
-      where: { planId: plan.id },
+      where: { scenarioId: scoped.scenario.id },
     });
 
     if (!assumptions) {
-      // Return defaults if no assumptions saved yet
       return NextResponse.json({
         success: true,
         data: {
-          planId: plan.id,
+          planId: scoped.plan.id,
+          scenarioId: scoped.scenario.id,
           ...DEFAULT_ASSUMPTIONS,
           isDefault: true,
         },
@@ -158,8 +150,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/assumptions
- * Creates or updates assumptions for a plan (upsert)
+ * POST /api/assumptions — upsert for a scenario
  */
 export async function POST(request: NextRequest) {
   try {
@@ -174,27 +165,20 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
-    const user = await resolveDbUser();
-    const denied = await requireAppAccess(user.id);
-    if (denied) return denied;
-
-    // Verify plan belongs to user
-    const plan = await prisma.plan.findFirst({
-      where: { id: input.planId, userId: user.id },
-    });
-
-    if (!plan) {
+    const scoped = await getScopedScenario(input.scenarioId);
+    if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== input.planId) {
       return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
+        { success: false, error: "Scenario does not belong to this plan" },
         { status: 404 }
       );
     }
 
-    // Upsert assumptions (create if not exists, update if exists)
     const assumptions = await prisma.globalAssumptions.upsert({
-      where: { planId: plan.id },
+      where: { scenarioId: scoped.scenario.id },
       create: {
-        planId: plan.id,
+        planId: scoped.plan.id,
+        scenarioId: scoped.scenario.id,
         cashOnHand: input.cashOnHand ?? 0,
         plannedRaiseMonth: input.plannedRaiseMonth ?? null,
         plannedRaiseAmount: input.plannedRaiseAmount ?? null,

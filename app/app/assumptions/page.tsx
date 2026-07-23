@@ -38,6 +38,7 @@ import {
 import { dateToMonth, type ForecastSummary } from "@/lib/revenueForecast";
 import { parseApiError } from "@/lib/apiErrorUtils";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
+import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
 
 type NumericField =
   | "cashOnHand"
@@ -59,6 +60,11 @@ interface DerivedOutputs {
 }
 
 export default function AssumptionsPage() {
+  const {
+    planId: activePlanId,
+    scenarioId,
+    loading: scenarioLoading,
+  } = useActiveScenario();
   const [assumptions, setAssumptions] =
     useState<GlobalAssumptions>(DEFAULT_ASSUMPTIONS);
   const [planId, setPlanId] = useState<string | null>(null);
@@ -75,6 +81,8 @@ export default function AssumptionsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    if (scenarioLoading || !activePlanId || !scenarioId) return;
+
     async function loadData() {
       try {
         setLoading(true);
@@ -95,7 +103,7 @@ export default function AssumptionsPage() {
         });
 
         const assumptionsRes = await fetch(
-          `/api/assumptions?planId=${planData.data.id}`
+          `/api/assumptions?planId=${encodeURIComponent(planData.data.id)}&scenarioId=${encodeURIComponent(scenarioId!)}`
         );
         const assumptionsData = await assumptionsRes.json();
 
@@ -114,7 +122,7 @@ export default function AssumptionsPage() {
     }
 
     loadData();
-  }, []);
+  }, [activePlanId, scenarioId, scenarioLoading]);
 
   const updateNumericField = (
     field: NumericField,
@@ -139,19 +147,19 @@ export default function AssumptionsPage() {
 
   // ── Auto-save ──
   const saveAssumptions = useCallback(async () => {
-    if (!planId) return;
+    if (!planId || !scenarioId) return;
     const res = await fetch("/api/assumptions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planId, ...assumptions }),
+      body: JSON.stringify({ planId, scenarioId, ...assumptions }),
     });
     const data = await res.json();
     if (!data.success)
       throw new Error(data.error || "Failed to save assumptions");
-  }, [planId, assumptions]);
+  }, [planId, scenarioId, assumptions]);
 
   const autoSave = useAutoSave(assumptions, saveAssumptions, {
-    enabled: !loading && !!planId,
+    enabled: !loading && !!planId && !!scenarioId,
   });
 
   // Once any auto-save lands, the row exists in the DB and is no longer defaults.
@@ -160,7 +168,7 @@ export default function AssumptionsPage() {
   }, [autoSave.lastSaved, isDefault]);
 
   const handleConfirmDefaults = useCallback(async () => {
-    if (!planId || confirming) return;
+    if (!planId || !scenarioId || confirming) return;
     try {
       setConfirming(true);
       await saveAssumptions();
@@ -171,7 +179,7 @@ export default function AssumptionsPage() {
     } finally {
       setConfirming(false);
     }
-  }, [planId, confirming, saveAssumptions]);
+  }, [planId, scenarioId, confirming, saveAssumptions]);
 
   const savePlanSettings = useCallback(async () => {
     if (!planId) return;
@@ -221,13 +229,13 @@ export default function AssumptionsPage() {
   // Recomputed on load and after every saved change so the sidebar reflects
   // the numbers a founder is actually tuning for.
   useEffect(() => {
-    if (!planId) return;
+    if (!planId || !scenarioId) return;
     let cancelled = false;
 
     async function loadDerived() {
       try {
         const res = await fetch(
-          `/api/forecast?planId=${encodeURIComponent(planId!)}`
+          `/api/forecast?planId=${encodeURIComponent(planId!)}&scenarioId=${encodeURIComponent(scenarioId!)}`
         );
         const data = await res.json();
         if (!data.success || cancelled) return;
@@ -257,7 +265,7 @@ export default function AssumptionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [planId, combinedLastSaved]);
+  }, [planId, scenarioId, combinedLastSaved]);
 
   if (loading) {
     return (

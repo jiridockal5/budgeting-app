@@ -8,6 +8,7 @@ import {
 } from "@/lib/assumptions";
 import { setActiveCurrency } from "@/lib/currency";
 import { parseApiError } from "@/lib/apiErrorUtils";
+import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
 import {
   computeSummary,
   type AssumptionsInput,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/revenueForecast";
 
 export function useMetricsForecast() {
+  const { planId, scenarioId, loading: scenarioLoading } = useActiveScenario();
   const [forecast, setForecast] = useState<ForecastResult | null>(null);
   const [assumptions, setAssumptions] = useState<GlobalAssumptions | null>(null);
   const [totalMonths, setTotalMonths] = useState(24);
@@ -25,6 +27,8 @@ export function useMetricsForecast() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (scenarioLoading || !planId || !scenarioId) return;
+
     async function loadForecast() {
       try {
         setLoading(true);
@@ -38,9 +42,10 @@ export function useMetricsForecast() {
         setTotalMonths(planData.data.months);
         setActiveCurrency(planData.data.currency);
 
+        const qs = `planId=${encodeURIComponent(planData.data.id)}&scenarioId=${encodeURIComponent(scenarioId!)}`;
         const [forecastRes, assumptionsRes] = await Promise.all([
-          fetch(`/api/forecast?planId=${planData.data.id}`),
-          fetch(`/api/assumptions?planId=${planData.data.id}`),
+          fetch(`/api/forecast?${qs}`),
+          fetch(`/api/assumptions?${qs}`),
         ]);
         const [forecastData, assumptionsData] = await Promise.all([
           forecastRes.json(),
@@ -64,7 +69,7 @@ export function useMetricsForecast() {
     }
 
     loadForecast();
-  }, []);
+  }, [planId, scenarioId, scenarioLoading]);
 
   const displayMonths = useMemo((): ForecastMonth[] => {
     if (!forecast) return [];
@@ -89,7 +94,7 @@ export function useMetricsForecast() {
     totalMonths,
     periodMonths,
     setPeriodMonths,
-    loading,
+    loading: loading || scenarioLoading || !scenarioId,
     error,
     displayMonths,
     summary,

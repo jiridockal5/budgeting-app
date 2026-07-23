@@ -4,10 +4,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
-import { getScopedPlan } from "@/lib/server/planScope";
+import { getScopedScenario } from "@/lib/server/planScope";
 
 const personInputSchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
   name: z.string().min(1),
   role: z.string().min(1),
   type: z.enum(["employee", "contractor", "advisor"]).optional(),
@@ -20,6 +21,7 @@ const personInputSchema = z.object({
 
 const querySchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
 });
 
 function serializePerson(person: Person) {
@@ -45,17 +47,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse({
       planId: searchParams.get("planId") ?? "",
+      scenarioId: searchParams.get("scenarioId") ?? "",
     });
 
     if (!parsed.success) {
-      return jsonErr("planId is required", 400);
+      return jsonErr("planId and scenarioId are required", 400);
     }
 
-    const scoped = await getScopedPlan(parsed.data.planId);
+    const scoped = await getScopedScenario(parsed.data.scenarioId);
     if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== parsed.data.planId) {
+      return jsonErr("Scenario does not belong to this plan", 404);
+    }
 
     const people = await prisma.person.findMany({
-      where: { planId: scoped.plan.id },
+      where: { scenarioId: scoped.scenario.id },
       orderBy: { createdAt: "asc" },
     });
 
@@ -75,12 +81,16 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
-    const scoped = await getScopedPlan(input.planId);
+    const scoped = await getScopedScenario(input.scenarioId);
     if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== input.planId) {
+      return jsonErr("Scenario does not belong to this plan", 404);
+    }
 
     const person = await prisma.person.create({
       data: {
         planId: scoped.plan.id,
+        scenarioId: scoped.scenario.id,
         name: input.name,
         role: input.role,
         type: input.type ?? "employee",

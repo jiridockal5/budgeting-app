@@ -6,12 +6,13 @@ import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { costModelSchema } from "@/lib/schemas/costModel";
 import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
-import { getScopedPlan } from "@/lib/server/planScope";
+import { getScopedScenario } from "@/lib/server/planScope";
 
 const frequencyEnum = z.enum(["MONTHLY", "ONE_TIME", "YEARLY"]);
 
 const expenseInputSchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
   name: z.string().min(1),
   category: expenseCategorySchema,
   amount: z
@@ -30,6 +31,7 @@ const expenseInputSchema = z.object({
 
 const querySchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
 });
 
 function serializeExpense(expense: Expense) {
@@ -60,17 +62,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse({
       planId: searchParams.get("planId") ?? "",
+      scenarioId: searchParams.get("scenarioId") ?? "",
     });
 
     if (!parsed.success) {
-      return jsonErr("planId is required", 400);
+      return jsonErr("planId and scenarioId are required", 400);
     }
 
-    const scoped = await getScopedPlan(parsed.data.planId);
+    const scoped = await getScopedScenario(parsed.data.scenarioId);
     if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== parsed.data.planId) {
+      return jsonErr("Scenario does not belong to this plan", 404);
+    }
 
     const expenses = await prisma.expense.findMany({
-      where: { planId: scoped.plan.id },
+      where: { scenarioId: scoped.scenario.id },
       orderBy: { startMonth: "asc" },
     });
 
@@ -90,12 +96,16 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
-    const scoped = await getScopedPlan(input.planId);
+    const scoped = await getScopedScenario(input.scenarioId);
     if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== input.planId) {
+      return jsonErr("Scenario does not belong to this plan", 404);
+    }
 
     const expense = await prisma.expense.create({
       data: {
         planId: scoped.plan.id,
+        scenarioId: scoped.scenario.id,
         name: input.name,
         category: input.category,
         amount: input.amount,

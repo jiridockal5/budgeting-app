@@ -44,13 +44,10 @@ export async function GET(_request: NextRequest, context: RouteParams) {
     const scenario = await prisma.forecastScenario.findFirst({
       where: { id },
       include: {
-        plan: {
-          include: {
-            assumptions: true,
-            people: true,
-            expenses: true,
-          },
-        },
+        plan: true,
+        assumptions: true,
+        people: true,
+        expenses: true,
       },
     });
 
@@ -62,7 +59,7 @@ export async function GET(_request: NextRequest, context: RouteParams) {
     }
 
     const plan = scenario.plan;
-    const dbAssumptions = plan.assumptions;
+    const dbAssumptions = scenario.assumptions;
 
     const assumptions: AssumptionsInput = dbAssumptions
       ? {
@@ -101,7 +98,7 @@ export async function GET(_request: NextRequest, context: RouteParams) {
       : DEFAULT_REVENUE_CONFIG;
 
     const expenseInput: ExpenseInput = {
-      headcount: plan.people.map((p) => ({
+      headcount: scenario.people.map((p) => ({
         role: p.role,
         type: p.type,
         category: p.category,
@@ -112,7 +109,7 @@ export async function GET(_request: NextRequest, context: RouteParams) {
           : dateToMonth(plan.startMonth),
         endMonth: p.endDate ? dateToMonth(p.endDate) : undefined,
       })),
-      nonHeadcount: plan.expenses.map((e) => ({
+      nonHeadcount: scenario.expenses.map((e) => ({
         name: e.name,
         category: e.category,
         amount: toNumber(e.amount),

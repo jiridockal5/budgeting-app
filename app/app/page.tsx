@@ -12,6 +12,7 @@ import { StackedExpenseChart } from "@/components/dashboard/StackedExpenseChart"
 import { OnboardingChecklist, type OnboardingStatus } from "@/components/dashboard/OnboardingChecklist";
 import { PeriodTabs } from "@/components/dashboard/PeriodTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
 import { normalizeAssumptions, DEFAULT_ASSUMPTIONS, type GlobalAssumptions } from "@/lib/assumptions";
 import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
 import { parseApiError } from "@/lib/apiErrorUtils";
@@ -131,6 +132,8 @@ function buildBurnChartData(months: ForecastMonth[]) {
 // ============================================================================
 
 export default function DashboardPage() {
+  const { planId: activePlanId, scenarioId, loading: scenarioLoading } =
+    useActiveScenario();
   const [forecast, setForecast] = useState<ForecastResult | null>(null);
   const [assumptions, setAssumptions] = useState<GlobalAssumptions | null>(null);
   const [totalMonths, setTotalMonths] = useState(24);
@@ -146,6 +149,8 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    if (scenarioLoading || !activePlanId || !scenarioId) return;
+
     async function loadForecast() {
       try {
         setLoading(true);
@@ -165,22 +170,17 @@ export default function DashboardPage() {
         setTotalMonths(planResult.data.months);
         setActiveCurrency(planResult.data.currency);
 
+        const sid = scenarioId!;
+        const qs = `planId=${encodeURIComponent(id)}&scenarioId=${encodeURIComponent(sid)}`;
+
         const [fr, ar, rr, pr, er] = await Promise.all([
-          fetchJsonEnvelope<ForecastResult>(
-            `/api/forecast?planId=${encodeURIComponent(id)}`
-          ),
+          fetchJsonEnvelope<ForecastResult>(`/api/forecast?${qs}`),
           fetchJsonEnvelope<
             GlobalAssumptions & { isDefault?: boolean }
-          >(`/api/assumptions?planId=${encodeURIComponent(id)}`),
-          fetchJsonEnvelope<{ isDefault: boolean }>(
-            `/api/revenue?planId=${encodeURIComponent(id)}`
-          ),
-          fetchJsonEnvelope<Person[]>(
-            `/api/people?planId=${encodeURIComponent(id)}`
-          ),
-          fetchJsonEnvelope<Expense[]>(
-            `/api/expenses?planId=${encodeURIComponent(id)}`
-          ),
+          >(`/api/assumptions?${qs}`),
+          fetchJsonEnvelope<{ isDefault: boolean }>(`/api/revenue?${qs}`),
+          fetchJsonEnvelope<Person[]>(`/api/people?${qs}`),
+          fetchJsonEnvelope<Expense[]>(`/api/expenses?${qs}`),
         ]);
 
         const warnings: string[] = [];
@@ -229,7 +229,7 @@ export default function DashboardPage() {
     }
 
     loadForecast();
-  }, []);
+  }, [activePlanId, scenarioId, scenarioLoading]);
 
   // Hooks must run unconditionally (before any early return)
   const displayMonths = useMemo(() => {

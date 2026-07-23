@@ -4,10 +4,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
-import { getScopedPlan } from "@/lib/server/planScope";
+import { getScopedScenario } from "@/lib/server/planScope";
 
 const personUpdateSchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
   name: z.string().min(1),
   role: z.string().min(1),
   type: z.enum(["employee", "contractor", "advisor"]).optional(),
@@ -51,15 +52,22 @@ export async function PUT(request: NextRequest, context: RouteParams) {
     }
 
     const input = parsed.data;
-    const scoped = await getScopedPlan(input.planId);
+    const scoped = await getScopedScenario(input.scenarioId);
     if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== input.planId) {
+      return jsonErr("Scenario does not belong to this plan", 404);
+    }
 
     const existing = await prisma.person.findFirst({
-      where: { id, planId: scoped.plan.id, plan: { userId: scoped.userId } },
+      where: {
+        id,
+        scenarioId: scoped.scenario.id,
+        planId: scoped.plan.id,
+      },
     });
 
     if (!existing) {
-      return jsonErr("Person not found for this plan", 404);
+      return jsonErr("Person not found for this scenario", 404);
     }
 
     const updated = await prisma.person.update({
@@ -87,20 +95,28 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
     const { id } = await context.params;
     const { searchParams } = new URL(request.url);
     const planId = searchParams.get("planId");
+    const scenarioId = searchParams.get("scenarioId");
 
-    if (!planId) {
-      return jsonErr("planId is required", 400);
+    if (!planId || !scenarioId) {
+      return jsonErr("planId and scenarioId are required", 400);
     }
 
-    const scoped = await getScopedPlan(planId);
+    const scoped = await getScopedScenario(scenarioId);
     if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== planId) {
+      return jsonErr("Scenario does not belong to this plan", 404);
+    }
 
     const existing = await prisma.person.findFirst({
-      where: { id, planId: scoped.plan.id, plan: { userId: scoped.userId } },
+      where: {
+        id,
+        scenarioId: scoped.scenario.id,
+        planId: scoped.plan.id,
+      },
     });
 
     if (!existing) {
-      return jsonErr("Person not found for this plan", 404);
+      return jsonErr("Person not found for this scenario", 404);
     }
 
     await prisma.person.delete({

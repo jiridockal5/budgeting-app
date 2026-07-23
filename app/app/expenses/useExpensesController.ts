@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { setActiveCurrency } from "@/lib/currency";
 import { fetchJsonEnvelope } from "@/lib/clientFetch";
+import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -130,6 +131,11 @@ function nonHeadcountNeedsBaseAmount(
 }
 
 export function useExpensesController() {
+  const {
+    planId: activePlanId,
+    scenarioId,
+    loading: scenarioLoading,
+  } = useActiveScenario();
   // ── Plan & loading state ──
   const [planId, setPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -184,8 +190,10 @@ export function useExpensesController() {
   } | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
-  // ── Load plan + data on mount ──
+  // ── Load plan + data when active scenario changes ──
   useEffect(() => {
+    if (scenarioLoading || !activePlanId || !scenarioId) return;
+
     async function loadData() {
       try {
         setLoading(true);
@@ -201,16 +209,11 @@ export function useExpensesController() {
         setPlanId(id);
         setActiveCurrency(planResult.data.currency);
 
+        const qs = `planId=${encodeURIComponent(id)}&scenarioId=${encodeURIComponent(scenarioId!)}`;
         const [peopleRes, expensesRes, assumptionsRes] = await Promise.all([
-          fetchJsonEnvelope<Person[]>(
-            `/api/people?planId=${encodeURIComponent(id)}`
-          ),
-          fetchJsonEnvelope<Expense[]>(
-            `/api/expenses?planId=${encodeURIComponent(id)}`
-          ),
-          fetchJsonEnvelope<Partial<GlobalAssumptions>>(
-            `/api/assumptions?planId=${encodeURIComponent(id)}`
-          ),
+          fetchJsonEnvelope<Person[]>(`/api/people?${qs}`),
+          fetchJsonEnvelope<Expense[]>(`/api/expenses?${qs}`),
+          fetchJsonEnvelope<Partial<GlobalAssumptions>>(`/api/assumptions?${qs}`),
         ]);
 
         const warnings: string[] = [];
@@ -247,12 +250,17 @@ export function useExpensesController() {
     }
 
     loadData();
-  }, []);
+  }, [activePlanId, scenarioId, scenarioLoading]);
 
   // ── Headcount handlers ──
 
   const handleAddHeadcount = async () => {
-    if (!headcountForm.role.trim() || headcountForm.baseSalary <= 0 || !planId)
+    if (
+      !headcountForm.role.trim() ||
+      headcountForm.baseSalary <= 0 ||
+      !planId ||
+      !scenarioId
+    )
       return;
 
     try {
@@ -262,6 +270,7 @@ export function useExpensesController() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             planId,
+            scenarioId,
             name: headcountForm.role,
             role: headcountForm.role,
             type: headcountForm.type,
@@ -287,6 +296,7 @@ export function useExpensesController() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             planId,
+            scenarioId,
             name: headcountForm.role,
             role: headcountForm.role,
             type: headcountForm.type,
@@ -344,11 +354,14 @@ export function useExpensesController() {
   };
 
   const handleDeleteHeadcount = async (id: string): Promise<boolean> => {
-    if (!planId) return false;
+    if (!planId || !scenarioId) return false;
     try {
-      const res = await fetch(`/api/people/${id}?planId=${planId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/people/${id}?planId=${encodeURIComponent(planId)}&scenarioId=${encodeURIComponent(scenarioId)}`,
+        {
+          method: "DELETE",
+        }
+      );
       const data = (await res.json()) as { success: boolean; error?: string };
       if (!res.ok || !data.success) {
         throw new Error(
@@ -371,7 +384,7 @@ export function useExpensesController() {
   // ── Non-headcount handlers ──
 
   const handleAddNonHeadcount = async () => {
-    if (!nonHeadcountForm.name.trim() || !planId) return;
+    if (!nonHeadcountForm.name.trim() || !planId || !scenarioId) return;
     if (
       nonHeadcountNeedsBaseAmount(nonHeadcountForm) &&
       nonHeadcountForm.amount <= 0
@@ -386,6 +399,7 @@ export function useExpensesController() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             planId,
+            scenarioId,
             name: nonHeadcountForm.name,
             category: nonHeadcountForm.category,
             amount: nonHeadcountForm.amount,
@@ -410,6 +424,7 @@ export function useExpensesController() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             planId,
+            scenarioId,
             name: nonHeadcountForm.name,
             category: nonHeadcountForm.category,
             amount: nonHeadcountForm.amount,
@@ -466,11 +481,14 @@ export function useExpensesController() {
   };
 
   const handleDeleteNonHeadcount = async (id: string): Promise<boolean> => {
-    if (!planId) return false;
+    if (!planId || !scenarioId) return false;
     try {
-      const res = await fetch(`/api/expenses/${id}?planId=${planId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/expenses/${id}?planId=${encodeURIComponent(planId)}&scenarioId=${encodeURIComponent(scenarioId)}`,
+        {
+          method: "DELETE",
+        }
+      );
       const data = (await res.json()) as { success: boolean; error?: string };
       if (!res.ok || !data.success) {
         throw new Error(
@@ -500,12 +518,13 @@ export function useExpensesController() {
   const persistNonPeopleRow = async (
     row: NonHeadcountExpenseRow
   ): Promise<NonHeadcountExpenseRow | null> => {
-    if (!planId) return null;
+    if (!planId || !scenarioId) return null;
     const res = await fetch(`/api/expenses/${row.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         planId,
+        scenarioId,
         name: row.name,
         category: row.category,
         amount: row.amount,
@@ -542,14 +561,17 @@ export function useExpensesController() {
 
   const handleBulkDeleteNonPeople = async (): Promise<boolean> => {
     const ids = [...selectedNonPeople];
-    if (ids.length === 0 || !planId) return false;
+    if (ids.length === 0 || !planId || !scenarioId) return false;
 
     const results = await Promise.all(
       ids.map(async (id) => {
         try {
-          const res = await fetch(`/api/expenses/${id}?planId=${planId}`, {
-            method: "DELETE",
-          });
+          const res = await fetch(
+            `/api/expenses/${id}?planId=${encodeURIComponent(planId)}&scenarioId=${encodeURIComponent(scenarioId)}`,
+            {
+              method: "DELETE",
+            }
+          );
           const data = (await res.json()) as { success: boolean };
           return res.ok && data.success ? id : null;
         } catch {
@@ -581,7 +603,7 @@ export function useExpensesController() {
   };
 
   const handleDuplicateNonPeople = async () => {
-    if (!planId) return;
+    if (!planId || !scenarioId) return;
     const targets = nonHeadcountRows.filter((r) => selectedNonPeople.has(r.id));
     if (targets.length === 0) return;
     try {
@@ -592,6 +614,7 @@ export function useExpensesController() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             planId,
+            scenarioId,
             name: `${row.name} (copy)`,
             category: row.category,
             amount: row.amount,

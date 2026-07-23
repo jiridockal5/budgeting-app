@@ -6,12 +6,13 @@ import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { costModelSchema } from "@/lib/schemas/costModel";
 import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
-import { getScopedPlan } from "@/lib/server/planScope";
+import { getScopedScenario } from "@/lib/server/planScope";
 
 const frequencyEnum = z.enum(["MONTHLY", "ONE_TIME", "YEARLY"]);
 
 const expenseUpdateSchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
   name: z.string().min(1),
   category: expenseCategorySchema,
   amount: z
@@ -66,15 +67,22 @@ export async function PUT(request: NextRequest, context: RouteParams) {
     }
 
     const input = parsed.data;
-    const scoped = await getScopedPlan(input.planId);
+    const scoped = await getScopedScenario(input.scenarioId);
     if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== input.planId) {
+      return jsonErr("Scenario does not belong to this plan", 404);
+    }
 
     const existing = await prisma.expense.findFirst({
-      where: { id, planId: scoped.plan.id, plan: { userId: scoped.userId } },
+      where: {
+        id,
+        scenarioId: scoped.scenario.id,
+        planId: scoped.plan.id,
+      },
     });
 
     if (!existing) {
-      return jsonErr("Expense not found for this plan", 404);
+      return jsonErr("Expense not found for this scenario", 404);
     }
 
     const updated = await prisma.expense.update({
@@ -104,20 +112,28 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
     const { id } = await context.params;
     const { searchParams } = new URL(request.url);
     const planId = searchParams.get("planId");
+    const scenarioId = searchParams.get("scenarioId");
 
-    if (!planId) {
-      return jsonErr("planId is required", 400);
+    if (!planId || !scenarioId) {
+      return jsonErr("planId and scenarioId are required", 400);
     }
 
-    const scoped = await getScopedPlan(planId);
+    const scoped = await getScopedScenario(scenarioId);
     if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== planId) {
+      return jsonErr("Scenario does not belong to this plan", 404);
+    }
 
     const existing = await prisma.expense.findFirst({
-      where: { id, planId: scoped.plan.id, plan: { userId: scoped.userId } },
+      where: {
+        id,
+        scenarioId: scoped.scenario.id,
+        planId: scoped.plan.id,
+      },
     });
 
     if (!existing) {
-      return jsonErr("Expense not found for this plan", 404);
+      return jsonErr("Expense not found for this scenario", 404);
     }
 
     await prisma.expense.delete({

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { resolveDbUser } from "@/lib/server/dbUser";
-import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 import { captureRouteException } from "@/lib/monitoring";
+import { getScopedScenario } from "@/lib/server/planScope";
 
 const revenueConfigSchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
   config: z.object({
     plg: z.object({
       monthlyTrials: z.number().min(0),
@@ -40,50 +40,42 @@ const revenueConfigSchema = z.object({
 
 const querySchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().min(1),
 });
 
 /**
- * GET /api/revenue?planId=xxx
- * Returns the revenue stream configuration for a plan, or defaults.
+ * GET /api/revenue?planId=xxx&scenarioId=xxx
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse({
       planId: searchParams.get("planId") ?? "",
+      scenarioId: searchParams.get("scenarioId") ?? "",
     });
 
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "planId is required" },
+        { success: false, error: "planId and scenarioId are required" },
         { status: 400 }
       );
     }
 
-    const user = await resolveDbUser();
-    const denied = await requireAppAccess(user.id);
-    if (denied) return denied;
-
-    const plan = await prisma.plan.findFirst({
-      where: { id: parsed.data.planId, userId: user.id },
-    });
-
-    if (!plan) {
+    const scoped = await getScopedScenario(parsed.data.scenarioId);
+    if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== parsed.data.planId) {
       return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
+        { success: false, error: "Scenario does not belong to this plan" },
         { status: 404 }
       );
     }
 
-    const scenario = await prisma.forecastScenario.findFirst({
-      where: { planId: plan.id, name: "Default" },
-    });
-
-    if (!scenario || !scenario.config) {
+    if (!scoped.scenario.config) {
       return NextResponse.json({
         success: true,
         data: {
-          planId: plan.id,
+          planId: scoped.plan.id,
+          scenarioId: scoped.scenario.id,
           config: DEFAULT_REVENUE_CONFIG,
           isDefault: true,
         },
@@ -93,8 +85,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        planId: plan.id,
-        config: scenario.config,
+        planId: scoped.plan.id,
+        scenarioId: scoped.scenario.id,
+        config: scoped.scenario.config,
         isDefault: false,
       },
     });
@@ -111,8 +104,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/revenue
- * Creates or updates revenue stream configuration for a plan.
+ * POST /api/revenue — update revenue config for any scenario
  */
 export async function POST(request: NextRequest) {
   try {
@@ -127,46 +119,25 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data;
-    const user = await resolveDbUser();
-    const denied = await requireAppAccess(user.id);
-    if (denied) return denied;
-
-    const plan = await prisma.plan.findFirst({
-      where: { id: input.planId, userId: user.id },
-    });
-
-    if (!plan) {
+    const scoped = await getScopedScenario(input.scenarioId);
+    if (!scoped.ok) return scoped.response;
+    if (scoped.plan.id !== input.planId) {
       return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
+        { success: false, error: "Scenario does not belong to this plan" },
         { status: 404 }
       );
     }
 
-    let scenario = await prisma.forecastScenario.findFirst({
-      where: { planId: plan.id, name: "Default" },
+    const scenario = await prisma.forecastScenario.update({
+      where: { id: scoped.scenario.id },
+      data: { config: input.config },
     });
-
-    if (scenario) {
-      scenario = await prisma.forecastScenario.update({
-        where: { id: scenario.id },
-        data: { config: input.config },
-      });
-    } else {
-      scenario = await prisma.forecastScenario.create({
-        data: {
-          planId: plan.id,
-          name: "Default",
-          startMonth: plan.startMonth,
-          months: plan.months,
-          config: input.config,
-        },
-      });
-    }
 
     return NextResponse.json({
       success: true,
       data: {
-        planId: plan.id,
+        planId: scoped.plan.id,
+        scenarioId: scenario.id,
         config: scenario.config,
         isDefault: false,
       },

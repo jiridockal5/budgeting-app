@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { resolveDbUser } from "@/lib/server/dbUser";
-import { requireAppAccess } from "@/lib/requireAppAccess";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
 import { captureRouteException } from "@/lib/monitoring";
 import {
@@ -15,22 +13,27 @@ import {
   type AssumptionsInput,
 } from "@/lib/revenueForecast";
 import { parseCostModel } from "@/lib/expenses";
+import {
+  ensureDefaultScenario,
+  getScopedPlan,
+  getScopedScenario,
+} from "@/lib/server/planScope";
 
 const querySchema = z.object({
   planId: z.string().min(1),
+  scenarioId: z.string().optional(),
 });
 
 /**
- * GET /api/forecast?planId=xxx
- *
- * Computes a full financial forecast by pulling all plan data from the DB
- * and running the forecast engine.
+ * GET /api/forecast?planId=xxx&scenarioId=xxx
+ * scenarioId optional — defaults to the plan's Default scenario.
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.safeParse({
       planId: searchParams.get("planId") ?? "",
+      scenarioId: searchParams.get("scenarioId") ?? undefined,
     });
 
     if (!parsed.success) {
@@ -40,33 +43,33 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const user = await resolveDbUser();
-    const denied = await requireAppAccess(user.id);
-    if (denied) return denied;
+    let plan;
+    let scenario;
 
-    // 1. Fetch plan
-    const plan = await prisma.plan.findFirst({
-      where: { id: parsed.data.planId, userId: user.id },
-    });
-
-    if (!plan) {
-      return NextResponse.json(
-        { success: false, error: "Plan not found for this user" },
-        { status: 404 }
-      );
+    if (parsed.data.scenarioId) {
+      const scoped = await getScopedScenario(parsed.data.scenarioId);
+      if (!scoped.ok) return scoped.response;
+      if (scoped.plan.id !== parsed.data.planId) {
+        return NextResponse.json(
+          { success: false, error: "Scenario does not belong to this plan" },
+          { status: 404 }
+        );
+      }
+      plan = scoped.plan;
+      scenario = scoped.scenario;
+    } else {
+      const scoped = await getScopedPlan(parsed.data.planId);
+      if (!scoped.ok) return scoped.response;
+      plan = scoped.plan;
+      scenario = await ensureDefaultScenario(plan);
     }
 
-    // 2. Fetch all related data in parallel
-    const [dbAssumptions, dbPeople, dbExpenses, dbScenario] = await Promise.all(
-      [
-        prisma.globalAssumptions.findUnique({ where: { planId: plan.id } }),
-        prisma.person.findMany({ where: { planId: plan.id } }),
-        prisma.expense.findMany({ where: { planId: plan.id } }),
-        prisma.forecastScenario.findFirst({ where: { planId: plan.id, name: "Default" } }),
-      ]
-    );
+    const [dbAssumptions, dbPeople, dbExpenses] = await Promise.all([
+      prisma.globalAssumptions.findUnique({ where: { scenarioId: scenario.id } }),
+      prisma.person.findMany({ where: { scenarioId: scenario.id } }),
+      prisma.expense.findMany({ where: { scenarioId: scenario.id } }),
+    ]);
 
-    // 3. Build assumptions input
     const assumptions: AssumptionsInput = dbAssumptions
       ? {
           cashOnHand: toNumber(dbAssumptions.cashOnHand ?? 0),
@@ -99,13 +102,10 @@ export async function GET(request: NextRequest) {
         }
       : DEFAULT_ASSUMPTIONS;
 
-    // 4. Build revenue config
-    const revenueConfig: RevenueConfig =
-      dbScenario?.config
-        ? (dbScenario.config as unknown as RevenueConfig)
-        : DEFAULT_REVENUE_CONFIG;
+    const revenueConfig: RevenueConfig = scenario.config
+      ? (scenario.config as unknown as RevenueConfig)
+      : DEFAULT_REVENUE_CONFIG;
 
-    // 5. Build expense inputs
     const expenseInput: ExpenseInput = {
       headcount: dbPeople.map((p) => ({
         role: p.role,
@@ -127,7 +127,6 @@ export async function GET(request: NextRequest) {
       })),
     };
 
-    // 6. Run forecast
     const startMonth = dateToMonth(plan.startMonth);
     const result = buildForecast(
       plan.months,
@@ -139,7 +138,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: result,
+      data: { ...result, scenarioId: scenario.id, scenarioName: scenario.name },
     });
   } catch (error) {
     captureRouteException("GET /api/forecast", error);
@@ -152,8 +151,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-// ── Helpers ──
 
 function toNumber(value: unknown): number {
   if (value instanceof Prisma.Decimal) return value.toNumber();

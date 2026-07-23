@@ -27,6 +27,7 @@ import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
+import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
 
 /**
  * Revenue stream types for the tabbed interface
@@ -40,6 +41,11 @@ type RevenueStream = "plg" | "sales" | "partners";
  * Data is persisted to the database via /api/revenue.
  */
 export default function RevenuePage() {
+  const {
+    planId: activePlanId,
+    scenarioId,
+    loading: scenarioLoading,
+  } = useActiveScenario();
   const [activeStream, setActiveStream] = useState<RevenueStream>("plg");
   const [planId, setPlanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,8 +57,10 @@ export default function RevenuePage() {
   const { toast } = useToast();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // ── Load plan + revenue config on mount ──
+  // ── Load plan + revenue config when active scenario changes ──
   useEffect(() => {
+    if (scenarioLoading || !activePlanId || !scenarioId) return;
+
     async function loadData() {
       try {
         setLoading(true);
@@ -66,9 +74,10 @@ export default function RevenuePage() {
         setPlanId(id);
         setActiveCurrency(planData.data.currency);
 
+        const qs = `planId=${encodeURIComponent(id)}&scenarioId=${encodeURIComponent(scenarioId!)}`;
         const [revenueRes, assumptionsRes] = await Promise.all([
-          fetch(`/api/revenue?planId=${id}`),
-          fetch(`/api/assumptions?planId=${id}`),
+          fetch(`/api/revenue?${qs}`),
+          fetch(`/api/assumptions?${qs}`),
         ]);
 
         const [revenueData, assumptionsData] = await Promise.all([
@@ -94,23 +103,23 @@ export default function RevenuePage() {
     }
 
     loadData();
-  }, []);
+  }, [activePlanId, scenarioId, scenarioLoading]);
 
   // ── Auto-save ──
   const saveConfig = useCallback(async () => {
-    if (!planId) return;
+    if (!planId || !scenarioId) return;
     const res = await fetch("/api/revenue", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planId, config }),
+      body: JSON.stringify({ planId, scenarioId, config }),
     });
     const data = await res.json();
     if (!data.success)
       throw new Error(data.error || "Failed to save revenue config");
-  }, [planId, config]);
+  }, [planId, scenarioId, config]);
 
   const autoSave = useAutoSave(config, saveConfig, {
-    enabled: !loading && !!planId,
+    enabled: !loading && !!planId && !!scenarioId,
   });
   const saveLabel = useAutoSaveLabel(autoSave);
 

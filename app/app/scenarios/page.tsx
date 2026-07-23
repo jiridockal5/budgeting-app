@@ -16,9 +16,9 @@ import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ChartCard } from "@/components/dashboard/ChartCard";
+import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
 import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
-import type { ForecastResult, ForecastMonth, RevenueConfig } from "@/lib/revenueForecast";
-import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
+import type { ForecastResult, ForecastMonth } from "@/lib/revenueForecast";
 
 interface Scenario {
   id: string;
@@ -44,7 +44,10 @@ function formatPct(value: number): string {
   return `${value.toFixed(1)}%`;
 }
 
+type CreateMode = "fresh" | "copy";
+
 export default function ScenariosPage() {
+  const { setScenarioId, refreshScenarios } = useActiveScenario();
   const [planId, setPlanId] = useState<string | null>(null);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [forecasts, setForecasts] = useState<ScenarioForecast[]>([]);
@@ -52,13 +55,13 @@ export default function ScenariosPage() {
   const [comparing, setComparing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [newName, setNewName] = useState("");
+  const [createMode, setCreateMode] = useState<CreateMode>("fresh");
+  const [sourceScenarioId, setSourceScenarioId] = useState<string>("");
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Scenario | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [planRevenueConfig, setPlanRevenueConfig] =
-    useState<RevenueConfig | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -71,23 +74,22 @@ export default function ScenariosPage() {
       setPlanId(planData.data.id);
       setActiveCurrency(planData.data.currency);
 
-      const [scenRes, revenueRes] = await Promise.all([
-        fetch(`/api/scenarios?planId=${planData.data.id}`),
-        fetch(`/api/revenue?planId=${planData.data.id}`),
-      ]);
+      const scenRes = await fetch(
+        `/api/scenarios?planId=${encodeURIComponent(planData.data.id)}`
+      );
       const scenData = await scenRes.json();
       if (!scenData.success) throw new Error(scenData.error);
       setScenarios(scenData.data);
 
-      // New scenarios start from the plan's current revenue model so
-      // comparisons reflect the user's numbers, not built-in samples.
-      const revenueData = await revenueRes.json().catch(() => null);
-      if (revenueData?.success && revenueData.data?.config) {
-        setPlanRevenueConfig(revenueData.data.config as RevenueConfig);
-      }
-
       if (scenData.data.length > 0) {
         setSelectedIds(scenData.data.map((s: Scenario) => s.id));
+        setSourceScenarioId((prev) => {
+          if (prev && scenData.data.some((s: Scenario) => s.id === prev)) {
+            return prev;
+          }
+          const def = scenData.data.find((s: Scenario) => s.name === "Default");
+          return def?.id ?? scenData.data[0].id;
+        });
       }
     } catch (err) {
       toast(
@@ -134,6 +136,7 @@ export default function ScenariosPage() {
 
   const handleCreate = async () => {
     if (!planId || !newName.trim() || creating) return;
+    if (createMode === "copy" && !sourceScenarioId) return;
     setCreating(true);
     try {
       const res = await fetch("/api/scenarios", {
@@ -142,14 +145,17 @@ export default function ScenariosPage() {
         body: JSON.stringify({
           planId,
           name: newName.trim(),
-          config: planRevenueConfig ?? DEFAULT_REVENUE_CONFIG,
+          mode: createMode,
+          ...(createMode === "copy" ? { sourceScenarioId } : {}),
         }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       toast(`Scenario "${newName.trim()}" created`);
       setNewName("");
-      loadScenarios();
+      setScenarioId(data.data.id);
+      await refreshScenarios();
+      await loadScenarios();
     } catch (err) {
       toast(
         err instanceof Error ? err.message : "Failed to create scenario",
@@ -169,13 +175,16 @@ export default function ScenariosPage() {
         body: JSON.stringify({
           planId,
           name: `${scenario.name} (copy)`,
-          config: scenario.config ?? DEFAULT_REVENUE_CONFIG,
+          mode: "copy",
+          sourceScenarioId: scenario.id,
         }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       toast(`Duplicated "${scenario.name}"`);
-      loadScenarios();
+      setScenarioId(data.data.id);
+      await refreshScenarios();
+      await loadScenarios();
     } catch (err) {
       toast(
         err instanceof Error ? err.message : "Failed to duplicate",
@@ -193,7 +202,8 @@ export default function ScenariosPage() {
       toast("Scenario deleted");
       setSelectedIds((prev) => prev.filter((sid) => sid !== id));
       setDeleteTarget(null);
-      loadScenarios();
+      await refreshScenarios();
+      await loadScenarios();
     } catch (err) {
       toast(
         err instanceof Error ? err.message : "Failed to delete",
@@ -226,7 +236,8 @@ export default function ScenariosPage() {
       if (!data.success) throw new Error(data.error);
       toast(`Renamed to "${editName.trim()}"`);
       setEditingId(null);
-      loadScenarios();
+      await refreshScenarios();
+      await loadScenarios();
     } catch (err) {
       toast(
         err instanceof Error ? err.message : "Failed to rename scenario",
@@ -241,6 +252,11 @@ export default function ScenariosPage() {
     );
   };
 
+  const createDisabled =
+    !newName.trim() ||
+    creating ||
+    (createMode === "copy" && !sourceScenarioId);
+
   const arrChartData =
     forecasts.length > 0
       ? forecasts[0].months
@@ -253,11 +269,12 @@ export default function ScenariosPage() {
                 0 || i === forecasts[0].months.length - 1
           )
           .map((m, idx) => {
-            const point: { date: string; [key: string]: string | number } = { date: m.date };
+            const point: { date: string; [key: string]: string | number } = {
+              date: m.date,
+            };
             forecasts.forEach((f) => {
-              const fMonth = f.months.find(
-                (fm) => fm.date === m.date
-              ) ?? f.months[idx];
+              const fMonth =
+                f.months.find((fm) => fm.date === m.date) ?? f.months[idx];
               if (fMonth) point[f.scenarioName] = Math.round(fMonth.totalArr);
             });
             return point;
@@ -290,7 +307,7 @@ export default function ScenariosPage() {
         <div className="space-y-8">
           <PageHeader
             title="Scenarios"
-            subtitle="Compare different revenue assumptions side by side."
+            subtitle="Compare independent forecasts side by side. Switch the active scenario in the header to edit one."
             actions={
               <Link
                 href="/app/revenue"
@@ -302,38 +319,94 @@ export default function ScenariosPage() {
             }
           />
 
+          <p className="text-sm text-neutral-600 -mt-4">
+            Each scenario has its own revenue, assumptions, and expenses. Plan
+            currency and forecast length are shared.
+          </p>
+
           {/* Create scenario */}
           <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-neutral-900 mb-4">
               Your scenarios
             </h2>
-            <div className="flex gap-3 mb-6">
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="New scenario name (e.g. Aggressive growth)"
-                className="flex-1 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
-                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              />
-              <button
-                onClick={handleCreate}
-                disabled={!newName.trim() || creating}
-                className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {creating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
+            <div className="mb-6 space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="New scenario name (e.g. Aggressive growth)"
+                  className="flex-1 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
+                  onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                />
+                <button
+                  onClick={handleCreate}
+                  disabled={createDisabled}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  {creating ? "Creating…" : "Create"}
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex rounded-xl border border-neutral-200 p-1 bg-neutral-50">
+                  <button
+                    type="button"
+                    onClick={() => setCreateMode("fresh")}
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                      createMode === "fresh"
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700"
+                    }`}
+                  >
+                    Start fresh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreateMode("copy")}
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                      createMode === "copy"
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700"
+                    }`}
+                  >
+                    Copy from…
+                  </button>
+                </div>
+                {createMode === "copy" && (
+                  <select
+                    value={sourceScenarioId}
+                    onChange={(e) => setSourceScenarioId(e.target.value)}
+                    className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
+                  >
+                    {scenarios.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
-                {creating ? "Creating…" : "Create"}
-              </button>
+                {createMode === "fresh" && (
+                  <p className="text-xs text-neutral-500">
+                    Starter revenue and assumptions, no people or expenses.
+                  </p>
+                )}
+                {createMode === "copy" && (
+                  <p className="text-xs text-neutral-500">
+                    Clones revenue, assumptions, people, and expenses.
+                  </p>
+                )}
+              </div>
             </div>
 
             {scenarios.length === 0 ? (
               <p className="text-sm text-neutral-500 text-center py-6">
-                No scenarios yet. Save your revenue config first, then create
-                alternative scenarios here.
+                No scenarios yet. Create one to start comparing forecasts.
               </p>
             ) : (
               <div className="space-y-2">
