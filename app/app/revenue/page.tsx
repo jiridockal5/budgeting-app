@@ -628,19 +628,18 @@ function SalesStreamForm({
           helper="Sales-qualified leads entering the pipeline per month"
         />
         <StreamInputField
-          label="Demo → closed-won"
+          label="SQL → closed-won"
           value={config.closeRate}
           onChange={(v) => updateField("closeRate", v)}
-          helper="Percentage of demos that result in closed deals"
+          helper="Percentage of SQLs that result in closed deals"
           suffix="%"
         />
-        <BillingMixFields
-          config={config}
-          onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
-          annualLabel="Average yearly ACV"
-          annualHelper="Annual contract value for yearly sales-led deals"
-          monthlyLabel="Average monthly ARPA"
-          monthlyHelper="Monthly recurring revenue for monthly sales-led deals"
+        <StreamInputField
+          label="Average ACV"
+          value={config.avgAcv}
+          onChange={(v) => updateField("avgAcv", v)}
+          helper="Annual contract value per closed sales deal"
+          prefix={currencySymbol()}
         />
         <StreamInputField
           label="Sales churn rate"
@@ -663,15 +662,14 @@ function SalesStreamForm({
         color="blue"
       >
         <span className="font-semibold text-blue-700">{newCustomers}</span> new
-        customers / month at{" "}
+        customers / month ×{" "}
         <span className="font-semibold text-blue-700">
-          {formatCurrency(getBlendedMrr(config))}
+          {formatCurrency(config.avgAcv)}
         </span>{" "}
-        blended MRR
+        ACV
         <span className="text-neutral-500">
           {" "}
-          ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
-          {formatPercentage(getYearlyDealShare(config))} yearly, using{" "}
+          ({formatCurrency(config.avgAcv / 12)} MRR each, using{" "}
           {formatPercentage(config.churnRate)} churn,{" "}
           {formatPercentage(config.expansionRate)} expansion)
         </span>

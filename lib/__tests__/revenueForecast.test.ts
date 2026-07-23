@@ -25,8 +25,6 @@ const SAMPLE_REVENUE_CONFIG: RevenueConfig = {
     monthlySqls: 50,
     closeRate: 25,
     avgAcv: 12000,
-    monthlyDealShare: 0,
-    monthlyArpa: 1000,
     churnRate: 3,
     expansionRate: 5,
   },
@@ -166,6 +164,34 @@ describe("buildForecast", () => {
 
     // 10 customers: half monthly at €500 MRR, half yearly at €12k ACV / 12 = €1k MRR.
     expect(result.months[0].plgMrr).toBe(7500);
+  });
+
+  it("sales uses SQLs × close rate × ACV only", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 0,
+        trialConversionRate: 0,
+        avgAcv: 0,
+        churnRate: 0,
+        expansionRate: 0,
+      },
+      sales: {
+        monthlySqls: 10,
+        closeRate: 20,
+        avgAcv: 12000,
+        churnRate: 0,
+        expansionRate: 0,
+      },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const assumptions = { ...defaultAssumptions, paymentTimingDays: 0 };
+
+    const result = buildForecast(1, "2025-01", revenue, emptyExpenses, assumptions);
+
+    // 10 SQLs × 20% = 2 customers × $12k ACV / 12 = $2k MRR
+    expect(result.months[0].newSalesCustomers).toBe(2);
+    expect(result.months[0].salesMrr).toBe(2000);
+    expect(result.months[0].newCustomerCashIn).toBe(24000);
   });
 
   it("tracks customer cash in separately from recognized MRR", () => {

@@ -32,9 +32,7 @@ export interface PlgConfig {
 export interface SalesConfig {
   monthlySqls: number;
   closeRate: number; // percentage
-  avgAcv: number; // annual contract value
-  monthlyDealShare?: number; // percentage of new customers on monthly billing
-  monthlyArpa?: number; // monthly revenue per monthly-billed customer
+  avgAcv: number; // annual contract value (all sales deals)
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
 }
@@ -214,8 +212,6 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
     monthlySqls: 0,
     closeRate: 0,
     avgAcv: 0,
-    monthlyDealShare: 0,
-    monthlyArpa: 0,
     churnRate: 0,
     expansionRate: 0,
   },
