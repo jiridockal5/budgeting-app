@@ -22,9 +22,8 @@ import {
 export interface PlgConfig {
   monthlyTrials: number;
   trialConversionRate: number; // percentage (8 = 8%)
-  avgAcv: number; // annual contract value
-  monthlyDealShare?: number; // percentage of new customers on monthly billing
-  monthlyArpa?: number; // monthly revenue per monthly-billed customer
+  avgAcv: number; // annual contract value (MRR = ACV / 12)
+  monthlyDealShare?: number; // % of new customers on monthly billing (cash timing only)
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
 }
@@ -204,7 +203,6 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
     trialConversionRate: 0,
     avgAcv: 0,
     monthlyDealShare: 0,
-    monthlyArpa: 0,
     churnRate: 0,
     expansionRate: 0,
   },
@@ -607,7 +605,11 @@ export function buildForecast(
     );
 
     // ── New MRR and cash from new customers ──
-    const newPlg = addNewRevenue(plgState, i, newPlgCustomers, revenue.plg);
+    // PLG prices from ACV only; deal share only affects cash timing (monthly vs annual).
+    const newPlg = addNewRevenue(plgState, i, newPlgCustomers, {
+      avgAcv: revenue.plg.avgAcv,
+      monthlyDealShare: revenue.plg.monthlyDealShare,
+    });
     const newSales = addNewRevenue(
       salesState,
       i,

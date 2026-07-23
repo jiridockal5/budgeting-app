@@ -520,6 +520,10 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
     setConfig((prev) => ({ ...prev, [field]: numValue }));
   };
 
+  const mrrPerCustomer = config.avgAcv / 12;
+  const monthlyShare = getMonthlyDealShare(config);
+  const yearlyShare = getYearlyDealShare(config);
+
   return (
     <div className="space-y-6">
       <StreamHeader
@@ -543,13 +547,24 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
           helper="Percentage of trials that convert to paid"
           suffix="%"
         />
-        <BillingMixFields
-          config={config}
-          onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
-          annualLabel="Average yearly ACV"
-          annualHelper="Annual contract value for yearly self-service deals"
-          monthlyLabel="Average monthly ARPA"
-          monthlyHelper="Monthly recurring revenue for monthly self-service deals"
+        <StreamInputField
+          label="Average ACV"
+          value={config.avgAcv}
+          onChange={(v) => updateField("avgAcv", v)}
+          helper="Annual contract value per paid customer. MRR = ACV ÷ 12."
+          prefix={currencySymbol()}
+        />
+        <StreamInputField
+          label="Monthly deal share"
+          value={monthlyShare}
+          onChange={(v) =>
+            setConfig((prev) => ({
+              ...prev,
+              monthlyDealShare: parseFloat(v) || 0,
+            }))
+          }
+          helper={`Cash timing only: ${formatPercentage(monthlyShare)} pay monthly (ACV÷12), ${formatPercentage(yearlyShare)} pay annual ACV upfront. MRR is the same either way.`}
+          suffix="%"
         />
         <StreamInputField
           label="PLG churn rate"
@@ -572,15 +587,16 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
         color="emerald"
       >
         <span className="font-semibold text-emerald-700">{newCustomers}</span>{" "}
-        new customers / month at{" "}
+        new customers / month ×{" "}
         <span className="font-semibold text-emerald-700">
-          {formatCurrency(getBlendedMrr(config))}
+          {formatCurrency(config.avgAcv)}
         </span>{" "}
-        blended MRR
+        ACV
         <span className="text-neutral-500">
           {" "}
-          ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
-          {formatPercentage(getYearlyDealShare(config))} yearly, using{" "}
+          ({formatCurrency(mrrPerCustomer)} MRR each;{" "}
+          {formatPercentage(monthlyShare)} monthly /{" "}
+          {formatPercentage(yearlyShare)} yearly cash, using{" "}
           {formatPercentage(config.churnRate)} churn,{" "}
           {formatPercentage(config.expansionRate)} expansion)
         </span>

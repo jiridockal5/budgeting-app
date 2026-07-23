@@ -15,7 +15,6 @@ const revenueConfigSchema = z.object({
       trialConversionRate: z.number().min(0).max(100),
       avgAcv: z.number().min(0),
       monthlyDealShare: z.number().min(0).max(100).optional(),
-      monthlyArpa: z.number().min(0).optional(),
       churnRate: z.number().min(0).max(100),
       expansionRate: z.number().min(0).max(100),
     }),

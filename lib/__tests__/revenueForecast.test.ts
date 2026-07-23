@@ -17,7 +17,6 @@ const SAMPLE_REVENUE_CONFIG: RevenueConfig = {
     trialConversionRate: 8,
     avgAcv: 12000,
     monthlyDealShare: 0,
-    monthlyArpa: 1000,
     churnRate: 3,
     expansionRate: 5,
   },
@@ -145,25 +144,27 @@ describe("buildForecast", () => {
     );
   });
 
-  it("blends monthly and yearly deal revenue", () => {
+  it("blends monthly and yearly deal cash while MRR uses ACV/12", () => {
     const revenue: RevenueConfig = {
       plg: {
         monthlyTrials: 10,
         trialConversionRate: 100,
         avgAcv: 12000,
         monthlyDealShare: 50,
-        monthlyArpa: 500,
         churnRate: 0,
         expansionRate: 0,
       },
       sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
       partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
     };
+    const assumptions = { ...defaultAssumptions, paymentTimingDays: 0 };
 
-    const result = buildForecast(1, "2025-01", revenue, emptyExpenses, defaultAssumptions);
+    const result = buildForecast(1, "2025-01", revenue, emptyExpenses, assumptions);
 
-    // 10 customers: half monthly at €500 MRR, half yearly at €12k ACV / 12 = €1k MRR.
-    expect(result.months[0].plgMrr).toBe(7500);
+    // 10 customers × $12k ACV / 12 = $10k MRR (deal share does not change MRR)
+    expect(result.months[0].plgMrr).toBe(10000);
+    // Cash: 5 monthly × $1k + 5 yearly × $12k = $65k
+    expect(result.months[0].newCustomerCashIn).toBe(65000);
   });
 
   it("sales uses SQLs × close rate × ACV only", () => {
@@ -201,7 +202,6 @@ describe("buildForecast", () => {
         trialConversionRate: 100,
         avgAcv: 12000,
         monthlyDealShare: 50,
-        monthlyArpa: 500,
         churnRate: 0,
         expansionRate: 0,
       },
@@ -212,10 +212,11 @@ describe("buildForecast", () => {
 
     const result = buildForecast(2, "2025-01", revenue, emptyExpenses, assumptions);
 
-    expect(result.months[0].totalMrr).toBe(7500);
-    expect(result.months[0].newCustomerCashIn).toBe(62500);
+    expect(result.months[0].totalMrr).toBe(10000);
+    expect(result.months[0].newCustomerCashIn).toBe(65000);
     expect(result.months[0].existingCustomerCashIn).toBe(0);
-    expect(result.months[1].existingCustomerCashIn).toBe(2500);
+    // Month 2: monthly-billed cohort pays ACV/12 again
+    expect(result.months[1].existingCustomerCashIn).toBe(5000);
   });
 
   it("expenses are calculated correctly", () => {
