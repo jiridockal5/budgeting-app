@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
+import { DEFAULT_REVENUE_CONFIG, isBlankRevenueConfig } from "@/lib/revenueForecast";
+import type { RevenueConfig } from "@/lib/revenueForecast";
 import { captureRouteException } from "@/lib/monitoring";
 import { getScopedScenario } from "@/lib/server/planScope";
 
@@ -82,13 +83,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const config = scoped.scenario.config as unknown as RevenueConfig;
     return NextResponse.json({
       success: true,
       data: {
         planId: scoped.plan.id,
         scenarioId: scoped.scenario.id,
-        config: scoped.scenario.config,
-        isDefault: false,
+        config,
+        isDefault: isBlankRevenueConfig(config),
       },
     });
   } catch (error) {

@@ -1,7 +1,5 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
-import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 
 /**
  * Clone assumptions, people, and expenses from one scenario onto another.
@@ -58,6 +56,10 @@ export async function cloneScenarioInputs(
         baseAcv: sourceAsm.baseAcv,
       },
     });
+  } else {
+    await prisma.globalAssumptions.deleteMany({
+      where: { scenarioId: targetScenarioId },
+    });
   }
 
   // Replace people/expenses on target with clones of source
@@ -99,30 +101,22 @@ export async function cloneScenarioInputs(
   }
 }
 
-/** Seed a scenario with product starter defaults (no people/expenses). */
+/**
+ * Reset a scenario to a blank starter: no assumptions row, null revenue config,
+ * empty people/expenses. Onboarding treats this as incomplete until the user saves.
+ */
 export async function seedFreshScenarioInputs(
   scenarioId: string,
-  planId: string
+  _planId: string
 ): Promise<void> {
-  await prisma.globalAssumptions.upsert({
-    where: { scenarioId },
-    create: {
-      planId,
-      scenarioId,
-      ...DEFAULT_ASSUMPTIONS,
-    },
-    update: {
-      ...DEFAULT_ASSUMPTIONS,
-    },
-  });
-
+  await prisma.globalAssumptions.deleteMany({ where: { scenarioId } });
   await prisma.person.deleteMany({ where: { scenarioId } });
   await prisma.expense.deleteMany({ where: { scenarioId } });
 
   await prisma.forecastScenario.update({
     where: { id: scenarioId },
     data: {
-      config: DEFAULT_REVENUE_CONFIG as unknown as Prisma.InputJsonValue,
+      config: Prisma.DbNull,
     },
   });
 }

@@ -158,14 +158,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // fresh — product starter defaults
+    // fresh — blank starter (no assumptions row, null revenue, empty costs)
     const scenario = await prisma.forecastScenario.create({
       data: {
         planId: plan.id,
         name: input.name,
         startMonth: plan.startMonth,
         months: plan.months,
-        config: DEFAULT_REVENUE_CONFIG as unknown as Prisma.InputJsonValue,
+        config: Prisma.DbNull,
       },
     });
 

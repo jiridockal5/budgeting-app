@@ -162,3 +162,13 @@ export function normalizeAssumptions(
   };
 }
 
+/** True when assumptions match the blank product starter (no real inputs yet). */
+export function isBlankAssumptions(
+  value: Partial<GlobalAssumptions> | null | undefined
+): boolean {
+  const n = normalizeAssumptions(value);
+  return (Object.keys(DEFAULT_ASSUMPTIONS) as (keyof GlobalAssumptions)[]).every(
+    (key) => n[key] === DEFAULT_ASSUMPTIONS[key]
+  );
+}
+

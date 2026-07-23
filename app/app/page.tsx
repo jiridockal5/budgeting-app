@@ -354,10 +354,9 @@ export default function DashboardPage() {
                   aria-hidden
                 />
                 <p>
-                  <span className="font-medium">Sample forecast.</span> These
-                  numbers use built-in defaults so you can preview the
-                  dashboard — they are not your company&apos;s data. Complete
-                  the setup steps above to see your own forecast.
+                  <span className="font-medium">Setup incomplete.</span> Add
+                  your assumptions, revenue, and expenses to build a real
+                  forecast for this scenario.
                 </p>
               </div>
             )}

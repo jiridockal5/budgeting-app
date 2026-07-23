@@ -229,6 +229,17 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
   },
 };
 
+/** True when revenue config has no real funnel/pricing inputs yet. */
+export function isBlankRevenueConfig(
+  config: RevenueConfig | null | undefined
+): boolean {
+  if (!config) return true;
+  const streams = [config.plg, config.sales, config.partners];
+  return streams.every((stream) =>
+    Object.values(stream).every((value) => value === 0 || value === undefined)
+  );
+}
+
 // ============================================================================
 // Helpers
 // ============================================================================

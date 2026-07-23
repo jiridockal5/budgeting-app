@@ -391,7 +391,7 @@ export default function ScenariosPage() {
                 )}
                 {createMode === "fresh" && (
                   <p className="text-xs text-neutral-500">
-                    Zeroed revenue and assumptions, no people or expenses.
+                    Blank revenue and assumptions, no people or expenses.
                   </p>
                 )}
                 {createMode === "copy" && (

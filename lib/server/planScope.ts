@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { jsonErr } from "@/lib/server/apiEnvelope";
 import { resolveDbUser } from "@/lib/server/dbUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
-import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 import { seedFreshScenarioInputs } from "@/lib/server/scenarioClone";
 
 export type ScopedPlan =
@@ -82,7 +81,7 @@ export async function ensureDefaultScenario(plan: Plan): Promise<ForecastScenari
       name: "Default",
       startMonth: plan.startMonth,
       months: plan.months,
-      config: DEFAULT_REVENUE_CONFIG as unknown as Prisma.InputJsonValue,
+      config: Prisma.DbNull,
     },
   });
   await seedFreshScenarioInputs(scenario.id, plan.id);

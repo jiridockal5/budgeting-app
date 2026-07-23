@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GlobalAssumptions as DbGlobalAssumptions, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_ASSUMPTIONS } from "@/lib/assumptions";
+import { DEFAULT_ASSUMPTIONS, isBlankAssumptions } from "@/lib/assumptions";
 import { captureRouteException } from "@/lib/monitoring";
 import { getScopedScenario } from "@/lib/server/planScope";
 
@@ -130,11 +130,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const serialized = serializeAssumptions(assumptions);
     return NextResponse.json({
       success: true,
       data: {
-        ...serializeAssumptions(assumptions),
-        isDefault: false,
+        ...serialized,
+        isDefault: isBlankAssumptions(serialized),
       },
     });
   } catch (error) {
