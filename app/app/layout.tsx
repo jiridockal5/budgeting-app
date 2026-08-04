@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import posthog, { isPostHogConfigured } from "@/instrumentation-client";
 import Sidebar from "@/components/layout/Sidebar";
 import { AccessGate, TrialBanner } from "@/components/billing/AccessGate";
 import { ActiveScenarioProvider } from "@/components/scenario/ActiveScenarioProvider";
@@ -24,6 +25,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const identifyUser = (user: NonNullable<Session>["user"]) => {
+    if (!isPostHogConfigured) return;
+
+    posthog.identify(user.id, {
+      email: user.email,
+    });
+  };
+
   useEffect(() => {
     const loadSession = async () => {
       const {
@@ -31,6 +40,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       } = await supabase.auth.getSession();
 
       setSession(session);
+      if (session) {
+        identifyUser(session.user);
+      }
       setLoading(false);
     };
 
@@ -38,9 +50,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (!session) {
+      if (event === "SIGNED_IN" && session) {
+        identifyUser(session.user);
+      }
+      if (event === "SIGNED_OUT") {
+        if (isPostHogConfigured) {
+          posthog.reset();
+        }
         router.replace("/login");
       }
     });
@@ -49,6 +67,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const handleLogout = async () => {
+    if (isPostHogConfigured) {
+      posthog.reset();
+    }
     await supabase.auth.signOut();
     router.replace("/login");
   };

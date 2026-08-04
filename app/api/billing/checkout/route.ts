@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerUser } from "@/lib/serverUser";
 import { checkRateLimit } from "@/lib/apiUtils";
 import { captureRouteException } from "@/lib/monitoring";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const checkoutSchema = z.object({
   priceId: z.string().min(1),
@@ -75,6 +76,10 @@ export async function POST(request: NextRequest) {
       success_url: `${origin}/app/settings/billing?success=true`,
       cancel_url: `${origin}/app/subscribe?cancelled=true`,
       metadata: { userId: user.id },
+    });
+
+    await captureServerEvent(userId, "checkout_started", {
+      subscription_mode: session.mode === "subscription",
     });
 
     return NextResponse.json({

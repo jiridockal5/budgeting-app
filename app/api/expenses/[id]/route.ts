@@ -7,6 +7,7 @@ import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { costModelSchema } from "@/lib/schemas/costModel";
 import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
 import { getScopedScenario } from "@/lib/server/planScope";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const frequencyEnum = z.enum(["MONTHLY", "ONE_TIME", "YEARLY"]);
 
@@ -101,6 +102,12 @@ export async function PUT(request: NextRequest, context: RouteParams) {
       },
     });
 
+    await captureServerEvent(scoped.userId, "expense_updated", {
+      category: updated.category,
+      frequency: updated.frequency,
+      has_end_month: Boolean(updated.endMonth),
+    });
+
     return jsonOk(serializeExpense(updated));
   } catch (error) {
     return jsonServerError("PUT /api/expenses/[id]", error);
@@ -138,6 +145,10 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
 
     await prisma.expense.delete({
       where: { id: existing.id },
+    });
+    await captureServerEvent(scoped.userId, "expense_deleted", {
+      category: existing.category,
+      frequency: existing.frequency,
     });
 
     return jsonOk(null);

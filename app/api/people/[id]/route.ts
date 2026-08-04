@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
 import { getScopedScenario } from "@/lib/server/planScope";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const personUpdateSchema = z.object({
   planId: z.string().min(1),
@@ -84,6 +85,12 @@ export async function PUT(request: NextRequest, context: RouteParams) {
       },
     });
 
+    await captureServerEvent(scoped.userId, "headcount_updated", {
+      employment_type: updated.type,
+      category: updated.category,
+      has_end_date: Boolean(updated.endDate),
+    });
+
     return jsonOk(serializePerson(updated));
   } catch (error) {
     return jsonServerError("PUT /api/people/[id]", error);
@@ -121,6 +128,10 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
 
     await prisma.person.delete({
       where: { id: existing.id },
+    });
+    await captureServerEvent(scoped.userId, "headcount_deleted", {
+      employment_type: existing.type,
+      category: existing.category,
     });
 
     return jsonOk(null);

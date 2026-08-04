@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { DEFAULT_ASSUMPTIONS, isBlankAssumptions } from "@/lib/assumptions";
 import { captureRouteException } from "@/lib/monitoring";
 import { getScopedScenario } from "@/lib/server/planScope";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const assumptionsInputSchema = z.object({
   planId: z.string().min(1),
@@ -215,6 +216,12 @@ export async function POST(request: NextRequest) {
         inflationRate: input.inflationRate,
         baseAcv: input.baseAcv ?? undefined,
       },
+    });
+
+    await captureServerEvent(scoped.userId, "assumptions_saved", {
+      has_planned_raise: Boolean(assumptions.plannedRaiseMonth),
+      has_target_runway: assumptions.targetRunwayMonths !== null,
+      has_min_cash_buffer: assumptions.minCashBuffer !== null,
     });
 
     return NextResponse.json({

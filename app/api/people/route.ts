@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
 import { getScopedScenario } from "@/lib/server/planScope";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const personInputSchema = z.object({
   planId: z.string().min(1),
@@ -100,6 +101,12 @@ export async function POST(request: NextRequest) {
         startDate: input.startDate ? normalizeDate(input.startDate) : null,
         endDate: input.endDate ? normalizeDate(input.endDate) : null,
       },
+    });
+
+    await captureServerEvent(scoped.userId, "headcount_added", {
+      employment_type: person.type,
+      category: person.category,
+      has_end_date: Boolean(person.endDate),
     });
 
     return jsonOk(serializePerson(person), 201);

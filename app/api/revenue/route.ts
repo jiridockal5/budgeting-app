@@ -5,6 +5,7 @@ import { DEFAULT_REVENUE_CONFIG, isBlankRevenueConfig } from "@/lib/revenueForec
 import type { RevenueConfig } from "@/lib/revenueForecast";
 import { captureRouteException } from "@/lib/monitoring";
 import { getScopedScenario } from "@/lib/server/planScope";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const revenueConfigSchema = z.object({
   planId: z.string().min(1),
@@ -130,6 +131,13 @@ export async function POST(request: NextRequest) {
     const scenario = await prisma.forecastScenario.update({
       where: { id: scoped.scenario.id },
       data: { config: input.config },
+    });
+
+    await captureServerEvent(scoped.userId, "revenue_model_saved", {
+      has_partner_monthly_deal_share:
+        input.config.partners.monthlyDealShare !== undefined,
+      has_partner_monthly_arpa: input.config.partners.monthlyArpa !== undefined,
+      has_plg_monthly_deal_share: input.config.plg.monthlyDealShare !== undefined,
     });
 
     return NextResponse.json({

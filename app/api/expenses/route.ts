@@ -7,6 +7,7 @@ import { expenseCategorySchema } from "@/lib/schemas/expenseCategory";
 import { costModelSchema } from "@/lib/schemas/costModel";
 import { jsonErr, jsonOk, jsonServerError } from "@/lib/server/apiEnvelope";
 import { getScopedScenario } from "@/lib/server/planScope";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const frequencyEnum = z.enum(["MONTHLY", "ONE_TIME", "YEARLY"]);
 
@@ -114,6 +115,12 @@ export async function POST(request: NextRequest) {
         endMonth: input.endMonth ? normalizeMonth(input.endMonth) : null,
         config: input.config ?? Prisma.DbNull,
       },
+    });
+
+    await captureServerEvent(scoped.userId, "expense_created", {
+      category: expense.category,
+      frequency: expense.frequency,
+      has_end_month: Boolean(expense.endMonth),
     });
 
     return jsonOk(serializeExpense(expense), 201);
