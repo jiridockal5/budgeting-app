@@ -164,8 +164,8 @@ Finish remaining launch blockers so Burnlytics can be **offered to paying custom
 | `STRIPE_WEBHOOK_SECRET` | ⚠️ | Needs live webhook endpoint |
 | `STRIPE_GROWTH_*_PRICE_ID` (×4) | ⚠️ | Sandbox IDs today |
 | `NEXT_PUBLIC_STRIPE_GROWTH_*` (×4) | ⚠️ | |
-| `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | ❌ **TODO** until set in Vercel | Public project token from PostHog EU |
-| `NEXT_PUBLIC_POSTHOG_HOST` | ❌ **TODO** until set in Vercel | `https://eu.i.posthog.com` |
+| `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | ✅ Set | Public project token from PostHog EU |
+| `NEXT_PUBLIC_POSTHOG_HOST` | ✅ Set | `https://eu.i.posthog.com` |
 
 ### Local dev
 
