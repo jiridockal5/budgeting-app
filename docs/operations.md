@@ -19,6 +19,7 @@ Short reference for running this app in production. Adjust names (Supabase, Verc
 ## Error visibility
 
 - **Today:** API routes use `captureRouteException` in `lib/monitoring.ts` (structured JSON logs). Point your host’s log drain at your log tool, or tail logs in the dashboard.
+- **PostHog:** Product analytics and client exception capture via `instrumentation-client.ts` and `lib/posthogServer.ts`. Requires `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` (EU: `https://eu.i.posthog.com`). Without them, server capture no-ops in production; local `npm run dev` throws until they are set.
 - **Sentry (optional):** `@sentry/nextjs` may not yet list Next.js 16 as a supported peer; check [Sentry’s Next.js docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/). If the install peer warning is acceptable, use `npm install @sentry/nextjs --legacy-peer-deps`, add `instrumentation.ts` per Sentry’s wizard, then extend `captureRouteException` to call `Sentry.captureException`.
 - **Client errors:** consider `NEXT_PUBLIC_SENTRY_DSN` only if you accept exposing the DSN to the browser (Sentry’s design); scope sampling and scrub PII in `beforeSend`.
 

@@ -143,7 +143,7 @@ Finish remaining launch blockers so Burnlytics can be **offered to paying custom
 |------|--------|
 | Git history secret purge | DB password rotated; optional `git filter-repo` |
 | Sentry | Deferred per `docs/operations.md` |
-| PostHog analytics | Deferred per `docs/happy-path.md` |
+| PostHog analytics | Done — `posthog-js` / `posthog-node`; set `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` + `NEXT_PUBLIC_POSTHOG_HOST` in Vercel |
 | Actuals / Team | Hidden via `config/launch.ts` |
 | VAT, invoices UI, multi-tier pricing | Not in v1 scope |
 
@@ -164,6 +164,8 @@ Finish remaining launch blockers so Burnlytics can be **offered to paying custom
 | `STRIPE_WEBHOOK_SECRET` | ⚠️ | Needs live webhook endpoint |
 | `STRIPE_GROWTH_*_PRICE_ID` (×4) | ⚠️ | Sandbox IDs today |
 | `NEXT_PUBLIC_STRIPE_GROWTH_*` (×4) | ⚠️ | |
+| `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | ❌ **TODO** until set in Vercel | Public project token from PostHog EU |
+| `NEXT_PUBLIC_POSTHOG_HOST` | ❌ **TODO** until set in Vercel | `https://eu.i.posthog.com` |
 
 ### Local dev
 
