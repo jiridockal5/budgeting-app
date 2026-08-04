@@ -4,6 +4,7 @@ import { getStripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/apiUtils";
 import { captureRouteException } from "@/lib/monitoring";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -113,6 +114,9 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       cancelAtPeriodEnd: sub.cancel_at_period_end,
     },
   });
+  await captureServerEvent(userId, "subscription_activated", {
+    subscription_status: mapStatus(sub.status),
+  });
 }
 
 async function handleSubscriptionUpdate(sub: Stripe.Subscription) {
@@ -160,6 +164,7 @@ async function handleSubscriptionDelete(sub: Stripe.Subscription) {
     where: { userId: user.id },
     data: { status: "CANCELLED" },
   });
+  await captureServerEvent(user.id, "subscription_cancelled");
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
@@ -180,6 +185,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     where: { userId: user.id },
     data: { status: "PAST_DUE" },
   });
+  await captureServerEvent(user.id, "subscription_payment_failed");
 }
 
 function extractPeriodEnd(sub: Stripe.Subscription): Date {

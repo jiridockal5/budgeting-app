@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: "Privacy Policy for the Burnlytics forecasting application.",
 };
 
-const LAST_UPDATED = "July 22, 2026";
+const LAST_UPDATED = "August 4, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -44,6 +44,13 @@ export default function PrivacyPage() {
           <strong>Technical data:</strong> server logs (IP address, request
           metadata) retained briefly for security and debugging.
         </li>
+        <li>
+          <strong>Product analytics:</strong> usage events (for example saving
+          assumptions or starting checkout), page views, and error reports,
+          processed by PostHog (EU cloud) to understand product adoption and
+          reliability. When you are signed in, events may be linked to your
+          account id and email.
+        </li>
       </ul>
 
       <h2>2. Purposes and legal bases</h2>
@@ -57,6 +64,12 @@ export default function PrivacyPage() {
           authentication, logging, rate limiting.
         </li>
         <li>
+          <strong>Product improvement</strong> (legitimate interest): measuring
+          feature usage and onboarding drop-off via PostHog so we can improve
+          the Service. You may object to this processing by contacting us (see
+          Contact below).
+        </li>
+        <li>
           <strong>Service communications</strong> (contract performance):
           transactional emails such as email confirmation, password reset, and
           billing notices. We do not send marketing emails without your
@@ -66,12 +79,17 @@ export default function PrivacyPage() {
 
       <h2>3. Cookies</h2>
       <p>
-        The Service uses only <strong>strictly necessary cookies</strong>:
+        The Service uses <strong>strictly necessary cookies</strong> for
         authentication session cookies set by our auth provider (Supabase).
-        We currently use no analytics, advertising, or third-party tracking
-        cookies, which is why no cookie consent banner is shown. If this
-        changes, we will update this policy and request consent where
-        required.
+      </p>
+      <p>
+        We also use <strong>PostHog</strong> for product analytics. The
+        browser SDK may set first-party analytics cookies or similar storage
+        to distinguish sessions and measure page views. We do not use
+        advertising or cross-site tracking cookies. If you require a consent
+        banner under applicable law for analytics cookies, contact us and we
+        will adjust the implementation; we may also rely on server-side
+        events that do not depend on analytics cookies.
       </p>
 
       <h2>4. Processors and data transfers</h2>
@@ -85,6 +103,10 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Vercel</strong> — application hosting and logs.
+        </li>
+        <li>
+          <strong>PostHog</strong> — product analytics (EU region:{" "}
+          <a href="https://eu.posthog.com">eu.posthog.com</a>).
         </li>
       </ul>
       <p>

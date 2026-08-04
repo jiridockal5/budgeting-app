@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveDbUser } from "@/lib/server/dbUser";
 import { requireAppAccess } from "@/lib/requireAppAccess";
 import { captureRouteException } from "@/lib/monitoring";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -55,6 +56,11 @@ export async function PUT(request: NextRequest, context: RouteParams) {
       },
     });
 
+    await captureServerEvent(user.id, "scenario_updated", {
+      updated_name: name !== undefined,
+      updated_config: config !== undefined,
+    });
+
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     captureRouteException("PUT /api/scenarios/[id]", error);
@@ -95,6 +101,7 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
     }
 
     await prisma.forecastScenario.delete({ where: { id } });
+    await captureServerEvent(user.id, "scenario_deleted");
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -12,6 +12,7 @@ import {
 } from "@/lib/server/scenarioClone";
 import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
 import { ensureDefaultScenario } from "@/lib/server/planScope";
+import { captureServerEvent } from "@/lib/posthogServer";
 
 const createSchema = z.object({
   planId: z.string().min(1),
@@ -152,6 +153,10 @@ export async function POST(request: NextRequest) {
 
       await cloneScenarioInputs(source.id, scenario.id, plan.id);
 
+      await captureServerEvent(user.id, "scenario_created", {
+        creation_mode: "copy",
+      });
+
       return NextResponse.json(
         { success: true, data: scenario },
         { status: 201 }
@@ -170,6 +175,10 @@ export async function POST(request: NextRequest) {
     });
 
     await seedFreshScenarioInputs(scenario.id);
+
+    await captureServerEvent(user.id, "scenario_created", {
+      creation_mode: "fresh",
+    });
 
     return NextResponse.json(
       { success: true, data: scenario },
