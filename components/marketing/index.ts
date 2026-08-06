@@ -19,6 +19,7 @@ export { LogoRow } from "./LogoRow";
 export { HowItWorks } from "./HowItWorks";
 export { FeatureBento } from "./FeatureBento";
 export { MetricsGrid } from "./MetricsGrid";
+export { ProductPreviewTabs } from "./ProductPreviewTabs";
 export { UseCasesTabs } from "./UseCasesTabs";
 export { FAQ } from "./FAQ";
 export { FinalCTA } from "./FinalCTA";
