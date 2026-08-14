@@ -37,6 +37,11 @@ export const costModelSchema = z.discriminatedUnion("method", [
     ...baseExtras,
   }),
   z.object({
+    method: z.literal("percentOfNewSalesBookings"),
+    percent: z.number().finite(),
+    ...baseExtras,
+  }),
+  z.object({
     method: z.literal("perCustomer"),
     amountPerUnit: z.number().finite(),
     customerBasis: z.enum(["active", "new"]),

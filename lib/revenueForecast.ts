@@ -635,6 +635,8 @@ export interface MonthContext {
     partners: number;
   };
   newCustomers: { total: number; plg: number; sales: number; partners: number };
+  /** New sales-sourced closed ACV this month (new sales customers × avgAcv). Not MRR, not opening book. */
+  newSalesBookings: number;
   people: {
     totalFte: number;
     totalCount: number;
@@ -723,6 +725,10 @@ export function resolveExpenseMonth(
     case "percentOfRevenue": {
       const m = model as Extract<CostModel, { method: "percentOfRevenue" }>;
       return mrrFor(ctx, m.revenueBase) * (m.percent / 100);
+    }
+    case "percentOfNewSalesBookings": {
+      const m = model as Extract<CostModel, { method: "percentOfNewSalesBookings" }>;
+      return ctx.newSalesBookings * (m.percent / 100);
     }
     case "perCustomer": {
       const m = model as Extract<CostModel, { method: "perCustomer" }>;
@@ -983,6 +989,7 @@ export function buildForecast(
         sales: newSalesCustomers,
         partners: newPartnerCustomers,
       },
+      newSalesBookings: newSalesCustomers * (revenue.sales.avgAcv || 0),
       people: {
         totalFte,
         totalCount: totalHeadcount,
@@ -1205,6 +1212,7 @@ export function computeStartingRunRate(
       partners: Math.round(partnerCustomers),
     },
     newCustomers: { total: 0, plg: 0, sales: 0, partners: 0 },
+    newSalesBookings: 0,
     people: {
       totalFte,
       totalCount: totalHeadcount,

@@ -511,6 +511,98 @@ describe("flexible cost model", () => {
     expect(result.months[12].nonHeadcountExpense).toBeCloseTo(1100, 2); // year 1: +10%
   });
 
+  it("percentOfNewSalesBookings is new sales customers × ACV, not MRR", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 200,
+        trialConversionRate: 50,
+        avgAcv: 12000,
+        churnRate: 0,
+        expansionRate: 0,
+        startingCustomers: 40,
+        startingMrr: 20000,
+      },
+      sales: {
+        monthlySqls: 50,
+        closeRate: 10,
+        avgAcv: 4800,
+        churnRate: 0,
+        expansionRate: 0,
+        startingCustomers: 100,
+        startingMrr: 40000,
+      },
+      partners: {
+        monthlyReferrals: 30,
+        closeRate: 50,
+        avgAcv: 9600,
+        commissionRate: 20,
+        startingCustomers: 10,
+        startingMrr: 8000,
+      },
+    };
+    const result = buildForecast(
+      1,
+      "2025-01",
+      revenue,
+      nonHeadcount([
+        {
+          name: "Sales commissions",
+          category: "gtm",
+          amount: 0,
+          frequency: "monthly",
+          startMonth: "2025-01",
+          config: { method: "percentOfNewSalesBookings", percent: 10 },
+        },
+      ]),
+      noGrowthAssumptions
+    );
+    // 50 SQLs × 10% close = 5 new sales customers × $4,800 ACV = $24,000 bookings
+    expect(result.months[0].newSalesCustomers).toBe(5);
+    expect(result.months[0].nonHeadcountExpense).toBeCloseTo(2400, 2);
+    // Must be ACV, not ACV/12 MRR (that would be $200) and not opening-book MRR.
+    expect(result.months[0].nonHeadcountExpense).not.toBeCloseTo(200, 0);
+  });
+
+  it("percentOfNewSalesBookings is zero at starting run-rate (opening book is not bookings)", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 0,
+        trialConversionRate: 0,
+        avgAcv: 0,
+        churnRate: 0,
+        expansionRate: 0,
+      },
+      sales: {
+        monthlySqls: 50,
+        closeRate: 10,
+        avgAcv: 4800,
+        churnRate: 0,
+        expansionRate: 0,
+        startingCustomers: 100,
+        startingMrr: 40000,
+      },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const expenses = nonHeadcount([
+      {
+        name: "Sales commissions",
+        category: "gtm",
+        amount: 0,
+        frequency: "monthly",
+        startMonth: "2025-01",
+        config: { method: "percentOfNewSalesBookings", percent: 10 },
+      },
+    ]);
+    const snapshot = computeStartingRunRate(
+      "2025-01",
+      revenue,
+      expenses,
+      noGrowthAssumptions
+    );
+    expect(snapshot.currentOpex).toBe(0);
+    expect(snapshot.currentCosts).toBe(0);
+  });
+
   it("percentOfRevenue scales with total MRR", () => {
     const revenue: RevenueConfig = {
       ...SAMPLE_REVENUE_CONFIG,
@@ -1106,5 +1198,60 @@ describe("multiple PLG self-service plans", () => {
     expect(result.months[0].plgMrr).toBe(3000);
     expect(result.months[1].churnedMrr).toBeCloseTo(100, 6);
     expect(result.months[1].plgMrr).toBeCloseTo(2900, 6);
+  });
+
+  it("percentOfNewSalesBookings ignores PLG plans and uses the sales stream only", () => {
+    const revenue: RevenueConfig = {
+      plg: { monthlyTrials: 0, trialConversionRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      plgPlans: [
+        {
+          id: "starter",
+          name: "Starter",
+          monthlyTrials: 10,
+          trialConversionRate: 100,
+          avgAcv: 1200,
+          monthlyDealShare: 100,
+          churnRate: 0,
+          expansionRate: 0,
+        },
+        {
+          id: "pro",
+          name: "Pro",
+          monthlyTrials: 4,
+          trialConversionRate: 100,
+          avgAcv: 2400,
+          monthlyDealShare: 100,
+          churnRate: 0,
+          expansionRate: 0,
+        },
+      ],
+      sales: {
+        monthlySqls: 50,
+        closeRate: 10,
+        avgAcv: 4800,
+        churnRate: 0,
+        expansionRate: 0,
+      },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const result = buildForecast(
+      1,
+      "2026-12",
+      revenue,
+      nonHeadcount([
+        {
+          name: "Sales commissions",
+          category: "gtm",
+          amount: 0,
+          frequency: "monthly",
+          startMonth: "2026-12",
+          config: { method: "percentOfNewSalesBookings", percent: 10 },
+        },
+      ]),
+      noGrowthAssumptions
+    );
+    expect(result.months[0].newPlgCustomers).toBe(14);
+    expect(result.months[0].newSalesCustomers).toBe(5);
+    expect(result.months[0].nonHeadcountExpense).toBeCloseTo(2400, 2);
   });
 });

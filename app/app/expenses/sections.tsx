@@ -50,6 +50,7 @@ import {
 export function methodNeedsForecast(method: CostMethod): boolean {
   return (
     method === "percentOfRevenue" ||
+    method === "percentOfNewSalesBookings" ||
     method === "perCustomer" ||
     method === "perEmployee"
   );
@@ -89,6 +90,7 @@ export function buildPreviewSeries(
       mrr: { total: 0, plg: 0, sales: 0, partners: 0 },
       activeCustomers: { total: 0, plg: 0, sales: 0, partners: 0 },
       newCustomers: { total: 0, plg: 0, sales: 0, partners: 0 },
+      newSalesBookings: 0,
       people: { totalFte: 0, totalCount: 0, fteByCategory: {}, countByCategory: {} },
     };
     series.push(resolveExpenseMonth(input, ctx));
@@ -768,6 +770,7 @@ export function NonHeadcountSection({
   const canSubmitForm =
     form.name.trim().length > 0 &&
     (formMethod === "percentOfRevenue" ||
+      formMethod === "percentOfNewSalesBookings" ||
       formMethod === "perCustomer" ||
       formMethod === "perEmployee" ||
       form.amount > 0);
@@ -1324,6 +1327,8 @@ export function defaultModelForMethod(
       };
     case "percentOfRevenue":
       return { method: "percentOfRevenue", percent: 15, revenueBase: "total", ...shared };
+    case "percentOfNewSalesBookings":
+      return { method: "percentOfNewSalesBookings", percent: 10, ...shared };
     case "perCustomer":
       return {
         method: "perCustomer",
@@ -1490,6 +1495,26 @@ export function CostMethodFields({
           )}
         </>
       )}
+
+      {method === "percentOfNewSalesBookings" &&
+        form.config?.method === "percentOfNewSalesBookings" && (
+          <>
+            {labeled(
+              "Percent (%)",
+              <NumberInput
+                value={form.config.percent}
+                onChange={(value) =>
+                  patchConfig({ percent: parseFloat(value) || 0 })
+                }
+                className={fieldClass}
+              />
+            )}
+            <p className="sm:col-span-3 text-xs text-neutral-500">
+              Applied to new sales bookings this month (new sales customers ×
+              ACV), not MRR or starting book.
+            </p>
+          </>
+        )}
 
       {method === "perCustomer" && form.config?.method === "perCustomer" && (
         <>

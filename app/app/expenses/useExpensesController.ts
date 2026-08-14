@@ -111,7 +111,10 @@ function scaleRowPrimary(
   const round = (n: number) => Math.round(n * 100) / 100;
   const config = row.config;
   if (config) {
-    if (config.method === "percentOfRevenue") {
+    if (
+      config.method === "percentOfRevenue" ||
+      config.method === "percentOfNewSalesBookings"
+    ) {
       return { ...row, config: { ...config, percent: round(config.percent * factor) } };
     }
     if (config.method === "perCustomer" || config.method === "perEmployee") {

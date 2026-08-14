@@ -145,6 +145,7 @@ export type CostMethod =
   | "fixed"
   | "growing"
   | "percentOfRevenue"
+  | "percentOfNewSalesBookings"
   | "perCustomer"
   | "perEmployee";
 
@@ -174,6 +175,12 @@ export interface PercentOfRevenueCostModel {
   revenueBase: RevenueBase;
 }
 
+/** Commission (or similar) on new closed ACV that month — sales stream only. */
+export interface PercentOfNewSalesBookingsCostModel {
+  method: "percentOfNewSalesBookings";
+  percent: number; // percentage of new sales bookings (new customers × ACV)
+}
+
 export interface PerCustomerCostModel {
   method: "perCustomer";
   amountPerUnit: number; // EUR per customer per month
@@ -192,6 +199,7 @@ export type CostMethodModel =
   | FixedCostModel
   | GrowingCostModel
   | PercentOfRevenueCostModel
+  | PercentOfNewSalesBookingsCostModel
   | PerCustomerCostModel
   | PerEmployeeCostModel;
 
@@ -208,6 +216,7 @@ export const COST_METHOD_LABELS: Record<CostMethod, string> = {
   fixed: "Fixed amount",
   growing: "Grows over time",
   percentOfRevenue: "% of revenue",
+  percentOfNewSalesBookings: "% of new sales bookings",
   perCustomer: "Per customer",
   perEmployee: "Per employee",
 };
@@ -228,9 +237,14 @@ export function parseCostModel(value: unknown): CostModel | null {
   const v = value as Record<string, unknown>;
   if (typeof v.method !== "string") return null;
   if (
-    !["fixed", "growing", "percentOfRevenue", "perCustomer", "perEmployee"].includes(
-      v.method
-    )
+    ![
+      "fixed",
+      "growing",
+      "percentOfRevenue",
+      "percentOfNewSalesBookings",
+      "perCustomer",
+      "perEmployee",
+    ].includes(v.method)
   ) {
     return null;
   }
@@ -247,6 +261,8 @@ export function describeCostModel(model: CostModel | null): string {
     }
     case "percentOfRevenue":
       return `${model.percent}% of ${REVENUE_BASE_LABELS[model.revenueBase]}`;
+    case "percentOfNewSalesBookings":
+      return `${model.percent}% of new sales bookings`;
     case "perCustomer":
       return `${model.amountPerUnit}/${model.customerBasis === "new" ? "new cust." : "customer"}`;
     case "perEmployee":
