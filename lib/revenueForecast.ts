@@ -330,51 +330,34 @@ function openingAmount(value: number | undefined): number {
 }
 
 /**
- * Seed the current book at forecast start. Splits customers/MRR by the same
- * monthly vs yearly mix as new business. Yearly cohort anniversary is month 0
- * so the first renewal is in 12 months (already-paid annuals are not recashed).
+ * Seed the current book at forecast start.
+ * Current MRR is a monthly cash run-rate (what the company collects today).
+ * New-business monthly/yearly mix does not apply to this opening book.
  */
 function seedOpeningBook(
   startingCustomers: number | undefined,
-  startingMrr: number | undefined,
-  config: BillingMixConfig
+  startingMrr: number | undefined
 ): RevenueStreamState {
   const customers = openingAmount(startingCustomers);
   const mrr = openingAmount(startingMrr);
   if (customers === 0 && mrr === 0) return emptyRevenueStreamState();
 
-  const monthlyShare =
-    Math.min(Math.max(config.monthlyDealShare ?? 0, 0), 100) / 100;
-  const monthlyCustomers = customers * monthlyShare;
-  const yearlyCustomers = customers - monthlyCustomers;
-  const monthlyMrr = mrr * monthlyShare;
-  const yearlyMrr = mrr - monthlyMrr;
-
-  const yearlyCohorts: YearlyRevenueCohort[] = [];
-  if (yearlyCustomers > 0 && yearlyMrr > 0) {
-    yearlyCohorts.push({
-      startIndex: 0,
-      customers: yearlyCustomers,
-      mrr: yearlyMrr,
-    });
-  }
-
   return {
-    monthlyCustomers,
-    yearlyCustomers,
-    monthlyMrr,
-    yearlyMrr,
-    yearlyCohorts,
+    monthlyCustomers: customers,
+    yearlyCustomers: 0,
+    monthlyMrr: mrr,
+    yearlyMrr: 0,
+    yearlyCohorts: [],
   };
 }
 
-/** Month-0 cash from the opening book: monthly ARPA only; no churn, no annual renewal. */
+/** Month-0 cash from the opening book: full current MRR; no churn. */
 function openingBookCash(state: RevenueStreamState) {
   return {
     churnedCustomers: 0,
     churnedMrr: 0,
     expansionMrr: 0,
-    existingCash: state.monthlyMrr,
+    existingCash: totalStreamMrr(state),
   };
 }
 
@@ -654,21 +637,15 @@ export function buildForecast(
 
   const plgState = seedOpeningBook(
     revenue.plg.startingCustomers,
-    revenue.plg.startingMrr,
-    {
-      avgAcv: revenue.plg.avgAcv,
-      monthlyDealShare: revenue.plg.monthlyDealShare,
-    }
+    revenue.plg.startingMrr
   );
   const salesState = seedOpeningBook(
     revenue.sales.startingCustomers,
-    revenue.sales.startingMrr,
-    revenue.sales
+    revenue.sales.startingMrr
   );
   const partnerState = seedOpeningBook(
     revenue.partners.startingCustomers,
-    revenue.partners.startingMrr,
-    revenue.partners
+    revenue.partners.startingMrr
   );
   let cumulativeBurn = 0;
   const collectionLagMonths = Math.max(
@@ -746,11 +723,12 @@ export function buildForecast(
     if (cashCollectionMonth < numMonths) {
       pendingNewCustomerCash[cashCollectionMonth] +=
         newPlg.newCash + newSales.newCash + newPartner.newCash;
-      pendingExistingCustomerCash[cashCollectionMonth] +=
-        plgExisting.existingCash +
-        salesExisting.existingCash +
-        partnerExisting.existingCash;
     }
+    // Existing book is already on a collection cycle — current MRR lands this month.
+    pendingExistingCustomerCash[i] +=
+      plgExisting.existingCash +
+      salesExisting.existingCash +
+      partnerExisting.existingCash;
 
     const plgMrr = totalStreamMrr(plgState);
     const salesMrr = totalStreamMrr(salesState);

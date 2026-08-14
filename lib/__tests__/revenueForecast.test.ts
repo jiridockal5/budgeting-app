@@ -730,6 +730,34 @@ describe("opening revenue book", () => {
     expect(result.months[0].churnedMrr).toBe(0);
   });
 
+  it("collects current MRR as cash in month 0 even when new-business deal share is yearly", () => {
+    const result = buildForecast(1, "2025-01", openingOnly, emptyExpenses, {
+      ...defaultAssumptions,
+      paymentTimingDays: 30,
+    });
+    expect(result.months[0].existingCustomerCashIn).toBe(10000);
+    expect(result.months[0].totalCashIn).toBe(10000);
+  });
+
+  it("shows PLG current book as month-0 cash inflows (24 customers, $3600 MRR)", () => {
+    const revenue: RevenueConfig = {
+      ...openingOnly,
+      plg: {
+        ...openingOnly.plg,
+        monthlyDealShare: 0,
+        startingCustomers: 24,
+        startingMrr: 3600,
+      },
+    };
+    const result = buildForecast(1, "2026-12", revenue, emptyExpenses, {
+      ...defaultAssumptions,
+      paymentTimingDays: 30,
+    });
+    expect(result.months[0].plgCustomers).toBe(24);
+    expect(result.months[0].totalMrr).toBe(3600);
+    expect(result.months[0].totalCashIn).toBe(3600);
+  });
+
   it("applies churn to the opening book from month 1", () => {
     const result = buildForecast(2, "2025-01", openingOnly, emptyExpenses, defaultAssumptions);
     expect(result.months[1].churnedMrr).toBeCloseTo(500, 6);

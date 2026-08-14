@@ -69,7 +69,7 @@ export default function RunwayPage() {
   const months = forecast?.months ?? [];
   const cashOnHand = summary?.cashOnHand ?? 0;
   const runwayMonths = summary?.runwayMonths ?? 0;
-  const monthlyBurn = summary?.monthlyBurn ?? 0;
+  const monthlyBurn = months[0]?.netBurn ?? summary?.monthlyBurn ?? 0;
   const isInfinite = runwayMonths >= 999;
 
   const zeroMonth = months.find((m) => m.cashRemaining <= 0);
@@ -170,7 +170,7 @@ export default function RunwayPage() {
                 />
                 <RunwayStat
                   icon={<TrendingDown className="h-4 w-4 text-rose-600" />}
-                  label="Forecast monthly burn"
+                  label="Starting monthly burn"
                   value={formatCompact(Math.abs(monthlyBurn))}
                 />
               </div>
