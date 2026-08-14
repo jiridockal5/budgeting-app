@@ -35,7 +35,6 @@ const SAMPLE_REVENUE_CONFIG: RevenueConfig = {
     closeRate: 40,
     avgAcv: 12000,
     monthlyDealShare: 0,
-    monthlyArpa: 1000,
     commissionRate: 20,
   },
 };
@@ -166,6 +165,55 @@ describe("buildForecast", () => {
 
     // 10 customers × $12k ACV / 12 = $10k MRR (deal share does not change MRR)
     expect(result.months[0].plgMrr).toBe(10000);
+    // Cash: 5 monthly × $1k + 5 yearly × $12k = $65k
+    expect(result.months[0].newCustomerCashIn).toBe(65000);
+  });
+
+  it("partners use ACV like PLG; monthly deal share is cash timing only", () => {
+    const revenue: RevenueConfig = {
+      plg: { monthlyTrials: 0, trialConversionRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      partners: {
+        monthlyReferrals: 10,
+        closeRate: 100,
+        avgAcv: 12000,
+        monthlyDealShare: 50,
+        commissionRate: 20,
+      },
+    };
+    const assumptions = { ...defaultAssumptions, paymentTimingDays: 0 };
+
+    const result = buildForecast(1, "2025-01", revenue, emptyExpenses, assumptions);
+
+    // 10 customers × $12k ACV / 12 × 80% net = $8k MRR
+    expect(result.months[0].partnerMrr).toBe(8000);
+    // Cash: 5 monthly × $1k × 0.8 + 5 yearly × $12k × 0.8 = $52k
+    expect(result.months[0].newCustomerCashIn).toBe(52000);
+  });
+
+  it("ignores leftover partner monthlyArpa JSON and prices from ACV", () => {
+    const normalized = normalizeRevenueConfig({
+      partners: {
+        monthlyReferrals: 10,
+        closeRate: 100,
+        avgAcv: 12000,
+        monthlyDealShare: 50,
+        monthlyArpa: 500,
+        commissionRate: 0,
+      } as RevenueConfig["partners"] & { monthlyArpa: number },
+    });
+    expect("monthlyArpa" in normalized.partners).toBe(false);
+
+    const result = buildForecast(
+      1,
+      "2025-01",
+      normalized,
+      emptyExpenses,
+      { ...defaultAssumptions, paymentTimingDays: 0 }
+    );
+
+    // leftover $500 ARPA must not apply; 10 × $12k / 12 = $10k MRR
+    expect(result.months[0].partnerMrr).toBe(10000);
     // Cash: 5 monthly × $1k + 5 yearly × $12k = $65k
     expect(result.months[0].newCustomerCashIn).toBe(65000);
   });

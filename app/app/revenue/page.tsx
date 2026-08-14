@@ -450,7 +450,6 @@ function SnapshotMetric({ label, value }: { label: string; value: string }) {
 type BillingMixConfig = {
   avgAcv: number;
   monthlyDealShare?: number;
-  monthlyArpa?: number;
 };
 
 function getMonthlyDealShare(config: BillingMixConfig): number {
@@ -459,58 +458,6 @@ function getMonthlyDealShare(config: BillingMixConfig): number {
 
 function getYearlyDealShare(config: BillingMixConfig): number {
   return 100 - getMonthlyDealShare(config);
-}
-
-function getMonthlyArpa(config: BillingMixConfig): number {
-  return config.monthlyArpa ?? config.avgAcv / 12;
-}
-
-function getBlendedMrr(config: BillingMixConfig): number {
-  const monthlyShare = getMonthlyDealShare(config) / 100;
-  const yearlyShare = 1 - monthlyShare;
-  return monthlyShare * getMonthlyArpa(config) + yearlyShare * (config.avgAcv / 12);
-}
-
-function BillingMixFields({
-  config,
-  onChange,
-  annualLabel,
-  annualHelper,
-  monthlyLabel,
-  monthlyHelper,
-}: {
-  config: BillingMixConfig;
-  onChange: (patch: Partial<BillingMixConfig>) => void;
-  annualLabel: string;
-  annualHelper: string;
-  monthlyLabel: string;
-  monthlyHelper: string;
-}) {
-  return (
-    <>
-      <StreamInputField
-        label="Monthly deal share"
-        value={getMonthlyDealShare(config)}
-        onChange={(v) => onChange({ monthlyDealShare: parseFloat(v) || 0 })}
-        helper={`Yearly deals are ${formatPercentage(getYearlyDealShare(config))} of new customers`}
-        suffix="%"
-      />
-      <StreamInputField
-        label={monthlyLabel}
-        value={getMonthlyArpa(config)}
-        onChange={(v) => onChange({ monthlyArpa: parseFloat(v) || 0 })}
-        helper={monthlyHelper}
-        prefix={currencySymbol()}
-      />
-      <StreamInputField
-        label={annualLabel}
-        value={config.avgAcv}
-        onChange={(v) => onChange({ avgAcv: parseFloat(v) || 0 })}
-        helper={annualHelper}
-        prefix={currencySymbol()}
-      />
-    </>
-  );
 }
 
 // ============================================================================
@@ -934,6 +881,9 @@ function PartnersStreamForm({
     setConfig((prev) => ({ ...prev, [field]: numValue }));
   };
 
+  const mrrPerCustomer = config.avgAcv / 12;
+  const monthlyShare = getMonthlyDealShare(config);
+  const yearlyShare = getYearlyDealShare(config);
   const startingCustomers = config.startingCustomers ?? 0;
   const startingMrr = config.startingMrr ?? 0;
 
@@ -982,13 +932,24 @@ function PartnersStreamForm({
           helper="Percentage of partner referrals that close"
           suffix="%"
         />
-        <BillingMixFields
-          config={config}
-          onChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
-          annualLabel="Average yearly ACV"
-          annualHelper="Annual contract value for yearly partner-sourced deals"
-          monthlyLabel="Average monthly ARPA"
-          monthlyHelper="Monthly recurring revenue for monthly partner-sourced deals"
+        <StreamInputField
+          label="Average ACV"
+          value={config.avgAcv}
+          onChange={(v) => updateField("avgAcv", v)}
+          helper="Annual contract value per partner-sourced customer. MRR = ACV ÷ 12."
+          prefix={currencySymbol()}
+        />
+        <StreamInputField
+          label="Monthly deal share"
+          value={monthlyShare}
+          onChange={(v) =>
+            setConfig((prev) => ({
+              ...prev,
+              monthlyDealShare: parseFloat(v) || 0,
+            }))
+          }
+          helper={`Cash timing only: ${formatPercentage(monthlyShare)} pay monthly (ACV÷12), ${formatPercentage(yearlyShare)} pay annual ACV upfront. MRR is the same either way.`}
+          suffix="%"
         />
         <StreamInputField
           label="Commission rate"
@@ -1008,15 +969,16 @@ function PartnersStreamForm({
         </span>{" "}
         current MRR, plus{" "}
         <span className="font-semibold text-violet-700">{newCustomers}</span>{" "}
-        new customers / month at{" "}
+        new customers / month ×{" "}
         <span className="font-semibold text-violet-700">
-          {formatCurrency(getBlendedMrr(config))}
+          {formatCurrency(config.avgAcv)}
         </span>{" "}
-        blended MRR
+        ACV
         <span className="text-neutral-500">
           {" "}
-          ({formatPercentage(getMonthlyDealShare(config))} monthly /{" "}
-          {formatPercentage(getYearlyDealShare(config))} yearly,{" "}
+          ({formatCurrency(mrrPerCustomer)} MRR each;{" "}
+          {formatPercentage(monthlyShare)} monthly /{" "}
+          {formatPercentage(yearlyShare)} yearly cash,{" "}
           {formatPercentage(config.commissionRate)} partner commission)
         </span>
       </StreamPreview>

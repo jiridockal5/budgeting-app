@@ -51,9 +51,8 @@ export interface SalesConfig {
 export interface PartnersConfig {
   monthlyReferrals: number;
   closeRate: number; // percentage
-  avgAcv: number; // annual contract value
-  monthlyDealShare?: number; // percentage of new customers on monthly billing
-  monthlyArpa?: number; // monthly revenue per monthly-billed customer
+  avgAcv: number; // annual contract value (MRR = ACV / 12)
+  monthlyDealShare?: number; // % of new customers on monthly billing (cash timing only)
   commissionRate: number; // percentage
   startingCustomers?: number;
   startingMrr?: number;
@@ -265,7 +264,6 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
     closeRate: 0,
     avgAcv: 0,
     monthlyDealShare: 0,
-    monthlyArpa: 0,
     commissionRate: 0,
     startingCustomers: 0,
     startingMrr: 0,
@@ -374,10 +372,11 @@ export function normalizeRevenueConfig(
   config: Partial<RevenueConfig> | null | undefined
 ): RevenueConfig {
   const sales = { ...DEFAULT_REVENUE_CONFIG.sales, ...(config?.sales ?? {}) };
-  const partners = {
+  const { monthlyArpa: _legacyMonthlyArpa, ...partnersRest } = {
     ...DEFAULT_REVENUE_CONFIG.partners,
     ...(config?.partners ?? {}),
-  };
+  } as PartnersConfig & { monthlyArpa?: number };
+  const partners = partnersRest;
   const rawPlans = Array.isArray(config?.plgPlans) ? config.plgPlans : null;
   const plgPlans =
     rawPlans && rawPlans.length > 0
@@ -448,7 +447,6 @@ function round2(n: number): number {
 type BillingMixConfig = {
   avgAcv: number;
   monthlyDealShare?: number;
-  monthlyArpa?: number;
 };
 
 type YearlyRevenueCohort = {
@@ -528,15 +526,14 @@ function splitNewCustomers(
     Math.min(Math.max(config.monthlyDealShare ?? 0, 0), 100) / 100;
   const monthlyCustomers = newCustomers * monthlyShare;
   const yearlyCustomers = newCustomers - monthlyCustomers;
-  const monthlyArpa = config.monthlyArpa ?? config.avgAcv / 12;
-  const yearlyMrr = config.avgAcv / 12;
+  const mrrPerCustomer = (config.avgAcv / 12) * netRevenueFactor;
 
   return {
     monthlyCustomers,
     yearlyCustomers,
-    monthlyMrr: monthlyCustomers * monthlyArpa * netRevenueFactor,
-    yearlyMrr: yearlyCustomers * yearlyMrr * netRevenueFactor,
-    monthlyCash: monthlyCustomers * monthlyArpa * netRevenueFactor,
+    monthlyMrr: monthlyCustomers * mrrPerCustomer,
+    yearlyMrr: yearlyCustomers * mrrPerCustomer,
+    monthlyCash: monthlyCustomers * mrrPerCustomer,
     yearlyCash: yearlyCustomers * config.avgAcv * netRevenueFactor,
   };
 }
