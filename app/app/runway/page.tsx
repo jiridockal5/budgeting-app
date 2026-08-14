@@ -74,6 +74,10 @@ export default function RunwayPage() {
 
   const zeroMonth = months.find((m) => m.cashRemaining <= 0);
   const runoutDate = zeroMonth?.date;
+  const raiseMonth = months.find((m) => m.fundraisingCashIn > 0);
+  const raiseArrivesTooLate = Boolean(
+    raiseMonth && zeroMonth && zeroMonth.monthIndex < raiseMonth.monthIndex
+  );
 
   const runwayColor =
     isInfinite || runwayMonths > 18
@@ -149,10 +153,27 @@ export default function RunwayPage() {
                 </p>
                 {runoutDate && (
                   <p className="mt-2 text-sm text-neutral-600">
-                    Cash runs out around{" "}
-                    <span className="font-semibold text-neutral-900">
-                      {runoutDate}
-                    </span>
+                    {raiseArrivesTooLate && raiseMonth ? (
+                      <>
+                        Cash runs out around{" "}
+                        <span className="font-semibold text-neutral-900">
+                          {runoutDate}
+                        </span>
+                        , before the planned raise in{" "}
+                        <span className="font-semibold text-neutral-900">
+                          {raiseMonth.date}
+                        </span>
+                        .
+                      </>
+                    ) : (
+                      <>
+                        Cash runs out around{" "}
+                        <span className="font-semibold text-neutral-900">
+                          {runoutDate}
+                        </span>
+                        .
+                      </>
+                    )}
                   </p>
                 )}
                 {isInfinite && (
@@ -180,8 +201,19 @@ export default function RunwayPage() {
               <div className="mt-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-100 px-4 py-3">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-600" />
                 <p className="text-sm text-red-800">
-                  <span className="font-semibold">Low runway warning.</span>{" "}
-                  Consider reducing burn or securing additional funding.
+                  {raiseArrivesTooLate && raiseMonth ? (
+                    <>
+                      <span className="font-semibold">Raise is too late.</span>{" "}
+                      Move the {formatCurrency(raiseMonth.fundraisingCashIn)}{" "}
+                      raise to {runoutDate ?? "the start month"} or cut burn so
+                      cash lasts until funding lands.
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold">Low runway warning.</span>{" "}
+                      Consider reducing burn or securing additional funding.
+                    </>
+                  )}
                 </p>
               </div>
             )}
@@ -250,7 +282,10 @@ export default function RunwayPage() {
 function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
   const firstMonth = months[0];
   const startingCash = firstMonth
-    ? firstMonth.cashRemaining + firstMonth.totalExpense - firstMonth.totalCashIn
+    ? firstMonth.cashRemaining +
+      firstMonth.totalExpense -
+      firstMonth.totalCashIn -
+      firstMonth.fundraisingCashIn
     : 0;
 
   return (
@@ -305,14 +340,20 @@ function MonthlyCashflowTable({ months }: { months: ForecastMonth[] }) {
               </tr>
             )}
             {months.map((month) => {
+              const inflows = month.totalCashIn + month.fundraisingCashIn;
               const cashBurn = month.totalCashIn - month.totalExpense;
               return (
                 <tr key={month.date} className="hover:bg-neutral-50/60">
                   <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-neutral-900">
                     {month.date}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-neutral-700 tabular-nums">
-                    {formatCurrency(month.totalCashIn)}
+                  <td className="px-4 py-3 text-right text-sm text-neutral-700 tabular-nums">
+                    <div>{formatCurrency(inflows)}</div>
+                    {month.fundraisingCashIn > 0 && (
+                      <div className="text-xs font-normal text-emerald-700">
+                        includes {formatCurrency(month.fundraisingCashIn)} raise
+                      </div>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-neutral-700 tabular-nums">
                     {formatCurrency(month.totalExpense)}

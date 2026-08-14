@@ -851,3 +851,64 @@ describe("computeStartingRunRate", () => {
     expect(snapshot.runwayMonths).toBe(3);
   });
 });
+
+describe("planned raise", () => {
+  const zeroRevenue: RevenueConfig = {
+    plg: { monthlyTrials: 0, trialConversionRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+    sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+    partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+  };
+
+  it("injects net raise into the planned month without treating it as customer cash", () => {
+    const result = buildForecast(3, "2026-12", zeroRevenue, emptyExpenses, {
+      ...defaultAssumptions,
+      cashOnHand: 34100,
+      plannedRaiseMonth: "2027-01",
+      plannedRaiseAmount: 500000,
+      fundraisingFees: 0,
+    });
+    expect(result.months[0].fundraisingCashIn).toBe(0);
+    expect(result.months[0].totalCashIn).toBe(0);
+    expect(result.months[1].fundraisingCashIn).toBe(500000);
+    expect(result.months[1].totalCashIn).toBe(0);
+    expect(result.months[1].cashRemaining).toBe(534100);
+  });
+
+  it("deducts fundraising fees from the raise injection", () => {
+    const result = buildForecast(1, "2027-01", zeroRevenue, emptyExpenses, {
+      ...defaultAssumptions,
+      cashOnHand: 0,
+      plannedRaiseMonth: "2027-01",
+      plannedRaiseAmount: 500000,
+      fundraisingFees: 10,
+    });
+    expect(result.months[0].fundraisingCashIn).toBe(450000);
+    expect(result.months[0].cashRemaining).toBe(450000);
+  });
+
+  it("still reports zero runway when cash runs out before the raise month", () => {
+    const expenses: ExpenseInput = {
+      headcount: [
+        {
+          role: "Team",
+          category: "ops",
+          baseSalary: 61886,
+          fte: 1,
+          type: "contractor",
+          startMonth: "2026-12",
+        },
+      ],
+      nonHeadcount: [],
+    };
+    const result = buildForecast(3, "2026-12", zeroRevenue, expenses, {
+      ...defaultAssumptions,
+      cashOnHand: 34100,
+      plannedRaiseMonth: "2027-01",
+      plannedRaiseAmount: 500000,
+      fundraisingFees: 0,
+    });
+    expect(result.months[0].cashRemaining).toBeLessThan(0);
+    expect(result.months[1].cashRemaining).toBeGreaterThan(0);
+    expect(result.summary.runwayMonths).toBe(0);
+  });
+});

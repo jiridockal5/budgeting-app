@@ -129,6 +129,7 @@ export interface ForecastMonth {
   newCustomerCashIn: number;
   existingCustomerCashIn: number;
   totalCashIn: number;
+  fundraisingCashIn: number;
 
   // Expenses by category (headcount + non-headcount combined)
   headcountExpense: number;
@@ -893,6 +894,7 @@ export function buildForecast(
       newCustomerCashIn: round2(newCustomerCashIn),
       existingCustomerCashIn: round2(existingCustomerCashIn),
       totalCashIn: round2(totalCashIn),
+      fundraisingCashIn: round2(raiseInjection),
       headcountExpense: round2(headcountExpense),
       nonHeadcountExpense: round2(nonHeadcountExpense),
       cosExpense: round2(cosExpense),
