@@ -32,6 +32,12 @@ export interface PlgConfig {
   startingMrr?: number;
 }
 
+/** One self-service offering. Several plans are simulated separately, then summed into PLG totals. */
+export interface PlgPlanConfig extends PlgConfig {
+  id: string;
+  name: string;
+}
+
 export interface SalesConfig {
   monthlySqls: number;
   closeRate: number; // percentage
@@ -54,7 +60,10 @@ export interface PartnersConfig {
 }
 
 export interface RevenueConfig {
+  /** Aggregated PLG snapshot (starting book, and a single plan when only one exists). */
   plg: PlgConfig;
+  /** Self-service plans. Each is an input stream; forecast PLG outputs are the sum. */
+  plgPlans?: PlgPlanConfig[];
   sales: SalesConfig;
   partners: PartnersConfig;
 }
@@ -201,8 +210,13 @@ export interface StartingRunRate {
   date: string; // plan start month "YYYY-MM"
   currentMrr: number;
   currentCustomers: number;
+  /** In-place Cost of Sales (people + non-people) at plan start. */
+  currentCos: number;
+  /** In-place operating expenses excluding COS (GTM, R&D, CS, Ops). */
   currentOpex: number;
-  netBurn: number; // opex − opening MRR (accrual run-rate)
+  /** COS + opex: all cash costs active at plan start. */
+  currentCosts: number;
+  netBurn: number; // (COS + opex) − opening MRR
   cashOnHand: number;
   runwayMonths: number; // cash / current burn; 999 if not burning
 }
@@ -217,17 +231,26 @@ export interface ForecastResult {
 // Default Revenue Config
 // ============================================================================
 
+export const DEFAULT_PLG_CONFIG: PlgConfig = {
+  monthlyTrials: 0,
+  trialConversionRate: 0,
+  avgAcv: 0,
+  monthlyDealShare: 0,
+  churnRate: 0,
+  expansionRate: 0,
+  startingCustomers: 0,
+  startingMrr: 0,
+};
+
+export const DEFAULT_PLG_PLAN: PlgPlanConfig = {
+  id: "plg-1",
+  name: "Self-service",
+  ...DEFAULT_PLG_CONFIG,
+};
+
 export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
-  plg: {
-    monthlyTrials: 0,
-    trialConversionRate: 0,
-    avgAcv: 0,
-    monthlyDealShare: 0,
-    churnRate: 0,
-    expansionRate: 0,
-    startingCustomers: 0,
-    startingMrr: 0,
-  },
+  plg: { ...DEFAULT_PLG_CONFIG },
+  plgPlans: [{ ...DEFAULT_PLG_PLAN }],
   sales: {
     monthlySqls: 0,
     closeRate: 0,
@@ -249,19 +272,143 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
   },
 };
 
+export function createPlgPlan(index: number): PlgPlanConfig {
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `plg-${Date.now()}-${index}`;
+  return {
+    ...DEFAULT_PLG_CONFIG,
+    id,
+    name: defaultPlgPlanName(index),
+  };
+}
+
 function numOrZero(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function defaultPlgPlanName(index: number): string {
+  return index === 0 ? "Self-service" : `Self-service ${index + 1}`;
+}
+
+export function stripPlgPlanMeta(plan: PlgPlanConfig): PlgConfig {
+  return {
+    monthlyTrials: plan.monthlyTrials,
+    trialConversionRate: plan.trialConversionRate,
+    avgAcv: plan.avgAcv,
+    monthlyDealShare: plan.monthlyDealShare,
+    churnRate: plan.churnRate,
+    expansionRate: plan.expansionRate,
+    startingCustomers: plan.startingCustomers,
+    startingMrr: plan.startingMrr,
+  };
+}
+
+export function aggregatePlgFromPlans(plans: PlgPlanConfig[]): PlgConfig {
+  if (plans.length === 0) return { ...DEFAULT_PLG_CONFIG };
+  if (plans.length === 1) return stripPlgPlanMeta(plans[0]);
+  return {
+    ...DEFAULT_PLG_CONFIG,
+    monthlyTrials: plans.reduce((sum, plan) => sum + plan.monthlyTrials, 0),
+    startingCustomers: plans.reduce(
+      (sum, plan) => sum + openingAmount(plan.startingCustomers),
+      0
+    ),
+    startingMrr: plans.reduce(
+      (sum, plan) => sum + openingAmount(plan.startingMrr),
+      0
+    ),
+  };
+}
+
+function normalizePlgFields(value: Partial<PlgConfig> | null | undefined): PlgConfig {
+  return { ...DEFAULT_PLG_CONFIG, ...(value ?? {}) };
+}
+
+export function normalizePlgPlan(
+  value: Partial<PlgPlanConfig> | null | undefined,
+  index: number
+): PlgPlanConfig {
+  const raw = value ?? {};
+  const name =
+    typeof raw.name === "string" && raw.name.trim()
+      ? raw.name.trim()
+      : defaultPlgPlanName(index);
+  const id =
+    typeof raw.id === "string" && raw.id.trim()
+      ? raw.id.trim()
+      : `plg-${index + 1}`;
+  return {
+    ...normalizePlgFields(raw),
+    id,
+    name,
+  };
+}
+
+/** Plans to simulate. Falls back to the legacy single `plg` object. */
+export function getPlgPlans(revenue: RevenueConfig): PlgPlanConfig[] {
+  if (Array.isArray(revenue.plgPlans) && revenue.plgPlans.length > 0) {
+    return revenue.plgPlans.map((plan, index) => normalizePlgPlan(plan, index));
+  }
+  return [normalizePlgPlan({ ...revenue.plg, id: "plg-1", name: "Self-service" }, 0)];
+}
+
+export function withPlgPlans(
+  revenue: RevenueConfig,
+  plans: PlgPlanConfig[]
+): RevenueConfig {
+  const normalized =
+    plans.length > 0
+      ? plans.map((plan, index) => normalizePlgPlan(plan, index))
+      : [{ ...DEFAULT_PLG_PLAN }];
+  return {
+    ...revenue,
+    plgPlans: normalized,
+    plg: aggregatePlgFromPlans(normalized),
+  };
 }
 
 /** Fill missing stream fields so older saved JSON still loads cleanly. */
 export function normalizeRevenueConfig(
   config: Partial<RevenueConfig> | null | undefined
 ): RevenueConfig {
-  return {
-    plg: { ...DEFAULT_REVENUE_CONFIG.plg, ...(config?.plg ?? {}) },
-    sales: { ...DEFAULT_REVENUE_CONFIG.sales, ...(config?.sales ?? {}) },
-    partners: { ...DEFAULT_REVENUE_CONFIG.partners, ...(config?.partners ?? {}) },
+  const sales = { ...DEFAULT_REVENUE_CONFIG.sales, ...(config?.sales ?? {}) };
+  const partners = {
+    ...DEFAULT_REVENUE_CONFIG.partners,
+    ...(config?.partners ?? {}),
   };
+  const rawPlans = Array.isArray(config?.plgPlans) ? config.plgPlans : null;
+  const plgPlans =
+    rawPlans && rawPlans.length > 0
+      ? rawPlans.map((plan, index) => normalizePlgPlan(plan, index))
+      : [
+          normalizePlgPlan(
+            {
+              ...DEFAULT_PLG_CONFIG,
+              ...(config?.plg ?? {}),
+              id: "plg-1",
+              name: "Self-service",
+            },
+            0
+          ),
+        ];
+  return {
+    plg: aggregatePlgFromPlans(plgPlans),
+    plgPlans,
+    sales,
+    partners,
+  };
+}
+
+function isBlankNumericStream(stream: object): boolean {
+  return Object.entries(stream).every(
+    ([key, value]) =>
+      key === "id" ||
+      key === "name" ||
+      value === 0 ||
+      value === undefined
+  );
 }
 
 /** True when revenue config has no real funnel/pricing inputs yet. */
@@ -269,9 +416,11 @@ export function isBlankRevenueConfig(
   config: RevenueConfig | null | undefined
 ): boolean {
   if (!config) return true;
-  const streams = [config.plg, config.sales, config.partners];
-  return streams.every((stream) =>
-    Object.values(stream).every((value) => value === 0 || value === undefined)
+  const plgBlank = getPlgPlans(config).every(isBlankNumericStream);
+  return (
+    plgBlank &&
+    isBlankNumericStream(config.sales) &&
+    isBlankNumericStream(config.partners)
   );
 }
 
@@ -636,9 +785,9 @@ export function buildForecast(
   // TODO: Apply priceUplift to pricing.
   // TODO: Use commissionRate as a default for incentive-based roles when role-level logic exists.
 
-  const plgState = seedOpeningBook(
-    revenue.plg.startingCustomers,
-    revenue.plg.startingMrr
+  const plgPlans = getPlgPlans(revenue);
+  const plgStates = plgPlans.map((plan) =>
+    seedOpeningBook(plan.startingCustomers, plan.startingMrr)
   );
   const salesState = seedOpeningBook(
     revenue.sales.startingCustomers,
@@ -660,9 +809,41 @@ export function buildForecast(
     const date = addMonths(startMonth, i);
 
     // ── New customers this month ──
-    const newPlgCustomers = Math.round(
-      revenue.plg.monthlyTrials * (revenue.plg.trialConversionRate / 100)
-    );
+    let newPlgCustomers = 0;
+    let plgExisting = {
+      churnedCustomers: 0,
+      churnedMrr: 0,
+      expansionMrr: 0,
+      existingCash: 0,
+    };
+    let newPlg = { newMrr: 0, newCash: 0 };
+    for (let p = 0; p < plgPlans.length; p++) {
+      const plan = plgPlans[p];
+      const state = plgStates[p];
+      const existing =
+        i === 0
+          ? openingBookCash(state)
+          : advanceExistingRevenue(
+              state,
+              i,
+              plan.churnRate,
+              plan.expansionRate
+            );
+      const planNewCustomers = Math.round(
+        plan.monthlyTrials * (plan.trialConversionRate / 100)
+      );
+      const added = addNewRevenue(state, i, planNewCustomers, {
+        avgAcv: plan.avgAcv,
+        monthlyDealShare: plan.monthlyDealShare,
+      });
+      newPlgCustomers += planNewCustomers;
+      plgExisting.churnedCustomers += existing.churnedCustomers;
+      plgExisting.churnedMrr += existing.churnedMrr;
+      plgExisting.expansionMrr += existing.expansionMrr;
+      plgExisting.existingCash += existing.existingCash;
+      newPlg.newMrr += added.newMrr;
+      newPlg.newCash += added.newCash;
+    }
     const newSalesCustomers = Math.round(
       revenue.sales.monthlySqls * (revenue.sales.closeRate / 100)
     );
@@ -670,17 +851,6 @@ export function buildForecast(
       revenue.partners.monthlyReferrals * (revenue.partners.closeRate / 100)
     );
 
-    // ── Existing revenue, churn, expansion, and cash collection ──
-    // Opening book is shown intact in month 0; churn/expansion start in month 1.
-    const plgExisting =
-      i === 0
-        ? openingBookCash(plgState)
-        : advanceExistingRevenue(
-            plgState,
-            i,
-            revenue.plg.churnRate,
-            revenue.plg.expansionRate
-          );
     const salesExisting =
       i === 0
         ? openingBookCash(salesState)
@@ -702,10 +872,6 @@ export function buildForecast(
 
     // ── New MRR and cash from new customers ──
     // PLG prices from ACV only; deal share only affects cash timing (monthly vs annual).
-    const newPlg = addNewRevenue(plgState, i, newPlgCustomers, {
-      avgAcv: revenue.plg.avgAcv,
-      monthlyDealShare: revenue.plg.monthlyDealShare,
-    });
     const newSales = addNewRevenue(
       salesState,
       i,
@@ -731,10 +897,12 @@ export function buildForecast(
       salesExisting.existingCash +
       partnerExisting.existingCash;
 
-    const plgMrr = totalStreamMrr(plgState);
+    const plgMrr = plgStates.reduce((sum, state) => sum + totalStreamMrr(state), 0);
     const salesMrr = totalStreamMrr(salesState);
     const partnerMrr = totalStreamMrr(partnerState);
-    const plgCustomers = Math.round(totalStreamCustomers(plgState));
+    const plgCustomers = Math.round(
+      plgStates.reduce((sum, state) => sum + totalStreamCustomers(state), 0)
+    );
     const salesCustomers = Math.round(totalStreamCustomers(salesState));
     const partnerCustomers = Math.round(totalStreamCustomers(partnerState));
     const totalMrr = plgMrr + salesMrr + partnerMrr;
@@ -979,12 +1147,19 @@ export function computeStartingRunRate(
   expenses: ExpenseInput,
   assumptions: AssumptionsInput
 ): StartingRunRate {
-  const plgMrr = openingAmount(revenue.plg.startingMrr);
+  const plgPlans = getPlgPlans(revenue);
+  const plgMrr = plgPlans.reduce(
+    (sum, plan) => sum + openingAmount(plan.startingMrr),
+    0
+  );
   const salesMrr = openingAmount(revenue.sales.startingMrr);
   const partnerMrr = openingAmount(revenue.partners.startingMrr);
   const currentMrr = plgMrr + salesMrr + partnerMrr;
 
-  const plgCustomers = openingAmount(revenue.plg.startingCustomers);
+  const plgCustomers = plgPlans.reduce(
+    (sum, plan) => sum + openingAmount(plan.startingCustomers),
+    0
+  );
   const salesCustomers = openingAmount(revenue.sales.startingCustomers);
   const partnerCustomers = openingAmount(revenue.partners.startingCustomers);
   const currentCustomers = Math.round(
@@ -992,6 +1167,7 @@ export function computeStartingRunRate(
   );
 
   let headcountExpense = 0;
+  let headcountCos = 0;
   let totalFte = 0;
   let totalHeadcount = 0;
   const fteByCategory: Record<string, number> = {};
@@ -1004,7 +1180,9 @@ export function computeStartingRunRate(
     const taxed = personTypeHasEmployerTax(person.type ?? "employee")
       ? person.baseSalary * (1 + assumptions.salaryTaxRate / 100)
       : person.baseSalary;
-    headcountExpense += taxed * person.fte;
+    const cost = taxed * person.fte;
+    headcountExpense += cost;
+    if (person.category === "cos") headcountCos += cost;
     totalFte += person.fte;
     totalHeadcount += 1;
     fteByCategory[person.category] =
@@ -1039,12 +1217,18 @@ export function computeStartingRunRate(
   };
 
   let nonHeadcountExpense = 0;
+  let nonHeadcountCos = 0;
   for (const expense of expenses.nonHeadcount) {
-    nonHeadcountExpense += resolveExpenseMonth(expense, monthContext);
+    const monthCost = resolveExpenseMonth(expense, monthContext);
+    if (monthCost === 0) continue;
+    nonHeadcountExpense += monthCost;
+    if (expense.category === "cos") nonHeadcountCos += monthCost;
   }
 
-  const currentOpex = headcountExpense + nonHeadcountExpense;
-  const netBurn = currentOpex - currentMrr;
+  const currentCos = headcountCos + nonHeadcountCos;
+  const currentCosts = headcountExpense + nonHeadcountExpense;
+  const currentOpex = currentCosts - currentCos;
+  const netBurn = currentCosts - currentMrr;
   const cashOnHand = assumptions.cashOnHand;
   const runwayMonths =
     netBurn <= 0 ? (cashOnHand > 0 || currentMrr > 0 ? 999 : 0) : cashOnHand / netBurn;
@@ -1053,7 +1237,9 @@ export function computeStartingRunRate(
     date: startMonth,
     currentMrr: round2(currentMrr),
     currentCustomers,
+    currentCos: round2(currentCos),
     currentOpex: round2(currentOpex),
+    currentCosts: round2(currentCosts),
     netBurn: round2(netBurn),
     cashOnHand: round2(cashOnHand),
     runwayMonths: round2(runwayMonths),

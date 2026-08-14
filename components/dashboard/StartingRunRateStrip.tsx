@@ -41,16 +41,17 @@ export function StartingRunRateStrip({
           Edit start month &amp; cash
         </Link>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Current MRR" value={formatCompactCurrency(snapshot.currentMrr)} />
         <Stat
-          label="Current opex"
-          value={formatCompactCurrency(snapshot.currentOpex)}
+          label="In-place costs"
+          value={formatCompactCurrency(snapshot.currentCosts)}
+          hint={`${formatCompactCurrency(snapshot.currentCos)} COS · ${formatCompactCurrency(snapshot.currentOpex)} opex`}
         />
         <Stat
           label="Net burn"
           value={formatCompactCurrency(snapshot.netBurn)}
-          hint={burning ? "opex − MRR" : "profitable at this run-rate"}
+          hint={burning ? "costs − MRR" : "profitable at this run-rate"}
         />
         <Stat
           label="Cash on hand"

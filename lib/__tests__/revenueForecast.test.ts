@@ -5,6 +5,8 @@ import {
   dateToMonth,
   DEFAULT_REVENUE_CONFIG,
   computeStartingRunRate,
+  getPlgPlans,
+  normalizeRevenueConfig,
   type RevenueConfig,
   type ExpenseInput,
   type AssumptionsInput,
@@ -817,9 +819,48 @@ describe("computeStartingRunRate", () => {
     });
     expect(snapshot.currentMrr).toBe(8000);
     expect(snapshot.currentCustomers).toBe(20);
+    expect(snapshot.currentCos).toBe(0);
     expect(snapshot.currentOpex).toBe(6000); // 5k founder + 1k AWS; AE excluded
+    expect(snapshot.currentCosts).toBe(6000);
     expect(snapshot.netBurn).toBe(-2000); // profitable at current run-rate
     expect(snapshot.runwayMonths).toBe(999);
+  });
+
+  it("includes in-place COS in costs and net burn", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 0,
+        trialConversionRate: 0,
+        avgAcv: 0,
+        churnRate: 0,
+        expansionRate: 0,
+        startingCustomers: 10,
+        startingMrr: 5000,
+      },
+      sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const expenses: ExpenseInput = {
+      headcount: [
+        { role: "Support", category: "cos", baseSalary: 2000, fte: 1, type: "contractor", startMonth: "2025-01" },
+        { role: "Founder", category: "ops", baseSalary: 4000, fte: 1, type: "contractor", startMonth: "2025-01" },
+        { role: "Later CS", category: "cos", baseSalary: 3000, fte: 1, type: "contractor", startMonth: "2025-06" },
+      ],
+      nonHeadcount: [
+        { name: "Hosting", category: "cos", amount: 1500, frequency: "monthly", startMonth: "2025-01" },
+        { name: "AWS", category: "ops", amount: 500, frequency: "monthly", startMonth: "2025-01" },
+      ],
+    };
+    const snapshot = computeStartingRunRate("2025-01", revenue, expenses, {
+      ...defaultAssumptions,
+      salaryTaxRate: 0,
+      cashOnHand: 20000,
+    });
+    expect(snapshot.currentCos).toBe(3500); // 2k support + 1.5k hosting; later CS excluded
+    expect(snapshot.currentOpex).toBe(4500); // 4k founder + 0.5k AWS
+    expect(snapshot.currentCosts).toBe(8000);
+    expect(snapshot.netBurn).toBe(3000); // 8000 costs − 5000 MRR
+    expect(snapshot.runwayMonths).toBe(6.67);
   });
 
   it("computes runway at current burn excluding future hires", () => {
@@ -847,6 +888,8 @@ describe("computeStartingRunRate", () => {
       cashOnHand: 9000,
     });
     expect(snapshot.currentOpex).toBe(4000);
+    expect(snapshot.currentCos).toBe(0);
+    expect(snapshot.currentCosts).toBe(4000);
     expect(snapshot.netBurn).toBe(3000);
     expect(snapshot.runwayMonths).toBe(3);
   });
@@ -910,5 +953,110 @@ describe("planned raise", () => {
     expect(result.months[0].cashRemaining).toBeLessThan(0);
     expect(result.months[1].cashRemaining).toBeGreaterThan(0);
     expect(result.summary.runwayMonths).toBe(0);
+  });
+});
+
+describe("multiple PLG self-service plans", () => {
+  const emptySalesPartners = {
+    sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+    partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+  };
+
+  it("migrates a legacy single plg object into one plan", () => {
+    const normalized = normalizeRevenueConfig({
+      plg: {
+        monthlyTrials: 10,
+        trialConversionRate: 50,
+        avgAcv: 1200,
+        monthlyDealShare: 50,
+        churnRate: 5,
+        expansionRate: 0,
+        startingCustomers: 24,
+        startingMrr: 3600,
+      },
+      ...emptySalesPartners,
+    });
+    expect(normalized.plgPlans).toHaveLength(1);
+    expect(normalized.plgPlans?.[0].startingMrr).toBe(3600);
+    expect(normalized.plg.startingMrr).toBe(3600);
+    expect(getPlgPlans(normalized)).toHaveLength(1);
+  });
+
+  it("sums current book, new customers, and cash across plans", () => {
+    const revenue: RevenueConfig = {
+      plg: { monthlyTrials: 0, trialConversionRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      plgPlans: [
+        {
+          id: "starter",
+          name: "Starter",
+          monthlyTrials: 10,
+          trialConversionRate: 100,
+          avgAcv: 1200,
+          monthlyDealShare: 100,
+          churnRate: 0,
+          expansionRate: 0,
+          startingCustomers: 10,
+          startingMrr: 1000,
+        },
+        {
+          id: "pro",
+          name: "Pro",
+          monthlyTrials: 4,
+          trialConversionRate: 100,
+          avgAcv: 2400,
+          monthlyDealShare: 100,
+          churnRate: 0,
+          expansionRate: 0,
+          startingCustomers: 5,
+          startingMrr: 2000,
+        },
+      ],
+      ...emptySalesPartners,
+    };
+    const result = buildForecast(1, "2026-12", revenue, emptyExpenses, {
+      ...defaultAssumptions,
+      paymentTimingDays: 0,
+    });
+    expect(result.months[0].plgCustomers).toBe(10 + 5 + 10 + 4);
+    expect(result.months[0].plgMrr).toBe(1000 + 2000 + 10 * 100 + 4 * 200);
+    expect(result.months[0].newPlgCustomers).toBe(14);
+    expect(result.months[0].totalCashIn).toBe(1000 + 2000 + 10 * 100 + 4 * 200);
+    expect(result.startingRunRate.currentMrr).toBe(3000);
+    expect(result.startingRunRate.currentCustomers).toBe(15);
+  });
+
+  it("applies each plan's churn separately then sums PLG MRR", () => {
+    const revenue: RevenueConfig = {
+      plg: { monthlyTrials: 0, trialConversionRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      plgPlans: [
+        {
+          id: "a",
+          name: "A",
+          monthlyTrials: 0,
+          trialConversionRate: 0,
+          avgAcv: 0,
+          churnRate: 10,
+          expansionRate: 0,
+          startingCustomers: 10,
+          startingMrr: 1000,
+        },
+        {
+          id: "b",
+          name: "B",
+          monthlyTrials: 0,
+          trialConversionRate: 0,
+          avgAcv: 0,
+          churnRate: 0,
+          expansionRate: 0,
+          startingCustomers: 10,
+          startingMrr: 2000,
+        },
+      ],
+      ...emptySalesPartners,
+    };
+    const result = buildForecast(2, "2026-12", revenue, emptyExpenses, defaultAssumptions);
+    expect(result.months[0].plgMrr).toBe(3000);
+    expect(result.months[1].churnedMrr).toBeCloseTo(100, 6);
+    expect(result.months[1].plgMrr).toBeCloseTo(2900, 6);
   });
 });

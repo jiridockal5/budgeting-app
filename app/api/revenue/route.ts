@@ -1,26 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_REVENUE_CONFIG, isBlankRevenueConfig, normalizeRevenueConfig } from "@/lib/revenueForecast";
+import { DEFAULT_REVENUE_CONFIG, isBlankRevenueConfig, normalizeRevenueConfig, getPlgPlans } from "@/lib/revenueForecast";
 import type { RevenueConfig } from "@/lib/revenueForecast";
 import { captureRouteException } from "@/lib/monitoring";
 import { getScopedScenario } from "@/lib/server/planScope";
 import { captureServerEvent } from "@/lib/posthogServer";
 
+const plgConfigSchema = z.object({
+  monthlyTrials: z.number().min(0),
+  trialConversionRate: z.number().min(0).max(100),
+  avgAcv: z.number().min(0),
+  monthlyDealShare: z.number().min(0).max(100).optional(),
+  churnRate: z.number().min(0).max(100),
+  expansionRate: z.number().min(0).max(100),
+  startingCustomers: z.number().min(0).optional(),
+  startingMrr: z.number().min(0).optional(),
+});
+
+const plgPlanSchema = plgConfigSchema.extend({
+  id: z.string().min(1),
+  name: z.string().max(80),
+});
+
 const revenueConfigSchema = z.object({
   planId: z.string().min(1),
   scenarioId: z.string().min(1),
   config: z.object({
-    plg: z.object({
-      monthlyTrials: z.number().min(0),
-      trialConversionRate: z.number().min(0).max(100),
-      avgAcv: z.number().min(0),
-      monthlyDealShare: z.number().min(0).max(100).optional(),
-      churnRate: z.number().min(0).max(100),
-      expansionRate: z.number().min(0).max(100),
-      startingCustomers: z.number().min(0).optional(),
-      startingMrr: z.number().min(0).optional(),
-    }),
+    plg: plgConfigSchema,
+    plgPlans: z.array(plgPlanSchema).min(1).max(20).optional(),
     sales: z.object({
       monthlySqls: z.number().min(0),
       closeRate: z.number().min(0).max(100),
@@ -143,11 +151,15 @@ export async function POST(request: NextRequest) {
       data: { config: config as object },
     });
 
+    const plans = getPlgPlans(config);
     await captureServerEvent(scoped.userId, "revenue_model_saved", {
       has_partner_monthly_deal_share:
         input.config.partners.monthlyDealShare !== undefined,
       has_partner_monthly_arpa: input.config.partners.monthlyArpa !== undefined,
-      has_plg_monthly_deal_share: input.config.plg.monthlyDealShare !== undefined,
+      has_plg_monthly_deal_share: plans.some(
+        (plan) => plan.monthlyDealShare !== undefined
+      ),
+      plg_plan_count: plans.length,
     });
 
     return NextResponse.json({

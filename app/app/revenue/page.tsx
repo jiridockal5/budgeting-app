@@ -12,6 +12,8 @@ import {
   Info,
   Check,
   Loader2,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { NumberInput } from "@/components/ui/NumberInput";
@@ -23,8 +25,14 @@ import {
   normalizeAssumptions,
 } from "@/lib/assumptions";
 import { currencySymbol, setActiveCurrency } from "@/lib/currency";
-import type { RevenueConfig } from "@/lib/revenueForecast";
-import { DEFAULT_REVENUE_CONFIG, normalizeRevenueConfig } from "@/lib/revenueForecast";
+import type { PlgConfig, PlgPlanConfig, RevenueConfig, SalesConfig, PartnersConfig } from "@/lib/revenueForecast";
+import {
+  DEFAULT_REVENUE_CONFIG,
+  createPlgPlan,
+  getPlgPlans,
+  normalizeRevenueConfig,
+  withPlgPlans,
+} from "@/lib/revenueForecast";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
@@ -135,8 +143,11 @@ export default function RevenuePage() {
   }, [autoSave.error, toast]);
 
   // ── Preview calculations ──
-  const plgNewCustomers = Math.round(
-    (config.plg.monthlyTrials * config.plg.trialConversionRate) / 100
+  const plgPlans = getPlgPlans(config);
+  const plgNewCustomers = plgPlans.reduce(
+    (sum, plan) =>
+      sum + Math.round((plan.monthlyTrials * plan.trialConversionRate) / 100),
+    0
   );
   const salesNewCustomers = Math.round(
     (config.sales.monthlySqls * config.sales.closeRate) / 100
@@ -186,7 +197,7 @@ export default function RevenuePage() {
         <div className="space-y-8">
           <PageHeader
             title="Revenue"
-            subtitle="Enter your current book, then how new PLG, sales, and partner business adds on top."
+            subtitle="Enter your current book, then how new PLG (one or more self-service plans), sales, and partner business adds on top."
             actions={
               saveLabel ? (
                 <span className="inline-flex items-center gap-1.5 text-sm text-neutral-500">
@@ -290,52 +301,50 @@ export default function RevenuePage() {
               role="tabpanel"
               id={`stream-panel-${activeStream}`}
               aria-labelledby={`stream-tab-${activeStream}`}
-              className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+              className="space-y-6"
             >
               {activeStream === "plg" && (
-                <PlgStreamForm
-                  config={config.plg}
-                  setConfig={(updater) =>
-                    setConfig((prev) => ({
-                      ...prev,
-                      plg:
-                        typeof updater === "function"
-                          ? updater(prev.plg)
-                          : updater,
-                    }))
+                <PlgPlansEditor
+                  plans={plgPlans}
+                  totalNewCustomers={plgNewCustomers}
+                  onChange={(plans) =>
+                    setConfig((prev) => withPlgPlans(prev, plans))
                   }
-                  newCustomers={plgNewCustomers}
                 />
               )}
               {activeStream === "sales" && (
-                <SalesStreamForm
-                  config={config.sales}
-                  setConfig={(updater) =>
-                    setConfig((prev) => ({
-                      ...prev,
-                      sales:
-                        typeof updater === "function"
-                          ? updater(prev.sales)
-                          : updater,
-                    }))
-                  }
-                  newCustomers={salesNewCustomers}
-                />
+                <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                  <SalesStreamForm
+                    config={config.sales}
+                    setConfig={(updater) =>
+                      setConfig((prev) => ({
+                        ...prev,
+                        sales:
+                          typeof updater === "function"
+                            ? updater(prev.sales)
+                            : updater,
+                      }))
+                    }
+                    newCustomers={salesNewCustomers}
+                  />
+                </div>
               )}
               {activeStream === "partners" && (
-                <PartnersStreamForm
-                  config={config.partners}
-                  setConfig={(updater) =>
-                    setConfig((prev) => ({
-                      ...prev,
-                      partners:
-                        typeof updater === "function"
-                          ? updater(prev.partners)
-                          : updater,
-                    }))
-                  }
-                  newCustomers={partnersNewCustomers}
-                />
+                <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+                  <PartnersStreamForm
+                    config={config.partners}
+                    setConfig={(updater) =>
+                      setConfig((prev) => ({
+                        ...prev,
+                        partners:
+                          typeof updater === "function"
+                            ? updater(prev.partners)
+                            : updater,
+                      }))
+                    }
+                    newCustomers={partnersNewCustomers}
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -352,8 +361,10 @@ export default function RevenuePage() {
                 </h3>
                 <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
                   Start with customers and MRR already on the books (before a
-                  raise). New-business fields add on top of that book each month.
-                  Churn and expansion apply from the month after start.
+                  raise). Add one self-service plan per offering — dashboard,
+                  runway, and metrics use the combined PLG total. New-business
+                  fields add on top of each plan&apos;s book each month. Churn
+                  and expansion apply from the month after start.
                 </p>
               </div>
             </div>
@@ -506,7 +517,141 @@ function BillingMixFields({
 // PLG Stream Form
 // ============================================================================
 
-import type { PlgConfig, SalesConfig, PartnersConfig } from "@/lib/revenueForecast";
+const MAX_PLG_PLANS = 20;
+
+function PlgPlansEditor({
+  plans,
+  totalNewCustomers,
+  onChange,
+}: {
+  plans: PlgPlanConfig[];
+  totalNewCustomers: number;
+  onChange: (plans: PlgPlanConfig[]) => void;
+}) {
+  const updatePlan = (id: string, updater: (prev: PlgPlanConfig) => PlgPlanConfig) => {
+    onChange(plans.map((plan) => (plan.id === id ? updater(plan) : plan)));
+  };
+
+  const addPlan = () => {
+    if (plans.length >= MAX_PLG_PLANS) return;
+    onChange([...plans, createPlgPlan(plans.length)]);
+  };
+
+  const removePlan = (id: string) => {
+    if (plans.length <= 1) return;
+    onChange(plans.filter((plan) => plan.id !== id));
+  };
+
+  const totalStartingMrr = plans.reduce(
+    (sum, plan) => sum + (plan.startingMrr ?? 0),
+    0
+  );
+  const totalStartingCustomers = plans.reduce(
+    (sum, plan) => sum + (plan.startingCustomers ?? 0),
+    0
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <StreamHeader
+          icon={<Sparkles className="h-5 w-5 text-emerald-600" />}
+          iconBg="bg-emerald-50"
+          title="PLG / Self-service"
+          description="Add a plan for each self-service offering. Combined PLG totals feed the rest of the forecast."
+        />
+        <button
+          type="button"
+          onClick={addPlan}
+          disabled={plans.length >= MAX_PLG_PLANS}
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-800 shadow-sm transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" />
+          Add self-service plan
+        </button>
+      </div>
+
+      {plans.length > 1 && (
+        <StreamPreview
+          icon={<TrendingUp className="h-4 w-4 text-emerald-600" />}
+          color="emerald"
+        >
+          Combined:{" "}
+          <span className="font-semibold text-emerald-700">
+            {formatCurrency(totalStartingMrr)}
+          </span>{" "}
+          current MRR from{" "}
+          <span className="font-semibold text-emerald-700">
+            {totalStartingCustomers}
+          </span>{" "}
+          customers across {plans.length} plans, plus{" "}
+          <span className="font-semibold text-emerald-700">
+            {totalNewCustomers}
+          </span>{" "}
+          new / month. Dashboard, runway, and metrics use this total.
+        </StreamPreview>
+      )}
+
+      {plans.map((plan) => (
+        <div
+          key={plan.id}
+          className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+        >
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <label className="block text-sm font-medium text-neutral-700">
+                Plan name
+              </label>
+              <input
+                type="text"
+                value={plan.name}
+                maxLength={80}
+                onChange={(e) =>
+                  updatePlan(plan.id, (prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+                onBlur={() => {
+                  if (!plan.name.trim()) {
+                    updatePlan(plan.id, (prev) => ({
+                      ...prev,
+                      name: "Self-service",
+                    }));
+                  }
+                }}
+                className="w-full max-w-md rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm transition placeholder:text-neutral-400 focus:border-turquoise-300 focus:outline-none focus:ring-2 focus:ring-turquoise-100"
+              />
+            </div>
+            {plans.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removePlan(plan.id)}
+                className="inline-flex items-center gap-1.5 self-start rounded-full px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                Remove
+              </button>
+            )}
+          </div>
+          <PlgStreamForm
+            config={plan}
+            setConfig={(updater) =>
+              updatePlan(plan.id, (prev) => {
+                const next =
+                  typeof updater === "function" ? updater(prev) : updater;
+                return { ...prev, ...next, id: prev.id, name: prev.name };
+              })
+            }
+            newCustomers={Math.round(
+              (plan.monthlyTrials * plan.trialConversionRate) / 100
+            )}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface PlgStreamFormProps {
   config: PlgConfig;
@@ -528,13 +673,6 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
 
   return (
     <div className="space-y-8">
-      <StreamHeader
-        icon={<Sparkles className="h-5 w-5 text-emerald-600" />}
-        iconBg="bg-emerald-50"
-        title="PLG / Self-service"
-        description="Product-led growth through free trials and self-service signups"
-      />
-
       <StreamGroup
         title="Current book (as of start month)"
         helper="This is revenue before the raise; the forecast starts from here."
