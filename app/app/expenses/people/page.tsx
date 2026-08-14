@@ -43,7 +43,7 @@ export default function PeopleCostsPage() {
         <div className="space-y-8">
           <PageHeader
             title="People Costs"
-            subtitle="Employees, contractors & advisors — salary, taxes, growth"
+            subtitle="Current team vs hires that start after funding"
           />
 
           {controller.error && (
@@ -84,6 +84,8 @@ export default function PeopleCostsPage() {
             editingId={controller.editingHeadcountId}
             summary={controller.headcountSummary}
             assumptions={controller.assumptions}
+            planStartMonth={controller.planStartMonth}
+            plannedRaiseMonth={controller.assumptions.plannedRaiseMonth}
           />
 
           <ConfirmDialog

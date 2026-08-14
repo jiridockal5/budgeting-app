@@ -10,6 +10,7 @@ import { ChartCard } from "@/components/dashboard/ChartCard";
 import { WaterfallChart } from "@/components/dashboard/WaterfallChart";
 import { StackedExpenseChart } from "@/components/dashboard/StackedExpenseChart";
 import { OnboardingChecklist, type OnboardingStatus } from "@/components/dashboard/OnboardingChecklist";
+import { StartingRunRateStrip } from "@/components/dashboard/StartingRunRateStrip";
 import { PeriodTabs } from "@/components/dashboard/PeriodTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
@@ -284,7 +285,7 @@ export default function DashboardPage() {
         <div className="space-y-8">
           <PageHeader
             title="Dashboard"
-            subtitle="Key SaaS metrics for your current plan."
+            subtitle="Today's run-rate first, then the plan after start."
             actions={
               <div className="flex items-center gap-3">
                 <Link
@@ -326,6 +327,10 @@ export default function DashboardPage() {
 
           {/* Onboarding */}
           <OnboardingChecklist status={onboarding} planId={planId} />
+
+          {forecast?.startingRunRate && (
+            <StartingRunRateStrip snapshot={forecast.startingRunRate} />
+          )}
 
           {/* ── Period Filter ── */}
           <div className="flex items-center justify-between">
@@ -427,10 +432,10 @@ export default function DashboardPage() {
 
             <div>
               <h2 className="text-lg font-semibold text-neutral-900">
-                Forecast Overview
+                Plan after start
               </h2>
               <p className="mt-1 text-sm text-neutral-600">
-                Visual trends for ARR growth and cash runway.
+                Includes new business, later hires, and the planned raise.
                 {showingSampleForecast && (
                   <span className="text-sky-700">
                     {" "}

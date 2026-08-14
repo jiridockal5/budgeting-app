@@ -4,6 +4,7 @@ import {
   addMonths,
   dateToMonth,
   DEFAULT_REVENUE_CONFIG,
+  computeStartingRunRate,
   type RevenueConfig,
   type ExpenseInput,
   type AssumptionsInput,
@@ -702,5 +703,123 @@ describe("category expense rollups and P&L", () => {
       expect(result.summary.salesEfficiency).toBeGreaterThan(0);
     }
     expect(result.summary.netNewArrMix.newPct).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("opening revenue book", () => {
+  const openingOnly: RevenueConfig = {
+    plg: {
+      monthlyTrials: 0,
+      trialConversionRate: 0,
+      avgAcv: 12000,
+      monthlyDealShare: 0,
+      churnRate: 5,
+      expansionRate: 0,
+      startingCustomers: 100,
+      startingMrr: 10000,
+    },
+    sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+    partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+  };
+
+  it("month 0 MRR equals starting MRR with no new-business funnel", () => {
+    const result = buildForecast(2, "2025-01", openingOnly, emptyExpenses, defaultAssumptions);
+    expect(result.months[0].plgMrr).toBe(10000);
+    expect(result.months[0].plgCustomers).toBe(100);
+    expect(result.months[0].newMrr).toBe(0);
+    expect(result.months[0].churnedMrr).toBe(0);
+  });
+
+  it("applies churn to the opening book from month 1", () => {
+    const result = buildForecast(2, "2025-01", openingOnly, emptyExpenses, defaultAssumptions);
+    expect(result.months[1].churnedMrr).toBeCloseTo(500, 6);
+    expect(result.months[1].plgMrr).toBeCloseTo(9500, 6);
+    expect(result.months[1].plgCustomers).toBe(95);
+  });
+
+  it("adds new-business funnel on top of the opening book in month 0", () => {
+    const revenue: RevenueConfig = {
+      ...openingOnly,
+      plg: {
+        ...openingOnly.plg,
+        monthlyTrials: 10,
+        trialConversionRate: 100,
+        churnRate: 0,
+      },
+    };
+    const result = buildForecast(1, "2025-01", revenue, emptyExpenses, {
+      ...defaultAssumptions,
+      paymentTimingDays: 0,
+    });
+    // 100 existing + 10 new; 10k starting + 10 × 1000 MRR
+    expect(result.months[0].plgCustomers).toBe(110);
+    expect(result.months[0].plgMrr).toBe(20000);
+    expect(result.months[0].newPlgCustomers).toBe(10);
+  });
+});
+
+describe("computeStartingRunRate", () => {
+  it("uses opening book and in-place costs, ignoring later hires", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 500,
+        trialConversionRate: 8,
+        avgAcv: 12000,
+        churnRate: 0,
+        expansionRate: 0,
+        startingCustomers: 20,
+        startingMrr: 8000,
+      },
+      sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const expenses: ExpenseInput = {
+      headcount: [
+        { role: "Founder", category: "ops", baseSalary: 5000, fte: 1, type: "contractor", startMonth: "2025-01" },
+        { role: "Post-raise AE", category: "gtm", baseSalary: 6000, fte: 1, startMonth: "2025-06" },
+      ],
+      nonHeadcount: [
+        { name: "AWS", category: "ops", amount: 1000, frequency: "monthly", startMonth: "2025-01" },
+      ],
+    };
+    const snapshot = computeStartingRunRate("2025-01", revenue, expenses, {
+      ...defaultAssumptions,
+      salaryTaxRate: 0,
+      cashOnHand: 24000,
+    });
+    expect(snapshot.currentMrr).toBe(8000);
+    expect(snapshot.currentCustomers).toBe(20);
+    expect(snapshot.currentOpex).toBe(6000); // 5k founder + 1k AWS; AE excluded
+    expect(snapshot.netBurn).toBe(-2000); // profitable at current run-rate
+    expect(snapshot.runwayMonths).toBe(999);
+  });
+
+  it("computes runway at current burn excluding future hires", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 0,
+        trialConversionRate: 0,
+        avgAcv: 0,
+        churnRate: 0,
+        expansionRate: 0,
+        startingMrr: 1000,
+      },
+      sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const expenses: ExpenseInput = {
+      headcount: [
+        { role: "Now", category: "ops", baseSalary: 4000, fte: 1, type: "contractor", startMonth: "2025-01" },
+        { role: "Later", category: "gtm", baseSalary: 10000, fte: 1, type: "contractor", startMonth: "2025-03" },
+      ],
+      nonHeadcount: [],
+    };
+    const snapshot = computeStartingRunRate("2025-01", revenue, expenses, {
+      ...defaultAssumptions,
+      cashOnHand: 9000,
+    });
+    expect(snapshot.currentOpex).toBe(4000);
+    expect(snapshot.netBurn).toBe(3000);
+    expect(snapshot.runwayMonths).toBe(3);
   });
 });

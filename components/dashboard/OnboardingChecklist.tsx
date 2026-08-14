@@ -14,19 +14,19 @@ const steps = [
   {
     key: "hasAssumptions" as const,
     label: "Set your assumptions",
-    description: "Cash, churn, cost drivers, and plan horizon.",
+    description: "Cash today, start month, then planned raise.",
     href: "/app/assumptions",
   },
   {
     key: "hasRevenue" as const,
     label: "Configure revenue streams",
-    description: "Set up PLG, sales, and partner channels.",
+    description: "Current customers and MRR, then new business each month.",
     href: "/app/revenue",
   },
   {
     key: "hasExpenses" as const,
     label: "Add expenses",
-    description: "Add headcount and operational costs.",
+    description: "Current team and opex first; later hires after the raise.",
     href: "/app/expenses",
   },
 ];

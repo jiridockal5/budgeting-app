@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Banknote, AlertTriangle, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { StartingRunRateStrip } from "@/components/dashboard/StartingRunRateStrip";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { formatCurrency } from "@/lib/assumptions";
 import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
@@ -94,7 +95,7 @@ export default function RunwayPage() {
         <div className="space-y-8">
           <PageHeader
             title="Runway"
-            subtitle="How long your cash will last at the current burn rate."
+            subtitle="Current burn first, then how long cash lasts on the full plan."
             actions={
               <div className="flex items-center gap-2">
                 {forecast && (
@@ -130,6 +131,10 @@ export default function RunwayPage() {
             </div>
           )}
 
+          {forecast?.startingRunRate && (
+            <StartingRunRateStrip snapshot={forecast.startingRunRate} />
+          )}
+
           {/* Big runway card */}
           <div
             className={`rounded-2xl border p-8 shadow-sm ${runwayBg}`}
@@ -137,7 +142,7 @@ export default function RunwayPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
               <div>
                 <p className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
-                  Estimated Runway
+                  Plan runway
                 </p>
                 <p className={`mt-2 text-5xl font-bold tabular-nums ${runwayColor}`}>
                   {isInfinite ? "∞" : `${Math.round(runwayMonths)} months`}
@@ -165,7 +170,7 @@ export default function RunwayPage() {
                 />
                 <RunwayStat
                   icon={<TrendingDown className="h-4 w-4 text-rose-600" />}
-                  label="Monthly burn"
+                  label="Forecast monthly burn"
                   value={formatCompact(Math.abs(monthlyBurn))}
                 />
               </div>

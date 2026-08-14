@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_REVENUE_CONFIG, isBlankRevenueConfig } from "@/lib/revenueForecast";
+import { DEFAULT_REVENUE_CONFIG, isBlankRevenueConfig, normalizeRevenueConfig } from "@/lib/revenueForecast";
 import type { RevenueConfig } from "@/lib/revenueForecast";
 import { captureRouteException } from "@/lib/monitoring";
 import { getScopedScenario } from "@/lib/server/planScope";
@@ -18,6 +18,8 @@ const revenueConfigSchema = z.object({
       monthlyDealShare: z.number().min(0).max(100).optional(),
       churnRate: z.number().min(0).max(100),
       expansionRate: z.number().min(0).max(100),
+      startingCustomers: z.number().min(0).optional(),
+      startingMrr: z.number().min(0).optional(),
     }),
     sales: z.object({
       monthlySqls: z.number().min(0),
@@ -25,6 +27,8 @@ const revenueConfigSchema = z.object({
       avgAcv: z.number().min(0),
       churnRate: z.number().min(0).max(100),
       expansionRate: z.number().min(0).max(100),
+      startingCustomers: z.number().min(0).optional(),
+      startingMrr: z.number().min(0).optional(),
     }),
     partners: z.object({
       monthlyReferrals: z.number().min(0),
@@ -33,6 +37,8 @@ const revenueConfigSchema = z.object({
       monthlyDealShare: z.number().min(0).max(100).optional(),
       monthlyArpa: z.number().min(0).optional(),
       commissionRate: z.number().min(0).max(100),
+      startingCustomers: z.number().min(0).optional(),
+      startingMrr: z.number().min(0).optional(),
     }),
   }),
 });
@@ -81,7 +87,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const config = scoped.scenario.config as unknown as RevenueConfig;
+    const config = normalizeRevenueConfig(
+      scoped.scenario.config as unknown as RevenueConfig
+    );
     return NextResponse.json({
       success: true,
       data: {
@@ -128,9 +136,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const config = normalizeRevenueConfig(input.config);
+
     const scenario = await prisma.forecastScenario.update({
       where: { id: scoped.scenario.id },
-      data: { config: input.config },
+      data: { config: config as object },
     });
 
     await captureServerEvent(scoped.userId, "revenue_model_saved", {

@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { setActiveCurrency } from "@/lib/currency";
 import { fetchJsonEnvelope } from "@/lib/clientFetch";
+import { dateToMonth } from "@/lib/revenueForecast";
 import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
 
 function getCurrentMonth(): string {
@@ -138,6 +139,7 @@ export function useExpensesController() {
   } = useActiveScenario();
   // ── Plan & loading state ──
   const [planId, setPlanId] = useState<string | null>(null);
+  const [planStartMonth, setPlanStartMonth] = useState(getCurrentMonth());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loadWarnings, setLoadWarnings] = useState<string | null>(null);
@@ -200,14 +202,24 @@ export function useExpensesController() {
         setError(null);
         setLoadWarnings(null);
 
-        const planResult = await fetchJsonEnvelope<{ id: string; currency: string }>(
-          "/api/plans/current"
-        );
+        const planResult = await fetchJsonEnvelope<{
+          id: string;
+          currency: string;
+          startMonth: string;
+        }>("/api/plans/current");
         if (!planResult.ok) throw new Error(planResult.error);
 
         const id = planResult.data.id;
         setPlanId(id);
         setActiveCurrency(planResult.data.currency);
+        const start = dateToMonth(planResult.data.startMonth);
+        setPlanStartMonth(start);
+        setHeadcountForm((prev) =>
+          prev.role || prev.baseSalary ? prev : { ...prev, startMonth: start }
+        );
+        setNonHeadcountForm((prev) =>
+          prev.name || prev.amount ? prev : { ...prev, startMonth: start }
+        );
 
         const qs = `planId=${encodeURIComponent(id)}&scenarioId=${encodeURIComponent(scenarioId!)}`;
         const [peopleRes, expensesRes, assumptionsRes] = await Promise.all([
@@ -319,7 +331,7 @@ export function useExpensesController() {
         category: "rnd",
         baseSalary: 0,
         fte: 1.0,
-        startMonth: getCurrentMonth(),
+        startMonth: planStartMonth,
         endMonth: undefined,
       });
     } catch (err) {
@@ -348,7 +360,7 @@ export function useExpensesController() {
       category: "rnd",
       baseSalary: 0,
       fte: 1.0,
-      startMonth: getCurrentMonth(),
+      startMonth: planStartMonth,
       endMonth: undefined,
     });
   };
@@ -445,7 +457,7 @@ export function useExpensesController() {
         category: "ops",
         amount: 0,
         frequency: "monthly",
-        startMonth: getCurrentMonth(),
+        startMonth: planStartMonth,
         endMonth: undefined,
         config: null,
       });
@@ -474,7 +486,7 @@ export function useExpensesController() {
       category: "ops",
       amount: 0,
       frequency: "monthly",
-      startMonth: getCurrentMonth(),
+      startMonth: planStartMonth,
       endMonth: undefined,
       config: null,
     });
@@ -703,6 +715,7 @@ export function useExpensesController() {
 
   return {
     planId,
+    planStartMonth,
     setPlanId,
     loading,
     setLoading,

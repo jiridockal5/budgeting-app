@@ -83,7 +83,7 @@ export const DEFAULT_ASSUMPTIONS: GlobalAssumptions = {
  * Used to provide context in the UI form and summaries.
  */
 export const ASSUMPTION_HELPERS: Record<keyof GlobalAssumptions, string> = {
-  cashOnHand: "Cash available at the beginning of the forecast period.",
+  cashOnHand: "Cash available today, at the beginning of the forecast (before the raise).",
   plannedRaiseMonth: "Expected month when new funding is received.",
   plannedRaiseAmount:
     "Expected gross cash proceeds from the next funding round.",

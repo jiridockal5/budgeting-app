@@ -8,6 +8,7 @@ import {
   buildForecast,
   dateToMonth,
   DEFAULT_REVENUE_CONFIG,
+  normalizeRevenueConfig,
   type RevenueConfig,
   type ExpenseInput,
   type AssumptionsInput,
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
       : DEFAULT_ASSUMPTIONS;
 
     const revenueConfig: RevenueConfig = scenario.config
-      ? (scenario.config as unknown as RevenueConfig)
+      ? normalizeRevenueConfig(scenario.config as unknown as RevenueConfig)
       : DEFAULT_REVENUE_CONFIG;
 
     const expenseInput: ExpenseInput = {

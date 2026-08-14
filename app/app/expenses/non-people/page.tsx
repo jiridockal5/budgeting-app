@@ -44,7 +44,7 @@ export default function NonPeopleCostsPage() {
         <div className="space-y-8">
           <PageHeader
             title="Non-People Costs"
-            subtitle="Tools, infra, marketing & other costs — fixed, growing, or revenue-linked"
+            subtitle="Current opex vs spend that starts after funding"
           />
 
           {controller.error && (
@@ -85,6 +85,8 @@ export default function NonPeopleCostsPage() {
             editingId={controller.editingNonHeadcountId}
             summary={controller.nonHeadcountSummary}
             assumptions={controller.assumptions}
+            planStartMonth={controller.planStartMonth}
+            plannedRaiseMonth={controller.assumptions.plannedRaiseMonth}
             selectedIds={controller.selectedNonPeople}
             setSelectedIds={controller.setSelectedNonPeople}
             onBulkScale={controller.handleBulkScale}

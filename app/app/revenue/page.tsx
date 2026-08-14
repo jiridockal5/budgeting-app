@@ -24,7 +24,7 @@ import {
 } from "@/lib/assumptions";
 import { currencySymbol, setActiveCurrency } from "@/lib/currency";
 import type { RevenueConfig } from "@/lib/revenueForecast";
-import { DEFAULT_REVENUE_CONFIG } from "@/lib/revenueForecast";
+import { DEFAULT_REVENUE_CONFIG, normalizeRevenueConfig } from "@/lib/revenueForecast";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
@@ -87,7 +87,7 @@ export default function RevenuePage() {
         ]);
 
         if (revenueData.success && revenueData.data.config) {
-          setConfig(revenueData.data.config as RevenueConfig);
+          setConfig(normalizeRevenueConfig(revenueData.data.config as RevenueConfig));
         }
         if (revenueData.success) {
           setIsDefault(Boolean(revenueData.data.isDefault));
@@ -186,7 +186,7 @@ export default function RevenuePage() {
         <div className="space-y-8">
           <PageHeader
             title="Revenue"
-            subtitle="Define how your PLG, sales, and partner streams generate ARR."
+            subtitle="Enter your current book, then how new PLG, sales, and partner business adds on top."
             actions={
               saveLabel ? (
                 <span className="inline-flex items-center gap-1.5 text-sm text-neutral-500">
@@ -351,10 +351,9 @@ export default function RevenuePage() {
                   How revenue streams work
                 </h3>
                 <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
-                  Each stream uses the global assumptions as defaults, but you
-                  can override churn, expansion, and ACV per stream. The forecast
-                  combines all streams to project your total MRR/ARR growth over
-                  time.
+                  Start with customers and MRR already on the books (before a
+                  raise). New-business fields add on top of that book each month.
+                  Churn and expansion apply from the month after start.
                 </p>
               </div>
             </div>
@@ -524,9 +523,11 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
   const mrrPerCustomer = config.avgAcv / 12;
   const monthlyShare = getMonthlyDealShare(config);
   const yearlyShare = getYearlyDealShare(config);
+  const startingCustomers = config.startingCustomers ?? 0;
+  const startingMrr = config.startingMrr ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <StreamHeader
         icon={<Sparkles className="h-5 w-5 text-emerald-600" />}
         iconBg="bg-emerald-50"
@@ -534,7 +535,29 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
         description="Product-led growth through free trials and self-service signups"
       />
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <StreamGroup
+        title="Current book (as of start month)"
+        helper="This is revenue before the raise; the forecast starts from here."
+      >
+        <StreamInputField
+          label="Current customers"
+          value={startingCustomers}
+          onChange={(v) => updateField("startingCustomers", v)}
+          helper="Paying PLG customers already on the books"
+        />
+        <StreamInputField
+          label="Current MRR"
+          value={startingMrr}
+          onChange={(v) => updateField("startingMrr", v)}
+          helper="Monthly recurring revenue from those customers today"
+          prefix={currencySymbol()}
+        />
+      </StreamGroup>
+
+      <StreamGroup
+        title="New business each month"
+        helper="Adds on top of the current book going forward."
+      >
         <StreamInputField
           label="Monthly new trials"
           value={config.monthlyTrials}
@@ -567,6 +590,12 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
           helper={`Cash timing only: ${formatPercentage(monthlyShare)} pay monthly (ACV÷12), ${formatPercentage(yearlyShare)} pay annual ACV upfront. MRR is the same either way.`}
           suffix="%"
         />
+      </StreamGroup>
+
+      <StreamGroup
+        title="Retention (from month 1)"
+        helper="Applied to the combined book after the starting month."
+      >
         <StreamInputField
           label="PLG churn rate"
           value={config.churnRate}
@@ -581,14 +610,29 @@ function PlgStreamForm({ config, setConfig, newCustomers }: PlgStreamFormProps) 
           helper="Monthly expansion on surviving PLG customers"
           suffix="%"
         />
-      </div>
+      </StreamGroup>
 
       <StreamPreview
         icon={<TrendingUp className="h-4 w-4 text-emerald-600" />}
         color="emerald"
       >
+        <span className="font-semibold text-emerald-700">
+          {formatCurrency(startingMrr)}
+        </span>{" "}
+        current MRR
+        {startingCustomers > 0 && (
+          <>
+            {" "}
+            from{" "}
+            <span className="font-semibold text-emerald-700">
+              {startingCustomers}
+            </span>{" "}
+            customers
+          </>
+        )}
+        , plus{" "}
         <span className="font-semibold text-emerald-700">{newCustomers}</span>{" "}
-        new customers / month ×{" "}
+        new / month ×{" "}
         <span className="font-semibold text-emerald-700">
           {formatCurrency(config.avgAcv)}
         </span>{" "}
@@ -628,8 +672,11 @@ function SalesStreamForm({
     setConfig((prev) => ({ ...prev, [field]: numValue }));
   };
 
+  const startingCustomers = config.startingCustomers ?? 0;
+  const startingMrr = config.startingMrr ?? 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <StreamHeader
         icon={<Users className="h-5 w-5 text-blue-600" />}
         iconBg="bg-blue-50"
@@ -637,7 +684,29 @@ function SalesStreamForm({
         description="Direct sales through inbound leads and outbound prospecting"
       />
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <StreamGroup
+        title="Current book (as of start month)"
+        helper="This is revenue before the raise; the forecast starts from here."
+      >
+        <StreamInputField
+          label="Current customers"
+          value={startingCustomers}
+          onChange={(v) => updateField("startingCustomers", v)}
+          helper="Paying sales-sourced customers already on the books"
+        />
+        <StreamInputField
+          label="Current MRR"
+          value={startingMrr}
+          onChange={(v) => updateField("startingMrr", v)}
+          helper="Monthly recurring revenue from those customers today"
+          prefix={currencySymbol()}
+        />
+      </StreamGroup>
+
+      <StreamGroup
+        title="New business each month"
+        helper="Adds on top of the current book going forward."
+      >
         <StreamInputField
           label="Monthly inbound SQLs"
           value={config.monthlySqls}
@@ -658,6 +727,12 @@ function SalesStreamForm({
           helper="Annual contract value per closed sales deal"
           prefix={currencySymbol()}
         />
+      </StreamGroup>
+
+      <StreamGroup
+        title="Retention (from month 1)"
+        helper="Applied to the combined book after the starting month."
+      >
         <StreamInputField
           label="Sales churn rate"
           value={config.churnRate}
@@ -672,12 +747,16 @@ function SalesStreamForm({
           helper="Monthly expansion on surviving sales customers"
           suffix="%"
         />
-      </div>
+      </StreamGroup>
 
       <StreamPreview
         icon={<TrendingUp className="h-4 w-4 text-blue-600" />}
         color="blue"
       >
+        <span className="font-semibold text-blue-700">
+          {formatCurrency(startingMrr)}
+        </span>{" "}
+        current MRR, plus{" "}
         <span className="font-semibold text-blue-700">{newCustomers}</span> new
         customers / month ×{" "}
         <span className="font-semibold text-blue-700">
@@ -717,8 +796,11 @@ function PartnersStreamForm({
     setConfig((prev) => ({ ...prev, [field]: numValue }));
   };
 
+  const startingCustomers = config.startingCustomers ?? 0;
+  const startingMrr = config.startingMrr ?? 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <StreamHeader
         icon={<Handshake className="h-5 w-5 text-violet-600" />}
         iconBg="bg-violet-50"
@@ -726,7 +808,29 @@ function PartnersStreamForm({
         description="Revenue through channel partners, affiliates, and referrals"
       />
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <StreamGroup
+        title="Current book (as of start month)"
+        helper="This is revenue before the raise; the forecast starts from here."
+      >
+        <StreamInputField
+          label="Current customers"
+          value={startingCustomers}
+          onChange={(v) => updateField("startingCustomers", v)}
+          helper="Paying partner-sourced customers already on the books"
+        />
+        <StreamInputField
+          label="Current MRR"
+          value={startingMrr}
+          onChange={(v) => updateField("startingMrr", v)}
+          helper="Monthly recurring revenue from those customers today (net of commission)"
+          prefix={currencySymbol()}
+        />
+      </StreamGroup>
+
+      <StreamGroup
+        title="New business each month"
+        helper="Adds on top of the current book going forward."
+      >
         <StreamInputField
           label="Monthly referred deals"
           value={config.monthlyReferrals}
@@ -755,12 +859,16 @@ function PartnersStreamForm({
           helper="Commission paid to partners on referred revenue"
           suffix="%"
         />
-      </div>
+      </StreamGroup>
 
       <StreamPreview
         icon={<TrendingUp className="h-4 w-4 text-violet-600" />}
         color="violet"
       >
+        <span className="font-semibold text-violet-700">
+          {formatCurrency(startingMrr)}
+        </span>{" "}
+        current MRR, plus{" "}
         <span className="font-semibold text-violet-700">{newCustomers}</span>{" "}
         new customers / month at{" "}
         <span className="font-semibold text-violet-700">
@@ -801,6 +909,28 @@ function StreamHeader({ icon, iconBg, title, description }: StreamHeaderProps) {
         <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
         <p className="text-sm text-neutral-500">{description}</p>
       </div>
+    </div>
+  );
+}
+
+function StreamGroup({
+  title,
+  helper,
+  children,
+}: {
+  title: string;
+  helper: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold text-neutral-900">{title}</h3>
+        <p className="mt-0.5 text-xs text-neutral-500 leading-relaxed">
+          {helper}
+        </p>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">{children}</div>
     </div>
   );
 }

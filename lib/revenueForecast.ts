@@ -26,6 +26,10 @@ export interface PlgConfig {
   monthlyDealShare?: number; // % of new customers on monthly billing (cash timing only)
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
+  /** Customers already on the books at forecast start (pre-raise). */
+  startingCustomers?: number;
+  /** Current MRR already on the books at forecast start (pre-raise). */
+  startingMrr?: number;
 }
 
 export interface SalesConfig {
@@ -34,6 +38,8 @@ export interface SalesConfig {
   avgAcv: number; // annual contract value (all sales deals)
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
+  startingCustomers?: number;
+  startingMrr?: number;
 }
 
 export interface PartnersConfig {
@@ -43,6 +49,8 @@ export interface PartnersConfig {
   monthlyDealShare?: number; // percentage of new customers on monthly billing
   monthlyArpa?: number; // monthly revenue per monthly-billed customer
   commissionRate: number; // percentage
+  startingCustomers?: number;
+  startingMrr?: number;
 }
 
 export interface RevenueConfig {
@@ -188,9 +196,20 @@ export interface ForecastSummary {
   expenseByCategory: Record<ExpenseCategory, number>;
 }
 
+export interface StartingRunRate {
+  date: string; // plan start month "YYYY-MM"
+  currentMrr: number;
+  currentCustomers: number;
+  currentOpex: number;
+  netBurn: number; // opex − opening MRR (accrual run-rate)
+  cashOnHand: number;
+  runwayMonths: number; // cash / current burn; 999 if not burning
+}
+
 export interface ForecastResult {
   months: ForecastMonth[];
   summary: ForecastSummary;
+  startingRunRate: StartingRunRate;
 }
 
 // ============================================================================
@@ -205,6 +224,8 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
     monthlyDealShare: 0,
     churnRate: 0,
     expansionRate: 0,
+    startingCustomers: 0,
+    startingMrr: 0,
   },
   sales: {
     monthlySqls: 0,
@@ -212,6 +233,8 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
     avgAcv: 0,
     churnRate: 0,
     expansionRate: 0,
+    startingCustomers: 0,
+    startingMrr: 0,
   },
   partners: {
     monthlyReferrals: 0,
@@ -220,8 +243,25 @@ export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
     monthlyDealShare: 0,
     monthlyArpa: 0,
     commissionRate: 0,
+    startingCustomers: 0,
+    startingMrr: 0,
   },
 };
+
+function numOrZero(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+/** Fill missing stream fields so older saved JSON still loads cleanly. */
+export function normalizeRevenueConfig(
+  config: Partial<RevenueConfig> | null | undefined
+): RevenueConfig {
+  return {
+    plg: { ...DEFAULT_REVENUE_CONFIG.plg, ...(config?.plg ?? {}) },
+    sales: { ...DEFAULT_REVENUE_CONFIG.sales, ...(config?.sales ?? {}) },
+    partners: { ...DEFAULT_REVENUE_CONFIG.partners, ...(config?.partners ?? {}) },
+  };
+}
 
 /** True when revenue config has no real funnel/pricing inputs yet. */
 export function isBlankRevenueConfig(
@@ -282,6 +322,59 @@ function emptyRevenueStreamState(): RevenueStreamState {
     monthlyMrr: 0,
     yearlyMrr: 0,
     yearlyCohorts: [],
+  };
+}
+
+function openingAmount(value: number | undefined): number {
+  return Math.max(0, numOrZero(value));
+}
+
+/**
+ * Seed the current book at forecast start. Splits customers/MRR by the same
+ * monthly vs yearly mix as new business. Yearly cohort anniversary is month 0
+ * so the first renewal is in 12 months (already-paid annuals are not recashed).
+ */
+function seedOpeningBook(
+  startingCustomers: number | undefined,
+  startingMrr: number | undefined,
+  config: BillingMixConfig
+): RevenueStreamState {
+  const customers = openingAmount(startingCustomers);
+  const mrr = openingAmount(startingMrr);
+  if (customers === 0 && mrr === 0) return emptyRevenueStreamState();
+
+  const monthlyShare =
+    Math.min(Math.max(config.monthlyDealShare ?? 0, 0), 100) / 100;
+  const monthlyCustomers = customers * monthlyShare;
+  const yearlyCustomers = customers - monthlyCustomers;
+  const monthlyMrr = mrr * monthlyShare;
+  const yearlyMrr = mrr - monthlyMrr;
+
+  const yearlyCohorts: YearlyRevenueCohort[] = [];
+  if (yearlyCustomers > 0 && yearlyMrr > 0) {
+    yearlyCohorts.push({
+      startIndex: 0,
+      customers: yearlyCustomers,
+      mrr: yearlyMrr,
+    });
+  }
+
+  return {
+    monthlyCustomers,
+    yearlyCustomers,
+    monthlyMrr,
+    yearlyMrr,
+    yearlyCohorts,
+  };
+}
+
+/** Month-0 cash from the opening book: monthly ARPA only; no churn, no annual renewal. */
+function openingBookCash(state: RevenueStreamState) {
+  return {
+    churnedCustomers: 0,
+    churnedMrr: 0,
+    expansionMrr: 0,
+    existingCash: state.monthlyMrr,
   };
 }
 
@@ -559,9 +652,24 @@ export function buildForecast(
   // TODO: Apply priceUplift to pricing.
   // TODO: Use commissionRate as a default for incentive-based roles when role-level logic exists.
 
-  const plgState = emptyRevenueStreamState();
-  const salesState = emptyRevenueStreamState();
-  const partnerState = emptyRevenueStreamState();
+  const plgState = seedOpeningBook(
+    revenue.plg.startingCustomers,
+    revenue.plg.startingMrr,
+    {
+      avgAcv: revenue.plg.avgAcv,
+      monthlyDealShare: revenue.plg.monthlyDealShare,
+    }
+  );
+  const salesState = seedOpeningBook(
+    revenue.sales.startingCustomers,
+    revenue.sales.startingMrr,
+    revenue.sales
+  );
+  const partnerState = seedOpeningBook(
+    revenue.partners.startingCustomers,
+    revenue.partners.startingMrr,
+    revenue.partners
+  );
   let cumulativeBurn = 0;
   const collectionLagMonths = Math.max(
     0,
@@ -585,24 +693,34 @@ export function buildForecast(
     );
 
     // ── Existing revenue, churn, expansion, and cash collection ──
-    const plgExisting = advanceExistingRevenue(
-      plgState,
-      i,
-      revenue.plg.churnRate,
-      revenue.plg.expansionRate
-    );
-    const salesExisting = advanceExistingRevenue(
-      salesState,
-      i,
-      revenue.sales.churnRate,
-      revenue.sales.expansionRate
-    );
-    const partnerExisting = advanceExistingRevenue(
-      partnerState,
-      i,
-      assumptions.churnRate,
-      0
-    );
+    // Opening book is shown intact in month 0; churn/expansion start in month 1.
+    const plgExisting =
+      i === 0
+        ? openingBookCash(plgState)
+        : advanceExistingRevenue(
+            plgState,
+            i,
+            revenue.plg.churnRate,
+            revenue.plg.expansionRate
+          );
+    const salesExisting =
+      i === 0
+        ? openingBookCash(salesState)
+        : advanceExistingRevenue(
+            salesState,
+            i,
+            revenue.sales.churnRate,
+            revenue.sales.expansionRate
+          );
+    const partnerExisting =
+      i === 0
+        ? openingBookCash(partnerState)
+        : advanceExistingRevenue(
+            partnerState,
+            i,
+            assumptions.churnRate,
+            0
+          );
 
     // ── New MRR and cash from new customers ──
     // PLG prices from ACV only; deal share only affects cash timing (monthly vs annual).
@@ -817,7 +935,13 @@ export function buildForecast(
   }
 
   const summary = computeSummary(months, assumptions);
-  return { months, summary };
+  const startingRunRate = computeStartingRunRate(
+    startMonth,
+    revenue,
+    expenses,
+    assumptions
+  );
+  return { months, summary, startingRunRate };
 }
 
 // ============================================================================
@@ -862,6 +986,97 @@ function emptyForecastSummary(assumptions: AssumptionsInput): ForecastSummary {
     ebitMarginPct: 0,
     operatingExpenses: 0,
     expenseByCategory: emptyExpenseByCategory(),
+  };
+}
+
+/**
+ * Current run-rate at plan start: opening book + in-place costs only.
+ * Ignores new-business funnel, later hires, and the planned raise.
+ */
+export function computeStartingRunRate(
+  startMonth: string,
+  revenue: RevenueConfig,
+  expenses: ExpenseInput,
+  assumptions: AssumptionsInput
+): StartingRunRate {
+  const plgMrr = openingAmount(revenue.plg.startingMrr);
+  const salesMrr = openingAmount(revenue.sales.startingMrr);
+  const partnerMrr = openingAmount(revenue.partners.startingMrr);
+  const currentMrr = plgMrr + salesMrr + partnerMrr;
+
+  const plgCustomers = openingAmount(revenue.plg.startingCustomers);
+  const salesCustomers = openingAmount(revenue.sales.startingCustomers);
+  const partnerCustomers = openingAmount(revenue.partners.startingCustomers);
+  const currentCustomers = Math.round(
+    plgCustomers + salesCustomers + partnerCustomers
+  );
+
+  let headcountExpense = 0;
+  let totalFte = 0;
+  let totalHeadcount = 0;
+  const fteByCategory: Record<string, number> = {};
+  const countByCategory: Record<string, number> = {};
+
+  for (const person of expenses.headcount) {
+    if (startMonth < person.startMonth) continue;
+    if (person.endMonth && startMonth > person.endMonth) continue;
+
+    const taxed = personTypeHasEmployerTax(person.type ?? "employee")
+      ? person.baseSalary * (1 + assumptions.salaryTaxRate / 100)
+      : person.baseSalary;
+    headcountExpense += taxed * person.fte;
+    totalFte += person.fte;
+    totalHeadcount += 1;
+    fteByCategory[person.category] =
+      (fteByCategory[person.category] ?? 0) + person.fte;
+    countByCategory[person.category] =
+      (countByCategory[person.category] ?? 0) + 1;
+  }
+
+  const monthContext: MonthContext = {
+    date: startMonth,
+    monthIndex: 0,
+    inflationGrowth: 1,
+    mrr: {
+      total: currentMrr,
+      plg: plgMrr,
+      sales: salesMrr,
+      partners: partnerMrr,
+    },
+    activeCustomers: {
+      total: currentCustomers,
+      plg: Math.round(plgCustomers),
+      sales: Math.round(salesCustomers),
+      partners: Math.round(partnerCustomers),
+    },
+    newCustomers: { total: 0, plg: 0, sales: 0, partners: 0 },
+    people: {
+      totalFte,
+      totalCount: totalHeadcount,
+      fteByCategory,
+      countByCategory,
+    },
+  };
+
+  let nonHeadcountExpense = 0;
+  for (const expense of expenses.nonHeadcount) {
+    nonHeadcountExpense += resolveExpenseMonth(expense, monthContext);
+  }
+
+  const currentOpex = headcountExpense + nonHeadcountExpense;
+  const netBurn = currentOpex - currentMrr;
+  const cashOnHand = assumptions.cashOnHand;
+  const runwayMonths =
+    netBurn <= 0 ? (cashOnHand > 0 || currentMrr > 0 ? 999 : 0) : cashOnHand / netBurn;
+
+  return {
+    date: startMonth,
+    currentMrr: round2(currentMrr),
+    currentCustomers,
+    currentOpex: round2(currentOpex),
+    netBurn: round2(netBurn),
+    cashOnHand: round2(cashOnHand),
+    runwayMonths: round2(runwayMonths),
   };
 }
 

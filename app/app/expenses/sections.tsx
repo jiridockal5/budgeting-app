@@ -180,6 +180,79 @@ export function SnapshotMetric({
   );
 }
 
+function splitByStart<T extends { startMonth: string }>(
+  rows: T[],
+  planStart: string
+) {
+  const inPlace: T[] = [];
+  const planned: T[] = [];
+  for (const row of rows) {
+    if (row.startMonth <= planStart) inPlace.push(row);
+    else planned.push(row);
+  }
+  return { inPlace, planned };
+}
+
+function laterStartMonth(planStart: string, plannedRaiseMonth: string | null) {
+  if (plannedRaiseMonth && plannedRaiseMonth > planStart) return plannedRaiseMonth;
+  return addMonthKey(planStart, 1);
+}
+
+function TimingToggle({
+  value,
+  onChange,
+}: {
+  value: "in_place" | "later";
+  onChange: (next: "in_place" | "later") => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={() => onChange("in_place")}
+        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+          value === "in_place"
+            ? "bg-neutral-900 text-white"
+            : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
+        }`}
+      >
+        Already in place
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("later")}
+        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+          value === "later"
+            ? "bg-neutral-900 text-white"
+            : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
+        }`}
+      >
+        Starts later
+      </button>
+    </div>
+  );
+}
+
+function CostGroupHeading({
+  title,
+  count,
+  helper,
+}: {
+  title: string;
+  count: number;
+  helper: string;
+}) {
+  return (
+    <div className="px-6 py-3 border-b border-neutral-100 bg-white">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-sm font-semibold text-neutral-900">{title}</h3>
+        <span className="text-xs text-neutral-500">{count}</span>
+      </div>
+      <p className="mt-0.5 text-xs text-neutral-500">{helper}</p>
+    </div>
+  );
+}
+
 // ============================================================================
 // Headcount Section
 // ============================================================================
@@ -195,48 +268,23 @@ interface HeadcountSectionProps {
   editingId: string | null;
   summary: { count: number; totalBaseSalary: number };
   assumptions: GlobalAssumptions;
+  planStartMonth: string;
+  plannedRaiseMonth: string | null;
 }
 
-export function HeadcountSection({
+function HeadcountRowsView({
   rows,
-  form,
-  setForm,
-  onAdd,
+  emptyLabel,
   onEdit,
-  onCancelEdit,
   onDelete,
-  editingId,
-  summary,
-  assumptions,
-}: HeadcountSectionProps) {
+}: {
+  rows: HeadcountRow[];
+  emptyLabel: string;
+  onEdit: (row: HeadcountRow) => void;
+  onDelete: (id: string) => void;
+}) {
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
-      {/* Section Header */}
-      <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 bg-neutral-50/50">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100">
-            <Users className="h-4 w-4 text-violet-600" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-neutral-900">People Costs</h2>
-            <p className="text-sm text-neutral-500">
-              Employees, contractors & advisors — salary, taxes, growth
-            </p>
-          </div>
-        </div>
-        {summary.count > 0 && (
-          <div className="hidden sm:block text-right">
-            <p className="text-xs text-neutral-500">
-              {summary.count} role{summary.count !== 1 ? "s" : ""}
-            </p>
-            <p className="text-sm font-semibold text-neutral-900">
-              {formatCurrency(summary.totalBaseSalary)}/mo base
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Table (desktop) */}
+    <>
       <div className="hidden overflow-x-auto md:block">
         <table className="min-w-full divide-y divide-neutral-200">
           <thead className="bg-neutral-50">
@@ -274,7 +322,7 @@ export function HeadcountSection({
                   colSpan={8}
                   className="px-6 py-8 text-center text-sm text-neutral-500"
                 >
-                  No people added yet. Add your first hire below.
+                  {emptyLabel}
                 </td>
               </tr>
             ) : (
@@ -331,12 +379,10 @@ export function HeadcountSection({
           </tbody>
         </table>
       </div>
-
-      {/* Cards (mobile) */}
       <div className="divide-y divide-neutral-200 md:hidden">
         {rows.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-neutral-500">
-            No people added yet. Add your first hire below.
+            {emptyLabel}
           </p>
         ) : (
           rows.map((row) => (
@@ -402,9 +448,97 @@ export function HeadcountSection({
           ))
         )}
       </div>
+    </>
+  );
+}
+
+export function HeadcountSection({
+  rows,
+  form,
+  setForm,
+  onAdd,
+  onEdit,
+  onCancelEdit,
+  onDelete,
+  editingId,
+  summary,
+  assumptions,
+  planStartMonth,
+  plannedRaiseMonth,
+}: HeadcountSectionProps) {
+  const { inPlace, planned } = splitByStart(rows, planStartMonth);
+  const timing: "in_place" | "later" =
+    form.startMonth <= planStartMonth ? "in_place" : "later";
+
+  return (
+    <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4 bg-neutral-50/50">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100">
+            <Users className="h-4 w-4 text-violet-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-neutral-900">People Costs</h2>
+            <p className="text-sm text-neutral-500">
+              Current team drives today&apos;s burn. Later hires only hit P&amp;L
+              from their start month — typically after the raise.
+            </p>
+          </div>
+        </div>
+        {summary.count > 0 && (
+          <div className="hidden sm:block text-right">
+            <p className="text-xs text-neutral-500">
+              {summary.count} role{summary.count !== 1 ? "s" : ""}
+            </p>
+            <p className="text-sm font-semibold text-neutral-900">
+              {formatCurrency(summary.totalBaseSalary)}/mo base
+            </p>
+          </div>
+        )}
+      </div>
+
+      <CostGroupHeading
+        title="In place at start"
+        count={inPlace.length}
+        helper={`On the books in ${planStartMonth}. Counts toward current burn.`}
+      />
+      <HeadcountRowsView
+        rows={inPlace}
+        emptyLabel="No current team yet. Add people who are already hired."
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
+
+      <CostGroupHeading
+        title="Planned after start"
+        count={planned.length}
+        helper="Starts after the forecast beginning — usually once funding lands."
+      />
+      <HeadcountRowsView
+        rows={planned}
+        emptyLabel="Add hires that start after the raise or later in the plan."
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
 
       {/* Add Form */}
       <div className="border-t border-neutral-200 bg-neutral-50/50 px-6 py-4">
+        <div className="mb-3">
+          <p className="mb-1.5 text-xs font-medium text-neutral-600">When</p>
+          <TimingToggle
+            value={timing}
+            onChange={(next) => {
+              if (next === "in_place") {
+                setForm((prev) => ({ ...prev, startMonth: planStartMonth }));
+              } else if (form.startMonth <= planStartMonth) {
+                setForm((prev) => ({
+                  ...prev,
+                  startMonth: laterStartMonth(planStartMonth, plannedRaiseMonth),
+                }));
+              }
+            }}
+          />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end">
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium text-neutral-600 mb-1">
@@ -555,7 +689,8 @@ export function HeadcountSection({
           Employer tax ({formatPercentage(assumptions.salaryTaxRate)}) applies to{" "}
           <span className="font-medium">employees only</span>; contractors and
           advisors are billed at their rate. Salaries grow{" "}
-          {formatPercentage(assumptions.salaryGrowthRate)}/yr.
+          {formatPercentage(assumptions.salaryGrowthRate)}/yr. Current rows drive
+          today&apos;s burn; later starts only hit P&amp;L from that month.
         </p>
       </div>
     </section>
@@ -583,6 +718,8 @@ interface NonHeadcountSectionProps {
     oneTimeTotal: number;
   };
   assumptions: GlobalAssumptions;
+  planStartMonth: string;
+  plannedRaiseMonth: string | null;
   selectedIds: Set<string>;
   setSelectedIds: Dispatch<SetStateAction<Set<string>>>;
   onBulkScale: (pct: number) => void;
@@ -601,6 +738,8 @@ export function NonHeadcountSection({
   editingId,
   summary,
   assumptions,
+  planStartMonth,
+  plannedRaiseMonth,
   selectedIds,
   setSelectedIds,
   onBulkScale,
@@ -632,6 +771,9 @@ export function NonHeadcountSection({
       formMethod === "perCustomer" ||
       formMethod === "perEmployee" ||
       form.amount > 0);
+  const { inPlace, planned } = splitByStart(rows, planStartMonth);
+  const timing: "in_place" | "later" =
+    form.startMonth <= planStartMonth ? "in_place" : "later";
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
       {/* Section Header */}
@@ -645,8 +787,8 @@ export function NonHeadcountSection({
               Non-People Costs
             </h2>
             <p className="text-sm text-neutral-500">
-              Tools, infra, marketing & other costs — fixed, growing, or
-              revenue-linked
+              Current costs drive today&apos;s burn. Later spend only hits P&amp;L
+              from its start month — typically after the raise.
             </p>
           </div>
         </div>
@@ -768,17 +910,42 @@ export function NonHeadcountSection({
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 bg-white">
-            {rows.length === 0 ? (
-              <tr>
+            {(
+              [
+                {
+                  key: "in-place",
+                  heading: `In place at start · ${inPlace.length}`,
+                  empty: "No current costs yet. Add tools and opex already running.",
+                  list: inPlace,
+                },
+                {
+                  key: "planned",
+                  heading: `Planned after start · ${planned.length}`,
+                  empty: "Add spend that starts after funding.",
+                  list: planned,
+                },
+              ] as const
+            ).flatMap((group) => [
+              <tr key={`${group.key}-h`} className="bg-neutral-50">
                 <td
                   colSpan={8}
-                  className="px-6 py-8 text-center text-sm text-neutral-500"
+                  className="px-6 py-2 text-xs font-semibold text-neutral-600"
                 >
-                  No costs added yet. Add your first expense below.
+                  {group.heading}
                 </td>
-              </tr>
-            ) : (
-              rows.map((row) => {
+              </tr>,
+              ...(group.list.length === 0
+                ? [
+                    <tr key={`${group.key}-empty`}>
+                      <td
+                        colSpan={8}
+                        className="px-6 py-4 text-sm text-neutral-500"
+                      >
+                        {group.empty}
+                      </td>
+                    </tr>,
+                  ]
+                : group.list.map((row) => {
                 const method = row.config?.method ?? "fixed";
                 const linked = methodNeedsForecast(method);
                 return (
@@ -860,20 +1027,38 @@ export function NonHeadcountSection({
                   </td>
                 </tr>
                 );
-              })
-            )}
+              })),
+            ])}
           </tbody>
         </table>
       </div>
 
       {/* Cards (mobile) */}
       <div className="divide-y divide-neutral-200 md:hidden">
-        {rows.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-neutral-500">
-            No costs added yet. Add your first expense below.
-          </p>
-        ) : (
-          rows.map((row) => {
+        {(
+          [
+            {
+              key: "in-place",
+              heading: "In place at start",
+              empty: "No current costs yet.",
+              list: inPlace,
+            },
+            {
+              key: "planned",
+              heading: "Planned after start",
+              empty: "Add spend that starts after funding.",
+              list: planned,
+            },
+          ] as const
+        ).map((group) => (
+          <div key={group.key}>
+            <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-neutral-500 bg-neutral-50">
+              {group.heading} · {group.list.length}
+            </p>
+            {group.list.length === 0 ? (
+              <p className="px-4 py-4 text-sm text-neutral-500">{group.empty}</p>
+            ) : (
+              group.list.map((row) => {
             const method = row.config?.method ?? "fixed";
             const linked = methodNeedsForecast(method);
             return (
@@ -965,11 +1150,29 @@ export function NonHeadcountSection({
               </div>
             );
           })
-        )}
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Add / Edit Form */}
       <div className="border-t border-neutral-200 bg-neutral-50/50 px-6 py-4">
+        <div className="mb-3">
+          <p className="mb-1.5 text-xs font-medium text-neutral-600">When</p>
+          <TimingToggle
+            value={timing}
+            onChange={(next) => {
+              if (next === "in_place") {
+                setForm((prev) => ({ ...prev, startMonth: planStartMonth }));
+              } else if (form.startMonth <= planStartMonth) {
+                setForm((prev) => ({
+                  ...prev,
+                  startMonth: laterStartMonth(planStartMonth, plannedRaiseMonth),
+                }));
+              }
+            }}
+          />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium text-neutral-600 mb-1">
