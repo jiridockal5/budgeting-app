@@ -217,7 +217,15 @@ export interface StartingRunRate {
   currentCosts: number;
   netBurn: number; // (COS + opex) − opening MRR
   cashOnHand: number;
-  runwayMonths: number; // cash / current burn; 999 if not burning
+  /** Months of cash at current burn, excluding the planned raise. 999 if not burning. */
+  runwayMonths: number;
+  /** Planned raise month when a net raise (after fees) is scheduled at or after start. */
+  plannedRaiseMonth: string | null;
+  /**
+   * Planned raise month when that raise lands before cash would hit zero at
+   * current burn. Null if there is no raise, or it arrives too late.
+   */
+  raiseBridgesUntilMonth: string | null;
 }
 
 export interface ForecastResult {
@@ -1141,9 +1149,17 @@ function emptyForecastSummary(assumptions: AssumptionsInput): ForecastSummary {
   };
 }
 
+function netPlannedRaise(assumptions: AssumptionsInput): number {
+  const amount = assumptions.plannedRaiseAmount;
+  if (amount == null || amount <= 0) return 0;
+  return amount * (1 - assumptions.fundraisingFees / 100);
+}
+
 /**
  * Current run-rate at plan start: opening book + in-place costs only.
- * Ignores new-business funnel, later hires, and the planned raise.
+ * Ignores new-business funnel and later hires. Runway months exclude the
+ * planned raise; raiseBridgesUntilMonth is set when that raise arrives
+ * before cash would hit zero at this burn.
  */
 export function computeStartingRunRate(
   startMonth: string,
@@ -1238,6 +1254,24 @@ export function computeStartingRunRate(
   const runwayMonths =
     netBurn <= 0 ? (cashOnHand > 0 || currentMrr > 0 ? 999 : 0) : cashOnHand / netBurn;
 
+  const netRaise = netPlannedRaise(assumptions);
+  const plannedRaiseMonth =
+    assumptions.plannedRaiseMonth &&
+    netRaise > 0 &&
+    assumptions.plannedRaiseMonth >= startMonth
+      ? assumptions.plannedRaiseMonth
+      : null;
+
+  let raiseBridgesUntilMonth: string | null = null;
+  if (plannedRaiseMonth && netBurn > 0) {
+    const monthsUntilRaise = monthDiff(startMonth, plannedRaiseMonth);
+    // Still have cash at the start of the raise month (did not hit zero earlier).
+    // A raise in the start month always arrives in time.
+    if (monthsUntilRaise === 0 || cashOnHand > netBurn * monthsUntilRaise) {
+      raiseBridgesUntilMonth = plannedRaiseMonth;
+    }
+  }
+
   return {
     date: startMonth,
     currentMrr: round2(currentMrr),
@@ -1248,6 +1282,8 @@ export function computeStartingRunRate(
     netBurn: round2(netBurn),
     cashOnHand: round2(cashOnHand),
     runwayMonths: round2(runwayMonths),
+    plannedRaiseMonth,
+    raiseBridgesUntilMonth,
   };
 }
 

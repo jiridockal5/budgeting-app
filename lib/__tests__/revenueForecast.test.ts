@@ -1032,6 +1032,136 @@ describe("computeStartingRunRate", () => {
     expect(snapshot.currentCosts).toBe(4000);
     expect(snapshot.netBurn).toBe(3000);
     expect(snapshot.runwayMonths).toBe(3);
+    expect(snapshot.plannedRaiseMonth).toBeNull();
+    expect(snapshot.raiseBridgesUntilMonth).toBeNull();
+  });
+
+  it("marks a planned raise that lands before cash-out at current burn", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 0,
+        trialConversionRate: 0,
+        avgAcv: 0,
+        churnRate: 0,
+        expansionRate: 0,
+        startingMrr: 3000,
+      },
+      sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const expenses: ExpenseInput = {
+      headcount: [
+        {
+          role: "Team",
+          category: "ops",
+          baseSalary: 60000,
+          fte: 1,
+          type: "contractor",
+          startMonth: "2026-12",
+        },
+      ],
+      nonHeadcount: [],
+    };
+    const snapshot = computeStartingRunRate("2026-12", revenue, expenses, {
+      ...defaultAssumptions,
+      salaryTaxRate: 0,
+      cashOnHand: 78000,
+      plannedRaiseMonth: "2027-01",
+      plannedRaiseAmount: 500000,
+      fundraisingFees: 0,
+    });
+    expect(snapshot.netBurn).toBe(57000);
+    expect(snapshot.runwayMonths).toBe(1.37);
+    expect(snapshot.plannedRaiseMonth).toBe("2027-01");
+    expect(snapshot.raiseBridgesUntilMonth).toBe("2027-01");
+  });
+
+  it("does not treat a too-late raise as bridging cash-out", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 0,
+        trialConversionRate: 0,
+        avgAcv: 0,
+        churnRate: 0,
+        expansionRate: 0,
+        startingMrr: 0,
+      },
+      sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const expenses: ExpenseInput = {
+      headcount: [
+        {
+          role: "Team",
+          category: "ops",
+          baseSalary: 61886,
+          fte: 1,
+          type: "contractor",
+          startMonth: "2026-12",
+        },
+      ],
+      nonHeadcount: [],
+    };
+    const snapshot = computeStartingRunRate("2026-12", revenue, expenses, {
+      ...defaultAssumptions,
+      salaryTaxRate: 0,
+      cashOnHand: 34100,
+      plannedRaiseMonth: "2027-01",
+      plannedRaiseAmount: 500000,
+      fundraisingFees: 0,
+    });
+    expect(snapshot.netBurn).toBe(61886);
+    expect(snapshot.runwayMonths).toBeLessThan(1);
+    expect(snapshot.plannedRaiseMonth).toBe("2027-01");
+    expect(snapshot.raiseBridgesUntilMonth).toBeNull();
+  });
+
+  it("uses net raise after fundraising fees when deciding whether the raise bridges", () => {
+    const revenue: RevenueConfig = {
+      plg: {
+        monthlyTrials: 0,
+        trialConversionRate: 0,
+        avgAcv: 0,
+        churnRate: 0,
+        expansionRate: 0,
+        startingMrr: 3000,
+      },
+      sales: { monthlySqls: 0, closeRate: 0, avgAcv: 0, churnRate: 0, expansionRate: 0 },
+      partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+    };
+    const expenses: ExpenseInput = {
+      headcount: [
+        {
+          role: "Team",
+          category: "ops",
+          baseSalary: 60000,
+          fte: 1,
+          type: "contractor",
+          startMonth: "2026-12",
+        },
+      ],
+      nonHeadcount: [],
+    };
+    const withFees = computeStartingRunRate("2026-12", revenue, expenses, {
+      ...defaultAssumptions,
+      salaryTaxRate: 0,
+      cashOnHand: 78000,
+      plannedRaiseMonth: "2027-01",
+      plannedRaiseAmount: 500000,
+      fundraisingFees: 10,
+    });
+    expect(withFees.raiseBridgesUntilMonth).toBe("2027-01");
+
+    const fullyFeed = computeStartingRunRate("2026-12", revenue, expenses, {
+      ...defaultAssumptions,
+      salaryTaxRate: 0,
+      cashOnHand: 78000,
+      plannedRaiseMonth: "2027-01",
+      plannedRaiseAmount: 500000,
+      fundraisingFees: 100,
+    });
+    expect(fullyFeed.plannedRaiseMonth).toBeNull();
+    expect(fullyFeed.raiseBridgesUntilMonth).toBeNull();
   });
 });
 

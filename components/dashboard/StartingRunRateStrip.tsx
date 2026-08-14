@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatMonth } from "@/lib/assumptions";
 import { formatCompactCurrency } from "@/lib/currency";
 import type { StartingRunRate } from "@/lib/revenueForecast";
 
@@ -10,12 +11,36 @@ function formatRunway(months: number): string {
   return `${Math.round(months)} mo`;
 }
 
+function runwayStat(snapshot: StartingRunRate): {
+  label: string;
+  value: string;
+  hint?: string;
+} {
+  if (snapshot.raiseBridgesUntilMonth) {
+    return {
+      label: "Runway at this burn",
+      value: `until ${formatMonth(snapshot.raiseBridgesUntilMonth)}`,
+      hint: `${formatRunway(snapshot.runwayMonths)} without raise`,
+    };
+  }
+  const burningWithRaisePlanned =
+    snapshot.netBurn > 0 && snapshot.plannedRaiseMonth != null;
+  return {
+    label: burningWithRaisePlanned
+      ? "Runway without raise"
+      : "Runway at this burn",
+    value: formatRunway(snapshot.runwayMonths),
+    hint: burningWithRaisePlanned ? "raise arrives after cash-out" : undefined,
+  };
+}
+
 export function StartingRunRateStrip({
   snapshot,
 }: {
   snapshot: StartingRunRate;
 }) {
   const burning = snapshot.netBurn > 0;
+  const runway = runwayStat(snapshot);
   return (
     <section
       aria-labelledby="starting-run-rate-heading"
@@ -57,10 +82,7 @@ export function StartingRunRateStrip({
           label="Cash on hand"
           value={formatCompactCurrency(snapshot.cashOnHand)}
         />
-        <Stat
-          label="Runway at this burn"
-          value={formatRunway(snapshot.runwayMonths)}
-        />
+        <Stat label={runway.label} value={runway.value} hint={runway.hint} />
       </div>
     </section>
   );
