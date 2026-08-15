@@ -6,6 +6,7 @@ import {
   HowItWorks,
   FeatureBento,
   MetricsGrid,
+  ProductPreviewTabs,
   UseCasesTabs,
   FAQ,
   FinalCTA,
@@ -76,6 +77,9 @@ export default async function HomePage() {
       <main className="relative">
         {/* Hero Section */}
         <Hero />
+
+        {/* Product Preview Tabs */}
+        <ProductPreviewTabs />
 
         {/* How it Works */}
         <HowItWorks />
