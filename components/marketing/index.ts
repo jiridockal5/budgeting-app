@@ -14,7 +14,6 @@ export {
 // Section components
 export { TopNav } from "./TopNav";
 export { Hero } from "./Hero";
-export { ScreenshotFrame } from "./ScreenshotFrame";
 export { LogoRow } from "./LogoRow";
 export { HowItWorks } from "./HowItWorks";
 export { FeatureBento } from "./FeatureBento";
