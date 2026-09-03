@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import {
   TopNav,
   Hero,
+  UseCasesTabs,
   HowItWorks,
   FeatureBento,
   MetricsGrid,
@@ -75,6 +76,9 @@ export default async function HomePage() {
       <main className="relative">
         {/* Hero Section */}
         <Hero />
+
+        {/* Use cases */}
+        <UseCasesTabs />
 
         {/* How it Works */}
         <HowItWorks />

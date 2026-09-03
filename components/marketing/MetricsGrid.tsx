@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Reveal, RevealGroup, RevealItem } from "./Reveal";
+import { Reveal } from "./Reveal";
 
 const categories = [
   { id: "growth", label: "Growth" },
@@ -14,53 +14,75 @@ const categories = [
 const metrics = [
   {
     name: "CAC",
+    value: "€1.2K",
     description: "Cost to acquire a customer",
     category: "unit",
   },
   {
     name: "CAC Payback",
+    value: "9 mo",
     description: "Months to recover CAC",
     category: "efficiency",
   },
   {
     name: "LTV/CAC",
+    value: "4.2×",
     description: "Unit economics ratio",
     category: "unit",
   },
   {
     name: "NRR",
+    value: "118%",
     description: "Net revenue retention",
     category: "retention",
   },
   {
     name: "GRR",
+    value: "94%",
     description: "Gross revenue retention",
     category: "retention",
   },
   {
     name: "ARR Growth",
+    value: "86%",
     description: "Year-over-year growth",
     category: "growth",
   },
   {
     name: "Net New ARR Mix",
+    value: "62% new",
     description: "Expansion vs new vs churn",
     category: "growth",
   },
   {
     name: "Gross Margin",
+    value: "78%",
     description: "Margin after COGS",
     category: "efficiency",
   },
   {
     name: "Burn Multiple",
+    value: "1.4×",
     description: "Burn / Net New ARR",
     category: "efficiency",
   },
   {
     name: "Rule of 40",
+    value: "62",
     description: "Growth + margin score",
     category: "efficiency",
+  },
+  {
+    name: "Runway",
+    value: "18 mo",
+    description: "Months of cash remaining",
+    category: "runway",
+  },
+  {
+    name: "Net burn",
+    value: "€42K",
+    description: "Monthly cash consumed",
+    category: "runway",
   },
 ];
 
@@ -72,7 +94,7 @@ export function MetricsGrid() {
       : metrics.filter((metric) => metric.category === activeCategory);
 
   return (
-    <section id="metrics" className="relative py-10 md:py-12 lg:py-14">
+    <section id="metrics" className="relative py-8 md:py-10 lg:py-12">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div className="text-center">
@@ -88,12 +110,12 @@ export function MetricsGrid() {
           </div>
         </Reveal>
 
-        {/* Category chips */}
         <Reveal delay={0.1}>
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <div className="mt-8 flex flex-wrap justify-center gap-2">
             {[{ id: "all", label: "All" }, ...categories].map((cat) => (
               <button
                 key={cat.id}
+                type="button"
                 onClick={() => setActiveCategory(cat.id)}
                 className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors ${
                   activeCategory === cat.id
@@ -107,25 +129,25 @@ export function MetricsGrid() {
           </div>
         </Reveal>
 
-        {/* Metrics grid */}
-        <RevealGroup className="mt-8 grid grid-cols-2 gap-3 md:mt-10 md:grid-cols-5 md:gap-4">
+        <div className="mt-10 flex flex-wrap justify-center gap-3 md:gap-4">
           {filteredMetrics.map((metric) => (
-            <RevealItem key={metric.name}>
-              <div className="group relative rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-[14px] font-semibold text-neutral-900">
-                    {metric.name}
-                  </h3>
-                </div>
-                <p className="mt-1 text-[12px] leading-5 text-neutral-500">
-                  {metric.description}
-                </p>
-              </div>
-            </RevealItem>
+            <div
+              key={metric.name}
+              className="group relative w-[calc((100%-0.75rem)/2)] shrink-0 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-5rem)/6)]"
+            >
+              <h3 className="text-[12px] font-semibold uppercase tracking-wide text-neutral-500">
+                {metric.name}
+              </h3>
+              <p className="mt-2 text-[18px] font-semibold tabular-nums leading-none text-neutral-900">
+                {metric.value}
+              </p>
+              <p className="mt-2 text-[12px] leading-5 text-neutral-500">
+                {metric.description}
+              </p>
+            </div>
           ))}
-        </RevealGroup>
+        </div>
       </div>
     </section>
   );
 }
-

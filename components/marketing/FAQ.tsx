@@ -48,9 +48,9 @@ export function FAQ() {
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <section id="faq" className="relative py-10 md:py-12 lg:py-14">
+    <section id="faq" className="relative py-8 md:py-10 lg:py-12">
       {/* Background */}
-      <div className="absolute inset-0 bg-neutral-50/50" />
+      <div className="pointer-events-none absolute inset-0 bg-neutral-50/50" />
 
       <div className="relative mx-auto max-w-3xl px-6">
         <Reveal>

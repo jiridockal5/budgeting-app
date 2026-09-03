@@ -30,7 +30,7 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="product" className="relative py-10 md:py-12 lg:py-14">
+    <section id="product" className="relative py-8 md:py-10 lg:py-12">
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <div className="text-center">
@@ -43,34 +43,28 @@ export function HowItWorks() {
           </div>
         </Reveal>
 
-        <RevealGroup className="mt-8 grid gap-5 md:mt-10 md:grid-cols-3 md:gap-5">
+        <RevealGroup className="mt-10 grid gap-10 md:grid-cols-3 md:gap-8">
           {steps.map((step, index) => (
             <RevealItem key={step.number}>
-              <div className="group relative">
-                {/* Connector line (hidden on mobile, visible on desktop) */}
+              <div className="relative">
                 {index < steps.length - 1 && (
-                  <div className="absolute left-1/2 top-12 hidden h-px w-full bg-gradient-to-r from-neutral-200 to-transparent md:block" />
+                  <div className="absolute left-10 top-5 hidden h-px w-[calc(100%-0.5rem)] bg-gradient-to-r from-neutral-200 to-transparent md:block" />
                 )}
 
-                <div className="relative rounded-2xl border border-neutral-200 bg-white p-5 transition-colors hover:border-neutral-300">
-                  {/* Step number */}
-                  <span className="text-[11px] font-medium text-neutral-400">
-                    {step.number}
-                  </span>
+                <span className="relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-[12px] font-medium tabular-nums text-neutral-500">
+                  {step.number}
+                </span>
 
-                  {/* Icon */}
-                  <TurquoiseIconBadge className="mt-4">
-                    <step.icon className="h-5 w-5" />
-                  </TurquoiseIconBadge>
+                <TurquoiseIconBadge className="mt-5">
+                  <step.icon className="h-5 w-5" />
+                </TurquoiseIconBadge>
 
-                  {/* Content */}
-                  <h3 className="mt-4 text-[15px] font-semibold text-neutral-900">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-[14px] leading-6 text-neutral-600">
-                    {step.description}
-                  </p>
-                </div>
+                <h3 className="mt-4 text-[15px] font-semibold text-neutral-900">
+                  {step.title}
+                </h3>
+                <p className="mt-2 max-w-sm text-[14px] leading-6 text-neutral-600">
+                  {step.description}
+                </p>
               </div>
             </RevealItem>
           ))}
@@ -79,4 +73,3 @@ export function HowItWorks() {
     </section>
   );
 }
-

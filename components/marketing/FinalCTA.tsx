@@ -7,7 +7,7 @@ import { DotGrid, RadialGradient, NoiseTexture } from "./Textures";
 
 export function FinalCTA() {
   return (
-    <section className="relative overflow-hidden py-10 md:py-12 lg:py-14">
+    <section className="relative overflow-hidden py-8 md:py-10 lg:py-12">
       {/* Background with textures */}
       <div className="absolute inset-0 bg-neutral-100">
         <DotGrid className="opacity-50" />
