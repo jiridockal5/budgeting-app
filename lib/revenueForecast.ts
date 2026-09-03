@@ -380,6 +380,7 @@ export function normalizeRevenueConfig(
   config: Partial<RevenueConfig> | null | undefined
 ): RevenueConfig {
   const sales = { ...DEFAULT_REVENUE_CONFIG.sales, ...(config?.sales ?? {}) };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured to omit legacy field
   const { monthlyArpa: _legacyMonthlyArpa, ...partnersRest } = {
     ...DEFAULT_REVENUE_CONFIG.partners,
     ...(config?.partners ?? {}),
@@ -821,13 +822,13 @@ export function buildForecast(
 
     // ── New customers this month ──
     let newPlgCustomers = 0;
-    let plgExisting = {
+    const plgExisting = {
       churnedCustomers: 0,
       churnedMrr: 0,
       expansionMrr: 0,
       existingCash: 0,
     };
-    let newPlg = { newMrr: 0, newCash: 0 };
+    const newPlg = { newMrr: 0, newCash: 0 };
     for (let p = 0; p < plgPlans.length; p++) {
       const plan = plgPlans[p];
       const state = plgStates[p];
