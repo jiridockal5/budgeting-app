@@ -29,6 +29,13 @@ Short reference for running this app in production. Adjust names (Supabase, Verc
 - **Sentry (optional):** `@sentry/nextjs` may not yet list Next.js 16 as a supported peer; check [Sentry’s Next.js docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/). If the install peer warning is acceptable, use `npm install @sentry/nextjs --legacy-peer-deps`, add `instrumentation.ts` per Sentry’s wizard, then extend `captureRouteException` to call `Sentry.captureException`.
 - **Client errors:** consider `NEXT_PUBLIC_SENTRY_DSN` only if you accept exposing the DSN to the browser (Sentry’s design); scope sampling and scrub PII in `beforeSend`.
 
+## Auth email delivery (custom SMTP)
+
+- Auth emails (signup confirmation, password reset) are sent via **Resend** (smtp.resend.com:465, username `resend`, password = Resend API key), configured in Supabase Dashboard → Authentication → Emails → SMTP Settings. Sender: `Burnlytics <noreply@burnlytics.com>`.
+- Domain `burnlytics.com` is verified in Resend (EU region); DKIM/SPF DNS records live in Vercel DNS.
+- Email rate limit raised to **100/hour** (Supabase → Authentication → Rate Limits). Resend free tier: 3,000 emails/month, 100/day — upgrade Resend if signups exceed that.
+- The Resend API key is in the owner's local `.env` (`RESEND_API_KEY`) and the Resend dashboard.
+
 ## Stripe production go-live checklist
 
 Sandbox setup is automated (`npm run setup:stripe`). For production:
