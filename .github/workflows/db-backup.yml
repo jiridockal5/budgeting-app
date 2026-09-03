@@ -17,6 +17,12 @@ jobs:
       - name: Set timestamp
         run: echo "STAMP=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
 
+      - name: Install PostgreSQL 17 client (server is PG 17)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
       - name: Dump database (public + auth schemas)
         env:
           DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
