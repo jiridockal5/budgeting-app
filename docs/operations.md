@@ -12,7 +12,13 @@ Short reference for running this app in production. Adjust names (Supabase, Verc
 
 ## Database backups and migrations
 
-- **Backups:** Enable automated backups on your Postgres provider (e.g. Supabase PITR / daily snapshots). Test a restore at least once.
+- **Backups (current setup):** Supabase Free plan has no built-in backups. A GitHub Actions workflow (`.github/workflows/db-backup.yml`) runs `pg_dump` nightly at 02:15 UTC against the session pooler (public + auth schemas), encrypts the dump with AES-256, and uploads it as a workflow artifact with 90-day retention. Repo secrets: `BACKUP_DATABASE_URL` (session-mode connection string, port 5432) and `BACKUP_PASSPHRASE` (also in the owner's local `.env`).
+- **Restore:** Download the artifact from the repo's Actions tab, then:
+  `openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in backup-<date>.dump.enc -out backup.dump -pass pass:<BACKUP_PASSPHRASE>`
+  `pg_restore --dbname "<BACKUP_DATABASE_URL>" --clean --if-exists --no-owner backup.dump`
+  For partial recovery, use `pg_restore --table=<name>` or restore into a scratch database first. Note: GitHub disables scheduled workflows after 60 days without repo activity; re-enable from the Actions tab if the repo goes quiet.
+- **Upgrade path:** Move to Supabase Pro (daily snapshots) and/or off-platform storage (R2/B2) once there are paying users.
+- Test a restore at least once.
 - **Migrations:** Apply with `prisma migrate deploy` in production CI/CD or your release step—not `prisma migrate dev`.
 - **Schema changes:** Ship migrations in the same release as the code that expects the new columns, or use expand/contract patterns for zero-downtime changes.
 
