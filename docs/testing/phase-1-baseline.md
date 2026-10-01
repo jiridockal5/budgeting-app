@@ -15,11 +15,20 @@
 - **Estimated coverage:** ~15% of critical business logic
 
 ### Top 5 Risks (by likelihood × impact)
-1. **CRITICAL: Cross-tenant data leak** – API routes lack systematic authorization tests; financial data could leak between users
-2. **CRITICAL: Incorrect financial calculations shown to founders/investors** – Core forecast engine tested, but no integration tests verify DB→API→calculation→UI pipeline
-3. **HIGH: Stripe webhook failures** – No idempotency tests, signature verification untested, payment_failed scenarios uncovered
-4. **HIGH: Missing input validation on money fields** – API routes accept arbitrary decimals without boundary checks; risk of overflow/precision loss
-5. **MEDIUM: Auth bypass in edge cases** – Middleware tested only manually; fallback behavior and email verification logic not unit-tested
+1. **CRITICAL (15): Wrong financial numbers shown to investors** – No integration tests for DB→API→forecast pipeline; silent failures possible with missing assumptions
+2. **HIGH (12): Missing zod dependency** – API routes import zod but it's not in package.json (transitive dependency); fragile
+3. **HIGH (12): Duplicate pending org invites** – Inviting two unregistered emails to same org violates @@unique constraint
+4. **HIGH (12): Forecast calculation edge cases** – 56 tests cover common cases but complex interactions untested
+5. **MEDIUM (8): Missing/incorrect assumptions** – Forecast falls back to zero-cash defaults when GlobalAssumptions row missing
+
+**See Section 5 (Risk Map) for full prioritized list of 16 risks.**
+
+### Real Bugs Found
+1. **HIGH:** zod not in package.json dependencies (works via transitive)
+2. **HIGH:** Duplicate pending invites violate unique constraint
+3. **MEDIUM:** Duplicate webhook events trigger duplicate PostHog events
+
+**Initial report incorrectly claimed:** Cross-tenant data leak in org routes (FALSE – proper auth checks exist), /api/test-forecast unauthenticated (FALSE – requires auth), Stripe webhook creates duplicate subscriptions (FALSE – uses upsert). These have been corrected.
 
 ### Decisions Needed from Owner
 1. **Test database strategy:** Dedicated Supabase test project (safer, slower) vs. local Docker Postgres (faster, needs setup)?
@@ -44,6 +53,8 @@ Test Files  4 passed (4)
 ```
 **Status:** ✅ PASS  
 **Root cause of success:** All existing tests cover pure functions with mocked dependencies
+
+**Note:** Tests import and use zod for schemas, but zod is not in package.json dependencies or devDependencies. It works because zod is a transitive dependency of eslint-config-next → eslint-plugin-react-hooks → zod@4.1.13. This is fragile.
 
 ### 1.2 `npm run typecheck`
 ```
@@ -139,8 +150,8 @@ at .next/server/chunks/[root-of-the-server]__0j.hr-j._.js
 | `/api/expenses` | GET, POST | ✅ `getScopedScenario()` | ✅ `scenario.plan.userId` | ⚠️ Zod schema (no boundary checks) | **MEDIUM** |
 | `/api/expenses/[id]` | PUT, DELETE | ✅ `getScopedScenario()` | ✅ Double-check `expense.planId` & `expense.scenarioId` | ⚠️ Zod schema (no boundary checks) | LOW |
 | `/api/forecast` | GET | ✅ `getScopedScenario()` or `getScopedPlan()` | ✅ `plan.userId` | None (read-only) | **MEDIUM** |
-| `/api/organization` | GET, POST, PUT, DELETE | ⚠️ Partial (resolveDbUser) | ❌ **No check on org ownership** | ⚠️ Basic Zod | **HIGH** |
-| `/api/organization/members` | GET, POST, DELETE | ⚠️ Partial (resolveDbUser) | ❌ **No check on org ownership** | ⚠️ Basic Zod | **HIGH** |
+| `/api/organization` | GET, POST | ✅ `getServerUser()` + `requireAppAccess()` | ✅ GET filters by `userId` OR accepted member; POST creates org owned by caller | ✅ Zod schema | LOW |
+| `/api/organization/members` | POST, DELETE | ✅ `getServerUser()` + `requireAppAccess()` | ✅ Loads org, checks caller is OWNER/ADMIN before acting (L43-51, L124-132) | ✅ Zod schema | **MEDIUM** (see bug #2) |
 | `/api/people` | GET, POST | ✅ `getScopedScenario()` | ✅ `scenario.plan.userId` | ⚠️ Zod schema (no boundary checks) | **MEDIUM** |
 | `/api/people/[id]` | PUT, DELETE | ✅ `getScopedScenario()` | ✅ Double-check `person.planId` & `person.scenarioId` | ⚠️ Zod schema (no boundary checks) | LOW |
 | `/api/plans/current` | GET | ✅ `resolveDbUser()` | ✅ `plan.userId` | None | LOW |
@@ -148,14 +159,14 @@ at .next/server/chunks/[root-of-the-server]__0j.hr-j._.js
 | `/api/scenarios` | GET, POST | ✅ `getScopedPlan()` or `requireAppAccess()` | ✅ `plan.userId` | ✅ Zod schema + scenario limit | LOW |
 | `/api/scenarios/[id]` | PUT, DELETE | ✅ `resolveDbUser()` + `requireAppAccess()` | ✅ `scenario.plan.userId` | ✅ Zod schema | LOW |
 | `/api/scenarios/[id]/forecast` | GET | ✅ `getScopedScenario()` | ✅ `scenario.plan.userId` | None (read-only) | LOW |
-| `/api/test-forecast` | POST | ❌ **No auth check** | N/A (ephemeral) | ⚠️ Basic validation | **MEDIUM** (DoS risk) |
+| `/api/test-forecast` | GET | ✅ `getServerUser()` (L13) | N/A (health check) | None | LOW |
 | `/api/webhooks/stripe` | POST | ✅ Signature verification | N/A | ✅ Stripe SDK validates | LOW |
 
 **Key Findings:**
 - ✅ Most routes use `getScopedPlan()` or `getScopedScenario()` which **do** check `userId`
-- ❌ **CRITICAL:** `/api/organization` and `/api/organization/members` routes have **incomplete authorization** – they call `resolveDbUser()` but **do not verify organization ownership** before DB operations
-- ❌ `/api/test-forecast` is **unauthenticated** (ephemeral calculation endpoint, but could be DoS vector)
-- ⚠️ Input validation relies on Zod schemas but lacks **boundary checks** on money fields (e.g., max salary, max expense amount, max forecast months)
+- ✅ Organization routes properly check ownership: GET filters by userId/membership (L20-22), POST/DELETE verify OWNER/ADMIN role (L43-51, L124-132)
+- ✅ `/api/test-forecast` requires auth via `getServerUser()` (L13) – returns 401 if unauthenticated
+- ⚠️ Input validation uses Zod schemas with basic bounds (e.g., `salary: z.number().positive()`) but no explicit max values tested against Postgres DECIMAL(18,2) limits
 
 ### 3.3 Stripe Webhook Security
 
@@ -234,38 +245,37 @@ at .next/server/chunks/[root-of-the-server]__0j.hr-j._.js
 
 | Rank | Risk | Likelihood | Impact | Priority | Reasoning |
 |------|------|------------|--------|----------|-----------|
-| 1 | **Cross-tenant data leak** (org API routes) | 4 | 5 | **20** | `/api/organization` and `/api/organization/members` lack ownership checks. An attacker who guesses an `organizationId` could read/modify another user's org. **Impact:** Financial data leak, GDPR violation, loss of trust. **Likelihood:** High if IDs are sequential/guessable UUIDs. |
-| 2 | **Wrong financial numbers shown to investors** | 3 | 5 | **15** | No integration tests for DB→API→forecast pipeline. If assumptions row is missing, forecast uses defaults (zero cash, zero runway). **Impact:** Founder makes bad decisions (e.g., over-hiring), investor rejects based on wrong numbers. **Likelihood:** Medium – defaults are sensible, but silent failures are possible. |
-| 3 | **Stripe webhook duplicate processing** | 3 | 4 | **12** | No idempotency checks. If Stripe retries `checkout.session.completed`, could create duplicate subscription records or overwrite correct status. **Impact:** User locked out or billed twice. **Likelihood:** Medium – Stripe retries are common, but `upsert` on `userId` provides partial protection. |
-| 4 | **Input validation bypass (money overflow)** | 2 | 5 | **10** | API routes accept arbitrary decimals. A user could POST salary=999999999999999 and overflow Postgres `DECIMAL(18,2)` or break calculations. **Impact:** Forecast crashes, DB errors, wrong burn calculations. **Likelihood:** Low – requires malicious actor, but trivial to exploit. |
-| 5 | **Auth bypass via middleware edge case** | 2 | 5 | **10** | Middleware not unit-tested. If Supabase session expires mid-request, user could access `/app` routes with stale cookie. **Impact:** Unauthorized access to financial data. **Likelihood:** Low – Supabase handles session refresh, but edge cases exist (clock skew, token revocation). |
+| 1 | **Wrong financial numbers shown to investors** | 3 | 5 | **15** | No integration tests for DB→API→forecast pipeline. If assumptions row is missing, forecast uses defaults (zero cash, zero runway). **Impact:** Founder makes bad decisions (e.g., over-hiring), investor rejects based on wrong numbers. **Likelihood:** Medium – defaults are sensible, but silent failures are possible. **Evidence:** `app/api/forecast/route.ts` L74-104 falls back to DEFAULT_ASSUMPTIONS if DB row missing. |
 
 ### 5.3 High Risks (Priority 8-14)
 
 | Rank | Risk | Likelihood | Impact | Priority | Reasoning |
 |------|------|------------|--------|----------|-----------|
-| 6 | **Forecast calculation error (edge case)** | 3 | 4 | **12** | 56 tests cover common cases, but complex interactions untested (e.g., multiple raises + very high churn + yearly cohorts expiring). **Impact:** Wrong runway, bad hiring decisions. **Likelihood:** Medium – complexity is high, edge cases exist. |
-| 7 | **Stripe signature verification bypass** | 2 | 5 | **10** | Webhook signature verification not tested. If attacker forges a webhook, could mark subscriptions as ACTIVE without payment. **Impact:** Revenue loss, access granted to non-payers. **Likelihood:** Low – Stripe signing is robust, but misconfiguration is possible. |
-| 8 | **Missing/incorrect assumptions in forecast** | 4 | 2 | **8** | If `GlobalAssumptions` row is missing, API falls back to `DEFAULT_ASSUMPTIONS` (0 cash, 0 runway). **Impact:** Misleading forecast (shows "out of cash" when not true). **Likelihood:** High on new scenarios, but UI usually creates assumptions. |
-| 9 | **Race condition in scenario cloning** | 2 | 4 | **8** | `cloneScenarioInputs()` copies people/expenses in separate queries. If user modifies source scenario mid-clone, copy could be inconsistent. **Impact:** Wrong expense data in cloned scenario. **Likelihood:** Low – requires precise timing, but no DB-level transaction. |
-| 10 | **CSV/PDF export with sensitive data** | 3 | 3 | **9** | No tests for export functions. If export includes org members or emails, could leak PII. **Impact:** GDPR violation. **Likelihood:** Medium – export scope is not explicitly tested. |
+| 2 | **Missing zod dependency** | 4 | 3 | **12** | API routes import zod but package.json does not list it as a dependency. Currently works because zod@4.1.13 is a transitive dependency of eslint-config-next → eslint-plugin-react-hooks. **Impact:** Build/runtime failure if eslint config changes. **Likelihood:** High if dependencies are updated. **Evidence:** `npm ls zod` shows transitive path only. |
+| 3 | **Duplicate pending org invites** | 3 | 4 | **12** | When inviting unregistered users, `userId="pending"` is set for all (L62 in members route). Prisma schema has `@@unique([organizationId, userId])` (schema.prisma L82). Inviting two unregistered emails to the same org would violate this constraint on the second invite. **Impact:** 500 error, invite fails. **Likelihood:** Medium – common workflow. **Evidence:** Try POST /api/organization/members twice with different emails, both unregistered. |
+| 4 | **Forecast calculation error (edge case)** | 3 | 4 | **12** | 56 tests cover common cases, but complex interactions untested (e.g., multiple raises + very high churn + yearly cohorts expiring). **Impact:** Wrong runway, bad hiring decisions. **Likelihood:** Medium – complexity is high, edge cases exist. |
+| 5 | **Missing/incorrect assumptions in forecast** | 4 | 2 | **8** | If `GlobalAssumptions` row is missing, API falls back to `DEFAULT_ASSUMPTIONS` (0 cash, 0 runway). **Impact:** Misleading forecast (shows "out of cash" when not true). **Likelihood:** High on new scenarios, but UI usually creates assumptions. |
+| 6 | **Race condition in scenario cloning** | 2 | 4 | **8** | `cloneScenarioInputs()` copies people/expenses in separate queries. If user modifies source scenario mid-clone, copy could be inconsistent. **Impact:** Wrong expense data in cloned scenario. **Likelihood:** Low – requires precise timing, but no DB-level transaction. |
+| 7 | **CSV/PDF export with sensitive data** | 3 | 3 | **9** | No tests for export functions. If export includes org members or emails, could leak PII. **Impact:** GDPR violation. **Likelihood:** Medium – export scope is not explicitly tested. |
 
 ### 5.4 Medium Risks (Priority 4-7)
 
 | Rank | Risk | Likelihood | Impact | Priority | Reasoning |
 |------|------|------------|--------|----------|-----------|
-| 11 | **Trial end date miscalculation** | 2 | 3 | **6** | `getTrialEndDate()` tested, but DB row `growthTrialEndsAt` is set once on signup. If clock skew or timezone issue, trial could end early. **Impact:** User locked out prematurely. **Likelihood:** Low – UTC timestamps used throughout. |
-| 12 | **Email verification bypass** | 2 | 3 | **6** | Middleware checks `user.email_confirmed_at`, but Supabase OAuth providers auto-confirm. An attacker with an OAuth account could skip verification. **Impact:** Spam signups. **Likelihood:** Low – OAuth providers verify emails on their side. |
-| 13 | **Unauthenticated /api/test-forecast DoS** | 3 | 2 | **6** | No auth check, no rate limit. Attacker could POST large forecasts (1000 months × 1000 people) and exhaust server CPU/memory. **Impact:** Service downtime. **Likelihood:** Medium – endpoint is public, but requires knowledge of schema. |
-| 14 | **Cascade delete of plans** | 2 | 3 | **6** | Prisma schema has `onDelete: Cascade` for User → Plans → Expenses/People. If user deletes account, all plans are deleted. No soft-delete, no recovery. **Impact:** Data loss. **Likelihood:** Low – intentional design, but no confirmation dialog tested. |
+| 8 | **Stripe webhook duplicate events** | 3 | 2 | **6** | Duplicate `checkout.session.completed` events are idempotent (upsert on userId at L100). **However:** Could trigger duplicate PostHog events (L118) and race conditions if events arrive out of order. **Impact:** Analytics pollution, potential state confusion. **Likelihood:** Medium – Stripe retries are common. **Evidence:** No event ID deduplication in webhook handler. |
+| 9 | **Trial end date miscalculation** | 2 | 3 | **6** | `getTrialEndDate()` tested, but DB row `growthTrialEndsAt` is set once on signup. If clock skew or timezone issue, trial could end early. **Impact:** User locked out prematurely. **Likelihood:** Low – UTC timestamps used throughout. |
+| 10 | **Email verification bypass** | 2 | 3 | **6** | Middleware checks `user.email_confirmed_at`, but Supabase OAuth providers auto-confirm. An attacker with an OAuth account could skip verification. **Impact:** Spam signups. **Likelihood:** Low – OAuth providers verify emails on their side. |
+| 11 | **Cascade delete of plans** | 2 | 3 | **6** | Prisma schema has `onDelete: Cascade` for User → Plans → Expenses/People. If user deletes account, all plans are deleted. No soft-delete, no recovery. **Impact:** Data loss. **Likelihood:** Low – intentional design, but no confirmation dialog tested. |
+| 12 | **Hypothetical input boundary issues** | 2 | 3 | **6** | API routes use `z.number().positive()` without explicit max (e.g., salary L16 in people route, amount L19-27 in expenses route). Postgres DECIMAL(18,2) max is 9.99e15. Calculation logic may handle large values correctly, but this is **untested**. **Impact:** If calculations fail with large numbers, wrong forecast. **Likelihood:** Low – would require intentional malicious input. **Evidence:** No boundary tests in test suite. |
 
 ### 5.5 Low Risks (Priority 1-3)
 
 | Rank | Risk | Likelihood | Impact | Priority | Reasoning |
 |------|------|------------|--------|----------|-----------|
-| 15 | **PostHog event capture failure** | 3 | 1 | **3** | PostHog calls are fire-and-forget. If PostHog is down, events are lost but app continues. **Impact:** Missing analytics, no user-facing issue. |
-| 16 | **Lint errors in scripts** | 5 | 1 | **5** | One-off scripts have unused variables, but they're not part of the production path. **Impact:** None. |
-| 17 | **useAutoSave setState in useEffect** | 4 | 1 | **4** | React hook anti-pattern, but useAutoSave is presentation-only (toast display). **Impact:** Extra re-renders, no data corruption. |
+| 13 | **Middleware missing env vars allows all** | 2 | 2 | **4** | If `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` are missing, middleware allows all requests through with a console.warn (L16-19). **Impact:** Unauthenticated access if env misconfigured. **Likelihood:** Low – deployment checks should catch this. **Evidence:** middleware.ts L16-19. |
+| 14 | **PostHog event capture failure** | 3 | 1 | **3** | PostHog calls are fire-and-forget. If PostHog is down, events are lost but app continues. **Impact:** Missing analytics, no user-facing issue. |
+| 15 | **Lint errors in scripts** | 5 | 1 | **5** | One-off scripts have unused variables, but they're not part of the production path. **Impact:** None. |
+| 16 | **useAutoSave setState in useEffect** | 4 | 1 | **4** | React hook anti-pattern, but useAutoSave is presentation-only (toast display). **Impact:** Extra re-renders, no data corruption. |
 
 ---
 
@@ -359,7 +369,8 @@ DATABASE_URL=postgresql://test:test@localhost:5433/burnlytics_test
 - [ ] Valid session but wrong userId → `/api/expenses` → 404
 - [ ] User A creates expense, User B tries to PUT `/api/expenses/[id]` → 404
 - [ ] User A creates plan, User B tries to GET `/api/forecast?planId=A` → 404
-- [ ] User A creates org, User B tries to POST `/api/organization/members` → **should 404** (test current bug)
+- [ ] User A creates org, User B (not a member) tries to GET `/api/organization` → org not in list
+- [ ] User A creates org, User B (not OWNER/ADMIN) tries to POST `/api/organization/members` → 403
 - [ ] Unverified email tries to access `/app/expenses` → 403 (middleware)
 - [ ] `/api/webhooks/stripe` with invalid signature → 400
 - [ ] `/api/webhooks/stripe` with valid signature but wrong secret → 400
@@ -371,16 +382,17 @@ DATABASE_URL=postgresql://test:test@localhost:5433/burnlytics_test
 - [ ] User with PAST_DUE subscription after 7-day grace period → 402
 - [ ] Middleware bypasses `/api/webhooks/stripe` (no session check)
 
-#### Input Validation (10 tests)
-- [ ] POST `/api/expenses` with salary = 999999999999999 → 400 (boundary check)
-- [ ] POST `/api/people` with salary = -100 → 400 (negative check)
+#### Input Validation (11 tests)
+- [ ] POST `/api/people` with salary = 999999999999999 → 200 or 500? (test Postgres DECIMAL(18,2) behavior)
+- [ ] POST `/api/people` with salary = -100 → 400 (negative rejected by z.number().positive())
 - [ ] POST `/api/expenses` with amount = "abc" → 400
 - [ ] POST `/api/expenses` with category = "invalid" → 400
 - [ ] POST `/api/scenarios` with name = "" → 400
 - [ ] POST `/api/scenarios` with name = 1000-char string → 400
 - [ ] PUT `/api/assumptions` with churnRate = 150 → 400 (% > 100)
-- [ ] PUT `/api/assumptions` with paymentTimingDays = -30 → 400
-- [ ] POST `/api/test-forecast` with months = 10000 → 400 or timeout
+- [ ] PUT `/api/assumptions` with paymentTimingDays = -30 → 400 (currently allowed)
+- [ ] POST `/api/organization/members` invite same unregistered email twice → 409 (test bug #2)
+- [ ] GET `/api/forecast` with months = 10000 in plan → timeout or error?
 - [ ] POST `/api/revenue` with startingMrr = null → 200 (default to 0)
 
 #### Data Isolation (8 tests)
@@ -388,17 +400,18 @@ DATABASE_URL=postgresql://test:test@localhost:5433/burnlytics_test
 - [ ] User A's GET `/api/scenarios?planId=A` returns only scenarios for Plan A
 - [ ] User A deletes expense, User B's forecast unchanged
 - [ ] User A clones scenario, User B cannot see it
-- [ ] Organization A's members cannot see Organization B's data (**currently fails**)
+- [ ] Organization A's members cannot see Organization B's data (verify GET filter works)
 - [ ] Plan cascade delete: User deletes account → all plans/scenarios deleted
 - [ ] Scenario cascade delete: User deletes scenario → all expenses/people deleted
 - [ ] Expense/people queries scoped to scenarioId (not just planId)
 
-#### Stripe Webhooks (7 tests)
+#### Stripe Webhooks (8 tests)
 - [ ] `checkout.session.completed` creates subscription in DB
 - [ ] `customer.subscription.updated` updates subscription status
 - [ ] `customer.subscription.deleted` marks subscription as CANCELLED
 - [ ] `invoice.payment_failed` marks subscription as PAST_DUE
 - [ ] Duplicate `checkout.session.completed` (same session ID) → idempotent (same subscription record)
+- [ ] Duplicate events do NOT trigger duplicate PostHog events (fix bug #3)
 - [ ] Out-of-order events (`subscription.deleted` arrives before `subscription.updated`) → correct final state
 - [ ] Webhook for unknown customer (no matching user in DB) → 200 (no crash)
 
@@ -633,14 +646,13 @@ export default defineConfig({
 
 ## 8. Bugs Found During Inspection
 
-### 8.1 Security Bugs
+### 8.1 Real Bugs (Confirmed)
 
 | Severity | File | Issue | Line | Fix |
 |----------|------|-------|------|-----|
-| **CRITICAL** | `app/api/organization/route.ts` | No ownership check on GET/POST/PUT/DELETE | N/A (route not fully reviewed) | Add `getScopedOrganization(orgId, userId)` helper, check `org.userId === userId` |
-| **CRITICAL** | `app/api/organization/members/route.ts` | No ownership check on GET/POST/DELETE | N/A (route not fully reviewed) | Same as above |
-| **HIGH** | `app/api/test-forecast/route.ts` | Unauthenticated endpoint (DoS risk) | N/A | Add rate limiting or require auth |
-| **HIGH** | `app/api/webhooks/stripe/route.ts` | No idempotency check on duplicate events | L88-L119 | Check `subscription.stripeSubscriptionId` before upsert, reject if already processed |
+| **HIGH** | `package.json` + all API routes | zod imported but not in dependencies | N/A | Add `"zod": "^4.1.13"` to dependencies in package.json |
+| **HIGH** | `app/api/organization/members/route.ts` | Duplicate pending invites violate unique constraint | L62 | Before creating member with userId="pending", check if a pending invite for this email already exists in this org |
+| **MEDIUM** | `app/api/webhooks/stripe/route.ts` | Duplicate webhook events trigger duplicate PostHog events | L118 | Check event ID or subscription state before calling captureServerEvent |
 
 ### 8.2 Code Quality Issues
 
@@ -650,14 +662,20 @@ export default defineConfig({
 | LOW | `scripts/migrate-programmatic.ts` | Unused `error` variables (13 warnings) | Multiple | Prefix with `_error` or remove try-catch if not needed |
 | LOW | `scripts/run-migration.ts` | Unused `dbUrl` variable | L16 | Remove |
 
-### 8.3 Potential Bugs (Not Confirmed)
+### 8.3 Hypotheses (Not Demonstrated)
 
-| Severity | File | Issue | Line | Fix |
-|----------|------|-------|------|-----|
-| MEDIUM | `lib/revenueForecast.ts` | No validation of `numMonths` (could be negative or 1e6) | L787 | Add `if (numMonths < 0 || numMonths > 1000) throw new Error()` |
-| MEDIUM | `app/api/expenses/route.ts` | No boundary check on `amount` (could be 1e18) | L20-L27 | Add `.max(1e12)` to Zod schema |
-| MEDIUM | `app/api/people/route.ts` | No boundary check on `salary` (could be 1e9) | L18 | Add `.max(1e7)` to Zod schema |
-| LOW | `lib/revenueForecast.ts` | `extractPeriodEnd()` fallback (30 days) could be wrong | L191 | Log warning if fallback is used |
+**Note:** The following were flagged in the initial review but are **not confirmed bugs** without evidence:
+
+| Claim | Status | Reasoning |
+|-------|--------|-----------|
+| "Cross-tenant data leak in org routes" | ❌ **FALSE** | GET filters by userId OR membership (L20-22), POST/DELETE verify OWNER/ADMIN role (L43-51, L124-132) |
+| "/api/test-forecast unauthenticated" | ❌ **FALSE** | Requires auth via getServerUser() at L13, returns 401 if missing |
+| "Stripe webhook creates duplicate subscriptions" | ❌ **FALSE** | Uses upsert on userId (L100), so duplicate events update same record |
+| "salary=999999999999999 accepted" | ⚠️ **UNTESTED** | Zod accepts positive numbers; Postgres DECIMAL(18,2) max is 9.99e15; calculation behavior with extreme values is untested |
+| "Auth bypass in middleware" | ⚠️ **UNTESTED** | Middleware calls supabase.auth.getUser() which refreshes tokens; edge cases (clock skew, revocation) are theoretically possible but not demonstrated |
+| "numMonths could be negative" | ⚠️ **UNTESTED** | buildForecast() does not validate numMonths parameter; negative or very large values untested |
+
+**Recommendation:** Test hypotheses in Phase 3 (API integration tests) rather than treating them as confirmed bugs.
 
 ---
 
