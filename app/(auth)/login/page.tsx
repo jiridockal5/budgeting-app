@@ -4,6 +4,11 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
+  authCallbackUrl,
+  CONFIRMATION_EMAIL_HINT,
+  isEmailNotConfirmedError,
+} from "@/lib/authEmail";
+import {
   AuthCard,
   AuthInput,
   AuthMessage,
@@ -16,6 +21,8 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
@@ -62,6 +69,8 @@ function LoginForm() {
         return;
       }
 
+      setNeedsConfirmation(false);
+
       const { data, error: signInError } =
         await supabase.auth.signInWithPassword({
           email,
@@ -73,6 +82,12 @@ function LoginForm() {
         if (signInError.message === "Failed to fetch") {
           errorMessage =
             "Unable to connect to authentication service. Please check your internet connection and try again. If the problem persists, verify your Supabase configuration.";
+        }
+
+        if (isEmailNotConfirmedError(signInError.message)) {
+          setNeedsConfirmation(true);
+          errorMessage =
+            "Email not confirmed yet. Resend the confirmation email, then try signing in again.";
         }
 
         setError(errorMessage);
@@ -108,6 +123,37 @@ function LoginForm() {
   };
 
 
+  const handleResendConfirmation = async () => {
+    if (!email.trim()) {
+      setError("Enter your email address, then resend the confirmation email.");
+      return;
+    }
+    setResending(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim(),
+        options: {
+          emailRedirectTo: authCallbackUrl("/app"),
+        },
+      });
+      if (resendError) {
+        setError(resendError.message);
+        return;
+      }
+      setMessage(
+        "Confirmation email sent. Check your inbox and spam folder, then sign in after confirming.",
+      );
+      setNeedsConfirmation(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotPasswordLoading(true);
@@ -117,15 +163,10 @@ function LoginForm() {
     try {
       // Send users to the auth callback, which exchanges the recovery code
       // for a session and forwards to the set-new-password page.
-      const redirectUrl =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback?next=/reset-password`
-          : "/auth/callback?next=/reset-password";
-
       const { error } = await supabase.auth.resetPasswordForEmail(
         forgotPasswordEmail,
         {
-          redirectTo: redirectUrl,
+          redirectTo: authCallbackUrl("/reset-password"),
         },
       );
 
@@ -274,8 +315,11 @@ function LoginForm() {
 
             {error && <AuthMessage type="error" message={error} />}
             {message && <AuthMessage type="success" message={message} />}
+            {needsConfirmation && (
+              <p className="text-sm text-neutral-600">{CONFIRMATION_EMAIL_HINT}</p>
+            )}
 
-            <div className="pt-2">
+            <div className="space-y-3 pt-2">
               <AuthButton
                 type="submit"
                 loading={loading}
@@ -283,6 +327,17 @@ function LoginForm() {
               >
                 Sign in
               </AuthButton>
+              {needsConfirmation && (
+                <AuthButton
+                  type="button"
+                  variant="secondary"
+                  loading={resending}
+                  loadingText="Sending..."
+                  onClick={handleResendConfirmation}
+                >
+                  Resend confirmation email
+                </AuthButton>
+              )}
             </div>
           </form>
         </AuthCard>
