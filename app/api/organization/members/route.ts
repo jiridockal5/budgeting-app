@@ -55,6 +55,19 @@ export async function POST(request: NextRequest) {
       where: { email: input.email },
     });
 
+    // Check if a pending invite already exists for this email in this org
+    if (!invitedUser) {
+      const existingPendingInvite = org.members.find(
+        (m) => m.userId === "pending" && m.inviteEmail === input.email
+      );
+      if (existingPendingInvite) {
+        return NextResponse.json(
+          { success: false, error: "This email has already been invited to this organization" },
+          { status: 409 }
+        );
+      }
+    }
+
     const member = await prisma.organizationMember.create({
       data: {
         organizationId: org.id,

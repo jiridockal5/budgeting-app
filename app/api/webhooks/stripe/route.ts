@@ -97,7 +97,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const sub = await getStripe().subscriptions.retrieve(subscriptionId);
   const periodEnd = extractPeriodEnd(sub);
 
-  await prisma.subscription.upsert({
+  const result = await prisma.subscription.upsert({
     where: { userId },
     create: {
       userId,
@@ -114,9 +114,14 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       cancelAtPeriodEnd: sub.cancel_at_period_end,
     },
   });
-  await captureServerEvent(userId, "subscription_activated", {
-    subscription_status: mapStatus(sub.status),
-  });
+
+  // Only capture event if this is a new subscription (not an update from retry)
+  const isNewSubscription = result.createdAt.getTime() === result.updatedAt.getTime();
+  if (isNewSubscription) {
+    await captureServerEvent(userId, "subscription_activated", {
+      subscription_status: mapStatus(sub.status),
+    });
+  }
 }
 
 async function handleSubscriptionUpdate(sub: Stripe.Subscription) {
