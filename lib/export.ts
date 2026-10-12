@@ -1,4 +1,4 @@
-import type { ForecastResult } from "./revenueForecast";
+import type { ForecastResult, FundraisingRecommendation } from "./revenueForecast";
 import { formatCompactCurrency, getActiveCurrency } from "./currency";
 
 function formatCompact(value: number): string {
@@ -100,6 +100,7 @@ export function exportForecastCSV(forecast: ForecastResult) {
     ["Burn Multiple", `${s.burnMultiple.toFixed(1)}x`],
     ["Rule of 40", `${s.ruleOf40.toFixed(1)}%`],
     ["Runway (months)", s.runwayMonths >= 999 ? "∞" : s.runwayMonths.toFixed(0)],
+    ...fundraisingSummaryRows(forecast.fundraising),
   ];
 
   const csv = [
@@ -179,6 +180,11 @@ export function exportSummaryPDF(forecast: ForecastResult) {
 <tr><td>Runway</td><td class="value ${s.runwayMonths <= 12 && s.runwayMonths < 999 ? "warn" : "highlight"}">${runway}</td></tr>
 </table>
 
+<h2>Fundraising</h2>
+<table>
+${fundraisingPdfRows(forecast.fundraising)}
+</table>
+
 <h2>Cash In (End of Period Month)</h2>
 <table>
 <tr><td>New Customer Cash In</td><td class="value">${last ? formatCompact(last.newCustomerCashIn) : "—"}</td></tr>
@@ -205,6 +211,41 @@ export function exportSummaryPDF(forecast: ForecastResult) {
       URL.revokeObjectURL(url);
     };
   }
+}
+
+function fundraisingSummaryRows(rec: FundraisingRecommendation | undefined): string[][] {
+  if (!rec) return [];
+  return [
+    [],
+    ["Fundraising recommendation"],
+    ["Status", rec.status],
+    ["Buffer breach month", rec.bufferBreachMonth ?? ""],
+    ["Recommended start month", rec.recommendedStartMonth ?? ""],
+    ["Recommended close month", rec.recommendedCloseMonth ?? ""],
+    ["Recommended net amount", rec.recommendedNetAmount.toFixed(2)],
+    ["Recommended gross amount", rec.recommendedGrossAmount.toFixed(2)],
+    ["Fundraising lead time (months)", String(rec.fundraisingLeadMonths)],
+    ["Minimum cash buffer", rec.effectiveBuffer.toFixed(2)],
+    ["Target runway (months)", rec.targetRunwayMonths == null ? "" : String(rec.targetRunwayMonths)],
+  ];
+}
+
+function fundraisingPdfRows(rec: FundraisingRecommendation | undefined): string {
+  if (!rec) return `<tr><td colspan="2">Not available</td></tr>`;
+  const rows: [string, string][] = [
+    ["Status", rec.status],
+    ["Buffer breach", rec.bufferBreachMonth ?? "—"],
+    ["Start raising", rec.recommendedStartMonth ?? "—"],
+    ["Close round", rec.recommendedCloseMonth ?? "—"],
+    ["Net amount", formatCompact(rec.recommendedNetAmount)],
+    ["Gross amount", formatCompact(rec.recommendedGrossAmount)],
+    ["Lead time", `${rec.fundraisingLeadMonths} months`],
+    ["Cash buffer", formatCompact(rec.effectiveBuffer)],
+    ["Target runway", rec.targetRunwayMonths == null ? "—" : `${rec.targetRunwayMonths} months`],
+  ];
+  return rows
+    .map(([label, value]) => `<tr><td>${label}</td><td class="value">${value}</td></tr>`)
+    .join("\n");
 }
 
 function downloadFile(content: string, filename: string, mimeType: string) {

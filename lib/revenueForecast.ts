@@ -99,6 +99,7 @@ export interface AssumptionsInput {
   fundraisingFees: number;
   minCashBuffer: number | null;
   targetRunwayMonths: number | null;
+  fundraisingLeadMonths: number;
   churnRate: number; // monthly percentage
   expansionRate: number; // monthly percentage
   paymentTimingDays: number; // average collection lag in days
@@ -228,10 +229,51 @@ export interface StartingRunRate {
   raiseBridgesUntilMonth: string | null;
 }
 
+export type FundraisingStatus =
+  | "inputs_missing"
+  | "no_raise_needed"
+  | "raise_recommended"
+  | "planned_round_sufficient"
+  | "additional_capital_needed"
+  | "planned_round_too_late";
+
+export interface PlannedRoundSnapshot {
+  month: string;
+  grossAmount: number;
+  netAmount: number;
+  /** True when the planned month is on or before the pre-raise buffer breach. */
+  landsBeforeBreach: boolean;
+}
+
+export interface FundraisingRecommendation {
+  status: FundraisingStatus;
+  /** minCashBuffer, or 0 when the buffer is unset. */
+  effectiveBuffer: number;
+  targetRunwayMonths: number | null;
+  fundraisingLeadMonths: number;
+  bufferBreachMonth: string | null;
+  /** Month to begin the process. */
+  recommendedStartMonth: string | null;
+  /** Month cash from the round needs to land. */
+  recommendedCloseMonth: string | null;
+  /** True when the process would have started before the forecast. */
+  overdue: boolean;
+  /** Additional net cash on top of any planned round already in the forecast. Unrounded except to cents. */
+  recommendedNetAmount: number;
+  /** Gross raise so net proceeds match recommendedNetAmount, rounded up to 10,000. */
+  recommendedGrossAmount: number;
+  /** Last month of the target-runway window (close + target - 1). */
+  coversThroughMonth: string | null;
+  /** True when the breach or coverage window extends past the forecast. */
+  extrapolated: boolean;
+  plannedRound: PlannedRoundSnapshot | null;
+}
+
 export interface ForecastResult {
   months: ForecastMonth[];
   summary: ForecastSummary;
   startingRunRate: StartingRunRate;
+  fundraising: FundraisingRecommendation;
 }
 
 // ============================================================================
@@ -453,6 +495,39 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/** Year 0 = 1. Null or 0 uplift = 1. Compounds on each 12-month boundary. */
+export function priceUpliftFactor(
+  monthIndex: number,
+  priceUplift: number | null
+): number {
+  if (priceUplift == null || priceUplift === 0) return 1;
+  const yearIndex = Math.floor(Math.max(0, monthIndex) / 12);
+  return Math.pow(1 + priceUplift / 100, yearIndex);
+}
+
+const RAISE_GROSS_STEP = 10_000;
+
+/**
+ * GTM cash cost for the default sales commission.
+ * Skipped when an in-force expense already uses percent of new sales bookings,
+ * so the explicit line replaces the default instead of stacking on it.
+ */
+export function salesCommissionExpense(
+  newSalesBookings: number,
+  commissionRate: number,
+  expenses: ExpenseInput,
+  date: string
+): number {
+  if (commissionRate <= 0 || newSalesBookings <= 0) return 0;
+  const modeled = expenses.nonHeadcount.some((expense) => {
+    if (date < expense.startMonth) return false;
+    if (expense.endMonth && date > expense.endMonth) return false;
+    return parseCostModel(expense.config ?? null)?.method === "percentOfNewSalesBookings";
+  });
+  if (modeled) return 0;
+  return newSalesBookings * (commissionRate / 100);
+}
+
 type BillingMixConfig = {
   avgAcv: number;
   monthlyDealShare?: number;
@@ -551,7 +626,8 @@ function advanceExistingRevenue(
   state: RevenueStreamState,
   monthIndex: number,
   churnRate: number,
-  expansionRate: number
+  expansionRate: number,
+  priceUplift: number | null = null
 ) {
   const totalCustomersBefore = totalStreamCustomers(state);
   const totalMrrBefore = totalStreamMrr(state);
@@ -576,6 +652,26 @@ function advanceExistingRevenue(
       mrr: cohort.mrr * mrrFactor,
     }))
     .filter((cohort) => cohort.customers > 0 && cohort.mrr > 0);
+
+  // Anniversary list-price step, after churn and expansion. Opening-book and
+  // monthly-billed MRR share one pool, so they step up on the forecast
+  // anniversary. Yearly cohorts step up on their own anniversary. Null or 0
+  // leaves the book unchanged.
+  if (priceUplift != null && priceUplift > 0) {
+    const step = 1 + priceUplift / 100;
+    if (monthIndex > 0 && monthIndex % 12 === 0) {
+      state.monthlyMrr *= step;
+    }
+    let yearlyMrr = 0;
+    state.yearlyCohorts = state.yearlyCohorts.map((cohort) => {
+      const ageMonths = monthIndex - cohort.startIndex;
+      const mrr =
+        ageMonths > 0 && ageMonths % 12 === 0 ? cohort.mrr * step : cohort.mrr;
+      yearlyMrr += mrr;
+      return { ...cohort, mrr };
+    });
+    state.yearlyMrr = yearlyMrr;
+  }
 
   const yearlyRenewalCash = state.yearlyCohorts.reduce((sum, cohort) => {
     const ageMonths = monthIndex - cohort.startIndex;
@@ -792,11 +888,6 @@ export function buildForecast(
 ): ForecastResult {
   const months: ForecastMonth[] = [];
 
-  // TODO: Apply minCashBuffer and targetRunwayMonths to summary recommendations
-  // (suggested raise needed, cash-out warnings).
-  // TODO: Apply priceUplift to pricing.
-  // TODO: Use commissionRate as a default for incentive-based roles when role-level logic exists.
-
   const plgPlans = getPlgPlans(revenue);
   const plgStates = plgPlans.map((plan) =>
     seedOpeningBook(plan.startingCustomers, plan.startingMrr)
@@ -839,13 +930,14 @@ export function buildForecast(
               state,
               i,
               plan.churnRate,
-              plan.expansionRate
+              plan.expansionRate,
+              assumptions.priceUplift
             );
       const planNewCustomers = Math.round(
         plan.monthlyTrials * (plan.trialConversionRate / 100)
       );
       const added = addNewRevenue(state, i, planNewCustomers, {
-        avgAcv: plan.avgAcv,
+        avgAcv: plan.avgAcv * priceUpliftFactor(i, assumptions.priceUplift),
         monthlyDealShare: plan.monthlyDealShare,
       });
       newPlgCustomers += planNewCustomers;
@@ -870,7 +962,8 @@ export function buildForecast(
             salesState,
             i,
             revenue.sales.churnRate,
-            revenue.sales.expansionRate
+            revenue.sales.expansionRate,
+            assumptions.priceUplift
           );
     const partnerExisting =
       i === 0
@@ -879,22 +972,24 @@ export function buildForecast(
             partnerState,
             i,
             assumptions.churnRate,
-            0
+            0,
+            assumptions.priceUplift
           );
 
     // ── New MRR and cash from new customers ──
     // PLG prices from ACV only; deal share only affects cash timing (monthly vs annual).
-    const newSales = addNewRevenue(
-      salesState,
-      i,
-      newSalesCustomers,
-      revenue.sales
-    );
+    const salesAcv = revenue.sales.avgAcv * priceUpliftFactor(i, assumptions.priceUplift);
+    const partnerAcv =
+      revenue.partners.avgAcv * priceUpliftFactor(i, assumptions.priceUplift);
+    const newSales = addNewRevenue(salesState, i, newSalesCustomers, {
+      ...revenue.sales,
+      avgAcv: salesAcv,
+    });
     const newPartner = addNewRevenue(
       partnerState,
       i,
       newPartnerCustomers,
-      revenue.partners,
+      { ...revenue.partners, avgAcv: partnerAcv },
       1 - revenue.partners.commissionRate / 100
     );
 
@@ -998,7 +1093,7 @@ export function buildForecast(
         sales: newSalesCustomers,
         partners: newPartnerCustomers,
       },
-      newSalesBookings: newSalesCustomers * (revenue.sales.avgAcv || 0),
+      newSalesBookings: newSalesCustomers * (salesAcv || 0),
       people: {
         totalFte,
         totalCount: totalHeadcount,
@@ -1024,6 +1119,17 @@ export function buildForecast(
       if (EXPENSE_CATEGORIES.includes(cat)) {
         nonHeadcountByCategory[cat] += monthCost;
       }
+    }
+
+    const salesCommission = salesCommissionExpense(
+      monthContext.newSalesBookings,
+      assumptions.commissionRate,
+      expenses,
+      date
+    );
+    if (salesCommission > 0) {
+      nonHeadcountExpense += salesCommission;
+      nonHeadcountByCategory.gtm += salesCommission;
     }
 
     const cosExpense = headcountByCategory.cos + nonHeadcountByCategory.cos;
@@ -1102,7 +1208,8 @@ export function buildForecast(
     expenses,
     assumptions
   );
-  return { months, summary, startingRunRate };
+  const fundraising = recommendFundraise(months, assumptions);
+  return { months, summary, startingRunRate, fundraising };
 }
 
 // ============================================================================
@@ -1154,6 +1261,229 @@ function netPlannedRaise(assumptions: AssumptionsInput): number {
   const amount = assumptions.plannedRaiseAmount;
   if (amount == null || amount <= 0) return 0;
   return amount * (1 - assumptions.fundraisingFees / 100);
+}
+
+function belowCashBuffer(cash: number, buffer: number): boolean {
+  return buffer > 0 ? cash < buffer : cash <= 0;
+}
+
+/** First month cash breaks the buffer, extrapolating with the last operating burn. */
+function findBufferBreach(
+  cashByMonth: number[],
+  buffer: number,
+  netBurn: number
+): { index: number; extrapolated: boolean } | null {
+  const idx = cashByMonth.findIndex((cash) => belowCashBuffer(cash, buffer));
+  if (idx >= 0) return { index: idx, extrapolated: false };
+  if (cashByMonth.length === 0 || netBurn <= 0) return null;
+
+  const lastIndex = cashByMonth.length - 1;
+  const lastCash = cashByMonth[lastIndex];
+  if (belowCashBuffer(lastCash, buffer)) return { index: lastIndex, extrapolated: false };
+
+  let stepsAhead: number;
+  if (buffer > 0) {
+    // Smallest k >= 1 with lastCash - netBurn * k < buffer.
+    stepsAhead = Math.floor((lastCash - buffer) / netBurn) + 1;
+  } else {
+    // Smallest k >= 1 with lastCash - netBurn * k <= 0.
+    stepsAhead = Math.max(1, Math.ceil(lastCash / netBurn - 1e-9));
+  }
+  if (!Number.isFinite(stepsAhead) || stepsAhead <= 0) return null;
+  return { index: lastIndex + stepsAhead, extrapolated: true };
+}
+
+function cashAtIndex(
+  index: number,
+  cashByMonth: number[],
+  netBurn: number
+): number {
+  if (index < cashByMonth.length) return cashByMonth[index];
+  const lastIndex = cashByMonth.length - 1;
+  return cashByMonth[lastIndex] - netBurn * (index - lastIndex);
+}
+
+function grossRaiseForNet(net: number, feePercent: number): number {
+  if (net <= 0) return 0;
+  const fee = Math.min(Math.max(feePercent, 0), 100);
+  const exact = fee >= 100 ? net : net / (1 - fee / 100);
+  return Math.ceil(exact / RAISE_GROSS_STEP) * RAISE_GROSS_STEP;
+}
+
+/**
+ * Fundraising recommendation from a finished cash path.
+ * Does not inject cash. A planned round already inside `months` stays there;
+ * the amount is only the extra net cash required on top of it.
+ */
+export function recommendFundraise(
+  months: ForecastMonth[],
+  assumptions: AssumptionsInput
+): FundraisingRecommendation {
+  const lead = Math.max(0, assumptions.fundraisingLeadMonths ?? 6);
+  const bufferMissing = assumptions.minCashBuffer == null;
+  const targetMissing = assumptions.targetRunwayMonths == null;
+  const effectiveBuffer = assumptions.minCashBuffer ?? 0;
+  const target = assumptions.targetRunwayMonths;
+
+  const base = (
+    status: FundraisingStatus,
+    extra?: Partial<FundraisingRecommendation>
+  ): FundraisingRecommendation => ({
+    status,
+    effectiveBuffer,
+    targetRunwayMonths: target,
+    fundraisingLeadMonths: lead,
+    bufferBreachMonth: null,
+    recommendedStartMonth: null,
+    recommendedCloseMonth: null,
+    overdue: false,
+    recommendedNetAmount: 0,
+    recommendedGrossAmount: 0,
+    coversThroughMonth: null,
+    extrapolated: false,
+    plannedRound: null,
+    ...extra,
+  });
+
+  if (months.length === 0 || (bufferMissing && targetMissing)) {
+    return base("inputs_missing");
+  }
+
+  const modeled = months.map((month) => month.cashRemaining);
+  let raisedSoFar = 0;
+  const preRaise = months.map((month) => {
+    raisedSoFar += month.fundraisingCashIn;
+    return month.cashRemaining - raisedSoFar;
+  });
+  const lastNetBurn = months[months.length - 1].netBurn;
+  const startMonth = months[0].date;
+  const breach = findBufferBreach(modeled, effectiveBuffer, lastNetBurn);
+  const preBreach = findBufferBreach(preRaise, effectiveBuffer, lastNetBurn);
+
+  const plannedNet = netPlannedRaise(assumptions);
+  const plannedMonth = assumptions.plannedRaiseMonth;
+  const plannedGross = assumptions.plannedRaiseAmount;
+  const plannedRound: PlannedRoundSnapshot | null =
+    plannedMonth && plannedGross != null && plannedGross > 0 && plannedNet > 0
+      ? {
+          month: plannedMonth,
+          grossAmount: plannedGross,
+          netAmount: round2(plannedNet),
+          landsBeforeBreach:
+            preBreach == null || monthDiff(startMonth, plannedMonth) <= preBreach.index,
+        }
+      : null;
+
+  const timingFor = (closeIndex: number, breachIndex: number) => {
+    const startIndex = closeIndex - lead;
+    const overdue = startIndex < 0;
+    const windowPastHorizon =
+      target != null && target > 0 && closeIndex + target - 1 >= months.length;
+    return {
+      bufferBreachMonth: addMonths(startMonth, breachIndex),
+      recommendedCloseMonth: addMonths(startMonth, closeIndex),
+      recommendedStartMonth: overdue ? startMonth : addMonths(startMonth, startIndex),
+      overdue,
+      extrapolated: (breach != null && breach.extrapolated) || windowPastHorizon,
+    };
+  };
+
+  const sized = (closeIndex: number) => {
+    if (target == null || target <= 0) {
+      return {
+        recommendedNetAmount: 0,
+        recommendedGrossAmount: 0,
+        coversThroughMonth: null as string | null,
+        windowExtrapolated: false,
+      };
+    }
+    let minCash = Infinity;
+    let windowExtrapolated = false;
+    const end = closeIndex + target - 1;
+    for (let t = closeIndex; t <= end; t++) {
+      if (t >= months.length) windowExtrapolated = true;
+      minCash = Math.min(minCash, cashAtIndex(t, modeled, lastNetBurn));
+    }
+    const net = Math.max(0, round2(effectiveBuffer - minCash));
+    return {
+      recommendedNetAmount: net,
+      recommendedGrossAmount: grossRaiseForNet(net, assumptions.fundraisingFees),
+      coversThroughMonth: addMonths(startMonth, end),
+      windowExtrapolated,
+    };
+  };
+
+  // Buffer is set but there is no target length to size a round against.
+  if (targetMissing && !bufferMissing) {
+    if (!breach) {
+      if (plannedRound && preBreach) {
+        return base("planned_round_sufficient", {
+          plannedRound,
+          recommendedCloseMonth: plannedRound.month,
+        });
+      }
+      return base("no_raise_needed", { plannedRound });
+    }
+    return base("raise_recommended", {
+      ...timingFor(breach.index, breach.index),
+      plannedRound,
+      recommendedNetAmount: 0,
+      recommendedGrossAmount: 0,
+    });
+  }
+
+  if (target == null) return base("inputs_missing");
+
+  if (!breach && !preBreach) {
+    return base("no_raise_needed", { plannedRound });
+  }
+
+  if (plannedRound && preBreach && plannedRound.landsBeforeBreach) {
+    const plannedIndex = Math.max(0, monthDiff(startMonth, plannedRound.month));
+    let minCash = Infinity;
+    let windowExtrapolated = false;
+    const end = plannedIndex + target - 1;
+    for (let t = plannedIndex; t <= end; t++) {
+      if (t >= months.length) windowExtrapolated = true;
+      minCash = Math.min(minCash, cashAtIndex(t, modeled, lastNetBurn));
+    }
+    const windowHolds = !belowCashBuffer(minCash, effectiveBuffer);
+    if (windowHolds) {
+      return base("planned_round_sufficient", {
+        plannedRound,
+        recommendedCloseMonth: plannedRound.month,
+        recommendedStartMonth:
+          plannedIndex - lead < 0
+            ? startMonth
+            : addMonths(startMonth, plannedIndex - lead),
+        overdue: plannedIndex - lead < 0,
+        coversThroughMonth: addMonths(startMonth, end),
+        extrapolated: windowExtrapolated,
+      });
+    }
+  }
+
+  if (!breach) {
+    return base("no_raise_needed", { plannedRound });
+  }
+
+  const amount = sized(breach.index);
+  const timing = timingFor(breach.index, breach.index);
+  const status: FundraisingStatus =
+    plannedRound && preBreach && !plannedRound.landsBeforeBreach
+      ? "planned_round_too_late"
+      : plannedRound
+        ? "additional_capital_needed"
+        : "raise_recommended";
+
+  return base(status, {
+    ...timing,
+    extrapolated: timing.extrapolated || amount.windowExtrapolated,
+    plannedRound,
+    recommendedNetAmount: amount.recommendedNetAmount,
+    recommendedGrossAmount: amount.recommendedGrossAmount,
+    coversThroughMonth: amount.coversThroughMonth,
+  });
 }
 
 /**

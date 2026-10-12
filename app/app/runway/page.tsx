@@ -5,8 +5,9 @@ import Link from "next/link";
 import { ArrowRight, Banknote, AlertTriangle, TrendingDown } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StartingRunRateStrip } from "@/components/dashboard/StartingRunRateStrip";
+import { FundraisingRecommendationCard } from "@/components/dashboard/FundraisingRecommendationCard";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
-import { formatCurrency } from "@/lib/assumptions";
+import { formatCurrency, formatMonth } from "@/lib/assumptions";
 import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
 import { exportForecastCSV } from "@/lib/export";
 import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
@@ -204,9 +205,20 @@ export default function RunwayPage() {
                   {raiseArrivesTooLate && raiseMonth ? (
                     <>
                       <span className="font-semibold">Raise is too late.</span>{" "}
-                      Move the {formatCurrency(raiseMonth.fundraisingCashIn)}{" "}
-                      raise to {runoutDate ?? "the start month"} or cut burn so
-                      cash lasts until funding lands.
+                      {forecast?.fundraising?.status === "planned_round_too_late" &&
+                      forecast.fundraising.recommendedCloseMonth ? (
+                        <>
+                          Close by {formatMonth(forecast.fundraising.recommendedCloseMonth)}{" "}
+                          instead. The recommendation below sizes the bridge on top of
+                          the planned round.
+                        </>
+                      ) : (
+                        <>
+                          Move the {formatCurrency(raiseMonth.fundraisingCashIn)}{" "}
+                          raise to {runoutDate ?? "the start month"} or cut burn so
+                          cash lasts until funding lands.
+                        </>
+                      )}
                     </>
                   ) : (
                     <>
@@ -218,6 +230,10 @@ export default function RunwayPage() {
               </div>
             )}
           </div>
+
+          {forecast?.fundraising && (
+            <FundraisingRecommendationCard recommendation={forecast.fundraising} />
+          )}
 
           {/* Runway progress bar */}
           {!isInfinite && (

@@ -16,6 +16,7 @@ const assumptionsInputSchema = z.object({
   fundraisingFees: z.number().min(0).max(100),
   minCashBuffer: z.number().min(0).nullable().optional(),
   targetRunwayMonths: z.number().int().min(0).nullable().optional(),
+  fundraisingLeadMonths: z.number().int().min(0).max(36).default(6),
   churnRate: z.number().min(0).max(100),
   expansionRate: z.number().min(0).max(100),
   paymentTimingDays: z.number().int().min(0),
@@ -57,6 +58,7 @@ const serializeAssumptions = (assumptions: DbGlobalAssumptions) => ({
     assumptions.targetRunwayMonths == null
       ? null
       : Number(assumptions.targetRunwayMonths),
+  fundraisingLeadMonths: Number(assumptions.fundraisingLeadMonths ?? 6),
   churnRate: assumptions.churnRate instanceof Prisma.Decimal
     ? assumptions.churnRate.toNumber()
     : Number(assumptions.churnRate),
@@ -187,6 +189,7 @@ export async function POST(request: NextRequest) {
         fundraisingFees: input.fundraisingFees,
         minCashBuffer: input.minCashBuffer ?? null,
         targetRunwayMonths: input.targetRunwayMonths ?? null,
+        fundraisingLeadMonths: input.fundraisingLeadMonths,
         churnRate: input.churnRate,
         expansionRate: input.expansionRate,
         paymentTimingDays: input.paymentTimingDays,
@@ -206,6 +209,7 @@ export async function POST(request: NextRequest) {
         minCashBuffer: input.minCashBuffer === undefined ? undefined : input.minCashBuffer,
         targetRunwayMonths:
           input.targetRunwayMonths === undefined ? undefined : input.targetRunwayMonths,
+        fundraisingLeadMonths: input.fundraisingLeadMonths,
         churnRate: input.churnRate,
         expansionRate: input.expansionRate,
         paymentTimingDays: input.paymentTimingDays,

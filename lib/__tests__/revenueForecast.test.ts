@@ -46,13 +46,14 @@ const SAMPLE_ASSUMPTIONS: AssumptionsInput = {
   fundraisingFees: 0,
   minCashBuffer: 100000,
   targetRunwayMonths: 18,
+  fundraisingLeadMonths: 6,
   churnRate: 3,
   expansionRate: 5,
   paymentTimingDays: 30,
   priceUplift: null,
   salaryTaxRate: 35,
   salaryGrowthRate: 5,
-  commissionRate: 10,
+  commissionRate: 0,
   inflationRate: 2,
   baseAcv: 12000,
 };
@@ -1383,5 +1384,442 @@ describe("multiple PLG self-service plans", () => {
     expect(result.months[0].newPlgCustomers).toBe(14);
     expect(result.months[0].newSalesCustomers).toBe(5);
     expect(result.months[0].nonHeadcountExpense).toBeCloseTo(2400, 2);
+  });
+});
+
+const quietStreams = {
+  plg: {
+    monthlyTrials: 0,
+    trialConversionRate: 0,
+    avgAcv: 0,
+    churnRate: 0,
+    expansionRate: 0,
+  },
+  sales: {
+    monthlySqls: 0,
+    closeRate: 0,
+    avgAcv: 0,
+    churnRate: 0,
+    expansionRate: 0,
+  },
+  partners: { monthlyReferrals: 0, closeRate: 0, avgAcv: 0, commissionRate: 0 },
+} satisfies RevenueConfig;
+
+function quietAssumptions(overrides: Partial<AssumptionsInput> = {}): AssumptionsInput {
+  return {
+    ...defaultAssumptions,
+    cashOnHand: 100000,
+    plannedRaiseMonth: null,
+    plannedRaiseAmount: null,
+    fundraisingFees: 0,
+    minCashBuffer: 30000,
+    targetRunwayMonths: 6,
+    fundraisingLeadMonths: 6,
+    churnRate: 0,
+    expansionRate: 0,
+    paymentTimingDays: 0,
+    priceUplift: null,
+    salaryTaxRate: 0,
+    salaryGrowthRate: 0,
+    commissionRate: 0,
+    inflationRate: 0,
+    ...overrides,
+  };
+}
+
+function monthlyBurn(amount: number): ExpenseInput {
+  return {
+    headcount: [],
+    nonHeadcount: [
+      {
+        name: "Burn",
+        category: "ops",
+        amount,
+        frequency: "monthly",
+        startMonth: "2025-01",
+      },
+    ],
+  };
+}
+
+describe("priceUplift", () => {
+  it("treats null and zero as no price change", () => {
+    const revenue: RevenueConfig = {
+      ...quietStreams,
+      sales: { ...quietStreams.sales, monthlySqls: 10, closeRate: 100, avgAcv: 12000 },
+    };
+    const untouched = buildForecast(13, "2025-01", revenue, emptyExpenses, quietAssumptions());
+    const zero = buildForecast(
+      13,
+      "2025-01",
+      revenue,
+      emptyExpenses,
+      quietAssumptions({ priceUplift: 0 })
+    );
+    expect(untouched.months[12].newMrr).toBeCloseTo(zero.months[12].newMrr, 2);
+    expect(untouched.months[12].totalMrr).toBeCloseTo(zero.months[12].totalMrr, 2);
+  });
+
+  it("steps new-logo ACV at each forecast year", () => {
+    const revenue: RevenueConfig = {
+      ...quietStreams,
+      sales: { ...quietStreams.sales, monthlySqls: 10, closeRate: 100, avgAcv: 12000 },
+    };
+    const result = buildForecast(
+      25,
+      "2025-01",
+      revenue,
+      emptyExpenses,
+      quietAssumptions({ priceUplift: 10 })
+    );
+    expect(result.months[0].newMrr).toBeCloseTo(10000, 2);
+    expect(result.months[12].newMrr).toBeCloseTo(11000, 2);
+    expect(result.months[24].newMrr).toBeCloseTo(12100, 2);
+  });
+
+  it("reprices the opening book on each anniversary", () => {
+    const revenue: RevenueConfig = {
+      ...quietStreams,
+      plg: {
+        ...quietStreams.plg,
+        startingCustomers: 10,
+        startingMrr: 12000,
+      },
+    };
+    const result = buildForecast(
+      13,
+      "2025-01",
+      revenue,
+      emptyExpenses,
+      quietAssumptions({ priceUplift: 10 })
+    );
+    expect(result.months[0].totalMrr).toBeCloseTo(12000, 2);
+    expect(result.months[11].totalMrr).toBeCloseTo(12000, 2);
+    expect(result.months[12].totalMrr).toBeCloseTo(13200, 2);
+  });
+
+  it("collects yearly renewal cash from the repriced cohort", () => {
+    const revenue: RevenueConfig = {
+      ...quietStreams,
+      sales: {
+        ...quietStreams.sales,
+        monthlySqls: 1,
+        closeRate: 100,
+        avgAcv: 12000,
+      },
+    };
+    const result = buildForecast(
+      13,
+      "2025-01",
+      revenue,
+      emptyExpenses,
+      quietAssumptions({ priceUplift: 10 })
+    );
+    expect(result.months[12].existingCustomerCashIn).toBeCloseTo(13200, 2);
+  });
+
+  it("takes partner commission on the uplifted ACV", () => {
+    const revenue: RevenueConfig = {
+      ...quietStreams,
+      partners: {
+        monthlyReferrals: 1,
+        closeRate: 100,
+        avgAcv: 12000,
+        monthlyDealShare: 100,
+        commissionRate: 20,
+      },
+    };
+    const result = buildForecast(
+      13,
+      "2025-01",
+      revenue,
+      emptyExpenses,
+      quietAssumptions({ priceUplift: 10 })
+    );
+    expect(result.months[0].newMrr).toBeCloseTo(800, 2);
+    expect(result.months[12].newMrr).toBeCloseTo(880, 2);
+  });
+});
+
+describe("default sales commission", () => {
+  const salesRevenue: RevenueConfig = {
+    ...quietStreams,
+    sales: { ...quietStreams.sales, monthlySqls: 2, closeRate: 100, avgAcv: 12000 },
+  };
+
+  it("books the rate against new sales ACV without reducing sales MRR", () => {
+    const result = buildForecast(
+      1,
+      "2025-01",
+      salesRevenue,
+      emptyExpenses,
+      quietAssumptions({ commissionRate: 10 })
+    );
+    expect(result.months[0].salesMrr).toBeCloseTo(2000, 2);
+    expect(result.months[0].gtmExpense).toBeCloseTo(2400, 2);
+  });
+
+  it("keeps partner commission as the stream override", () => {
+    const revenue: RevenueConfig = {
+      ...quietStreams,
+      partners: {
+        monthlyReferrals: 10,
+        closeRate: 100,
+        avgAcv: 1200,
+        commissionRate: 5,
+      },
+    };
+    const result = buildForecast(
+      1,
+      "2025-01",
+      revenue,
+      emptyExpenses,
+      quietAssumptions({ commissionRate: 20 })
+    );
+    expect(result.months[0].partnerMrr).toBeCloseTo(950, 2);
+    expect(result.months[0].gtmExpense).toBeCloseTo(0, 2);
+  });
+
+  it("does not copy the global rate onto a zero partner commission", () => {
+    const revenue: RevenueConfig = {
+      ...quietStreams,
+      partners: {
+        monthlyReferrals: 10,
+        closeRate: 100,
+        avgAcv: 1200,
+        commissionRate: 0,
+      },
+    };
+    const result = buildForecast(
+      1,
+      "2025-01",
+      revenue,
+      emptyExpenses,
+      quietAssumptions({ commissionRate: 10 })
+    );
+    expect(result.months[0].partnerMrr).toBeCloseTo(1000, 2);
+    expect(result.months[0].gtmExpense).toBeCloseTo(0, 2);
+  });
+
+  it("skips the automatic cost when a bookings expense line is active", () => {
+    const result = buildForecast(
+      1,
+      "2025-01",
+      salesRevenue,
+      {
+        headcount: [],
+        nonHeadcount: [
+          {
+            name: "Sales commissions",
+            category: "gtm",
+            amount: 0,
+            frequency: "monthly",
+            startMonth: "2025-01",
+            config: { method: "percentOfNewSalesBookings", percent: 10 },
+          },
+        ],
+      },
+      quietAssumptions({ commissionRate: 10 })
+    );
+    expect(result.months[0].gtmExpense).toBeCloseTo(2400, 2);
+  });
+
+  it("uses uplifted ACV as the bookings base", () => {
+    const result = buildForecast(
+      13,
+      "2025-01",
+      {
+        ...quietStreams,
+        sales: { ...quietStreams.sales, monthlySqls: 1, closeRate: 100, avgAcv: 12000 },
+      },
+      emptyExpenses,
+      quietAssumptions({ commissionRate: 10, priceUplift: 10 })
+    );
+    expect(result.months[12].gtmExpense).toBeCloseTo(1320, 2);
+  });
+});
+
+describe("fundraising recommendation", () => {
+  it("names the month cash crosses the buffer and sizes a flat-burn round", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions()
+    );
+    const rec = result.fundraising;
+    expect(rec.status).toBe("raise_recommended");
+    expect(rec.bufferBreachMonth).toBe("2025-04");
+    expect(rec.recommendedCloseMonth).toBe("2025-04");
+    expect(rec.recommendedStartMonth).toBe("2025-01");
+    expect(rec.overdue).toBe(true);
+    expect(rec.recommendedNetAmount).toBeCloseTo(110000, 2);
+    expect(rec.recommendedGrossAmount).toBe(110000);
+    expect(result.months[3].cashRemaining).toBeGreaterThan(0);
+    expect(result.months[3].cashRemaining).toBeLessThan(30000);
+  });
+
+  it("rounds gross proceeds up to 10,000 after fees and keeps net unrounded", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({ fundraisingFees: 10 })
+    );
+    expect(result.fundraising.recommendedNetAmount).toBeCloseTo(110000, 2);
+    expect(result.fundraising.recommendedGrossAmount).toBe(130000);
+  });
+
+  it("starts the process one lead time before a later breach", () => {
+    const result = buildForecast(
+      18,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({ cashOnHand: 200000 })
+    );
+    expect(result.fundraising.bufferBreachMonth).toBe("2025-09");
+    expect(result.fundraising.recommendedCloseMonth).toBe("2025-09");
+    expect(result.fundraising.recommendedStartMonth).toBe("2025-03");
+    expect(result.fundraising.overdue).toBe(false);
+  });
+
+  it("times a buffer without a target and leaves the amount at zero", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({ targetRunwayMonths: null })
+    );
+    expect(result.fundraising.status).toBe("raise_recommended");
+    expect(result.fundraising.bufferBreachMonth).toBe("2025-04");
+    expect(result.fundraising.recommendedNetAmount).toBe(0);
+    expect(result.fundraising.recommendedGrossAmount).toBe(0);
+  });
+
+  it("times a missing buffer off a zero floor and shows the amount", () => {
+    const result = buildForecast(
+      8,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({ minCashBuffer: null, cashOnHand: 50000, targetRunwayMonths: 3 })
+    );
+    expect(result.fundraising.status).toBe("raise_recommended");
+    expect(result.fundraising.effectiveBuffer).toBe(0);
+    expect(result.fundraising.bufferBreachMonth).toBe("2025-03");
+    expect(result.fundraising.recommendedNetAmount).toBeCloseTo(50000, 2);
+    expect(result.fundraising.recommendedGrossAmount).toBe(50000);
+  });
+
+  it("stays quiet when both fundraising inputs are unset", () => {
+    const result = buildForecast(
+      6,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({ minCashBuffer: null, targetRunwayMonths: null, cashOnHand: 10000 })
+    );
+    expect(result.fundraising.status).toBe("inputs_missing");
+    expect(result.fundraising.bufferBreachMonth).toBeNull();
+    expect(result.fundraising.recommendedCloseMonth).toBeNull();
+    expect(result.fundraising.recommendedNetAmount).toBe(0);
+    expect(result.fundraising.recommendedGrossAmount).toBe(0);
+  });
+
+  it("does not recommend a raise when the company is not burning", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      emptyExpenses,
+      quietAssumptions({ cashOnHand: 100000, minCashBuffer: 10000, targetRunwayMonths: 18 })
+    );
+    expect(result.fundraising.status).toBe("no_raise_needed");
+    expect(result.fundraising.bufferBreachMonth).toBeNull();
+    expect(result.fundraising.recommendedGrossAmount).toBe(0);
+  });
+
+  it("treats an on-time planned round that covers the window as sufficient", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({
+        cashOnHand: 50000,
+        minCashBuffer: 10000,
+        targetRunwayMonths: 3,
+        plannedRaiseMonth: "2025-02",
+        plannedRaiseAmount: 100000,
+      })
+    );
+    expect(result.fundraising.status).toBe("planned_round_sufficient");
+    expect(result.fundraising.recommendedGrossAmount).toBe(0);
+    expect(result.fundraising.recommendedCloseMonth).toBe("2025-02");
+    expect(result.fundraising.plannedRound?.landsBeforeBreach).toBe(true);
+  });
+
+  it("sizes only the bridge when a planned round lands after the breach", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({
+        cashOnHand: 50000,
+        minCashBuffer: 10000,
+        targetRunwayMonths: 6,
+        plannedRaiseMonth: "2025-06",
+        plannedRaiseAmount: 200000,
+      })
+    );
+    expect(result.fundraising.status).toBe("planned_round_too_late");
+    expect(result.fundraising.bufferBreachMonth).toBe("2025-03");
+    expect(result.fundraising.recommendedCloseMonth).toBe("2025-03");
+    expect(result.fundraising.recommendedNetAmount).toBeCloseTo(60000, 2);
+    expect(result.fundraising.plannedRound?.landsBeforeBreach).toBe(false);
+    expect(result.months.find((month) => month.fundraisingCashIn > 0)?.date).toBe("2025-06");
+  });
+
+  it("asks for more capital when an on-time round is too small", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({
+        cashOnHand: 50000,
+        minCashBuffer: 10000,
+        targetRunwayMonths: 3,
+        plannedRaiseMonth: "2025-02",
+        plannedRaiseAmount: 15000,
+      })
+    );
+    expect(result.fundraising.status).toBe("additional_capital_needed");
+    expect(result.fundraising.bufferBreachMonth).toBe("2025-03");
+    expect(result.fundraising.recommendedNetAmount).toBeCloseTo(45000, 2);
+    expect(result.fundraising.plannedRound?.landsBeforeBreach).toBe(true);
+  });
+
+  it("extrapolates a breach past the forecast horizon", () => {
+    const result = buildForecast(
+      3,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(10000),
+      quietAssumptions({
+        cashOnHand: 100000,
+        minCashBuffer: 20000,
+        targetRunwayMonths: 4,
+      })
+    );
+    expect(result.fundraising.extrapolated).toBe(true);
+    expect(result.fundraising.bufferBreachMonth).toBe("2025-09");
+    expect(result.fundraising.recommendedStartMonth).toBe("2025-03");
+    expect(result.fundraising.recommendedNetAmount).toBeCloseTo(40000, 2);
   });
 });

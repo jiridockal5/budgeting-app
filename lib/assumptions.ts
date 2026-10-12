@@ -20,6 +20,8 @@ export interface CashFundraisingAssumptions {
   minCashBuffer: number | null;
   /** Target runway threshold in months */
   targetRunwayMonths: number | null;
+  /** Months before the buffer breach to start a fundraising process */
+  fundraisingLeadMonths: number;
 }
 
 export interface RevenueDefaultAssumptions {
@@ -67,6 +69,7 @@ export const DEFAULT_ASSUMPTIONS: GlobalAssumptions = {
   fundraisingFees: 0,
   minCashBuffer: null,
   targetRunwayMonths: null,
+  fundraisingLeadMonths: 6,
   churnRate: 0,
   expansionRate: 0,
   paymentTimingDays: 0,
@@ -93,19 +96,22 @@ export const ASSUMPTION_HELPERS: Record<keyof GlobalAssumptions, string> = {
     "Safety threshold used to evaluate whether the company remains sufficiently funded.",
   targetRunwayMonths:
     "Desired number of months the company should remain funded.",
+  fundraisingLeadMonths:
+    "Months before cash hits the buffer to start a raise. Default is 6.",
   churnRate:
     "Baseline monthly customer or revenue churn used unless overridden elsewhere.",
   expansionRate:
     "Default monthly expansion on surviving revenue, used in forecast retention metrics.",
   paymentTimingDays:
     "Average delay between invoicing and cash collection.",
-  priceUplift: "Optional default annual increase in pricing.",
+  priceUplift:
+    "Annual list-price increase. New contracts step up each forecast year, and existing customers are repriced on each anniversary.",
   salaryTaxRate:
     "Employer contributions and taxes added on top of gross salary.",
   salaryGrowthRate:
     "Default yearly compensation growth used in payroll forecasting.",
   commissionRate:
-    "Default variable compensation assumption for sales or incentive-based roles.",
+    "Percent of new sales ACV booked as a GTM cost. A bookings-based expense line replaces this rate.",
   inflationRate:
     "Default annual inflation applied to operating expenses unless overridden elsewhere.",
   baseAcv: "Legacy fallback annual contract value for forecast summary metrics.",
@@ -158,6 +164,8 @@ export function normalizeAssumptions(
     minCashBuffer: value?.minCashBuffer ?? DEFAULT_ASSUMPTIONS.minCashBuffer,
     targetRunwayMonths:
       value?.targetRunwayMonths ?? DEFAULT_ASSUMPTIONS.targetRunwayMonths,
+    fundraisingLeadMonths:
+      value?.fundraisingLeadMonths ?? DEFAULT_ASSUMPTIONS.fundraisingLeadMonths,
     priceUplift: value?.priceUplift ?? DEFAULT_ASSUMPTIONS.priceUplift,
   };
 }

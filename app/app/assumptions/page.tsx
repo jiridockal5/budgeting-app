@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import {
   ArrowRight,
   CalendarRange,
@@ -36,7 +36,12 @@ import {
   setActiveCurrency,
   type CurrencyCode,
 } from "@/lib/currency";
-import { dateToMonth, type ForecastSummary } from "@/lib/revenueForecast";
+import { FundraisingRecommendationCard } from "@/components/dashboard/FundraisingRecommendationCard";
+import {
+  dateToMonth,
+  type ForecastSummary,
+  type FundraisingRecommendation,
+} from "@/lib/revenueForecast";
 import { parseApiError } from "@/lib/apiErrorUtils";
 import { useAutoSave, useAutoSaveLabel } from "@/lib/useAutoSave";
 import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
@@ -45,7 +50,9 @@ type NumericField =
   | "cashOnHand"
   | "plannedRaiseAmount"
   | "fundraisingFees"
+  | "minCashBuffer"
   | "targetRunwayMonths"
+  | "fundraisingLeadMonths"
   | "churnRate"
   | "paymentTimingDays"
   | "priceUplift"
@@ -57,7 +64,7 @@ type NumericField =
 interface DerivedOutputs {
   runwayMonths: number;
   cashOutMonth: string | null;
-  suggestedRaise: number | null;
+  fundraising: FundraisingRecommendation | null;
 }
 
 export default function AssumptionsPage() {
@@ -223,10 +230,7 @@ export default function AssumptionsPage() {
     if (combinedError) toast(combinedError, "error");
   }, [combinedError, toast]);
 
-  const assumptionsRef = useRef(assumptions);
-  assumptionsRef.current = assumptions;
-
-  // ── Derived outputs (runway, cash-out, suggested raise) ──
+  // ── Derived outputs (runway, cash-out, fundraising recommendation) ──
   // Recomputed on load and after every saved change so the sidebar reflects
   // the numbers a founder is actually tuning for.
   useEffect(() => {
@@ -244,18 +248,12 @@ export default function AssumptionsPage() {
         const summary = data.data.summary as ForecastSummary;
         const months = data.data.months as { date: string; cashRemaining: number }[];
         const zeroMonth = months.find((m) => m.cashRemaining <= 0);
-
-        const target = assumptionsRef.current.targetRunwayMonths;
-        const burn = summary.monthlyBurn;
-        const suggestedRaise =
-          target != null && summary.runwayMonths < target && burn > 0
-            ? Math.ceil(((target - summary.runwayMonths) * burn) / 10000) * 10000
-            : null;
+        const fundraising = (data.data.fundraising ?? null) as FundraisingRecommendation | null;
 
         setDerived({
           runwayMonths: summary.runwayMonths,
           cashOutMonth: zeroMonth?.date ?? null,
-          suggestedRaise,
+          fundraising,
         });
       } catch {
         // Non-critical sidebar data; leave previous values in place.
@@ -465,6 +463,19 @@ export default function AssumptionsPage() {
                       type="number"
                     />
                     <InputField
+                      label="Minimum cash buffer"
+                      value={assumptions.minCashBuffer}
+                      onChange={(value) =>
+                        updateNumericField("minCashBuffer", value, {
+                          nullable: true,
+                        })
+                      }
+                      helper={ASSUMPTION_HELPERS.minCashBuffer}
+                      prefix={currencySymbol(planSettings.currency)}
+                      type="number"
+                      optional
+                    />
+                    <InputField
                       label="Target runway"
                       value={assumptions.targetRunwayMonths}
                       onChange={(value) =>
@@ -476,6 +487,20 @@ export default function AssumptionsPage() {
                       suffix="mo"
                       type="number"
                       optional
+                    />
+                    <InputField
+                      label="Fundraising lead time"
+                      value={assumptions.fundraisingLeadMonths}
+                      onChange={(value) => {
+                        const parsed = Number.parseInt(value, 10);
+                        setAssumptions((prev) => ({
+                          ...prev,
+                          fundraisingLeadMonths: Number.isFinite(parsed) ? parsed : 0,
+                        }));
+                      }}
+                      helper={ASSUMPTION_HELPERS.fundraisingLeadMonths}
+                      suffix="mo"
+                      type="number"
                     />
                   </div>
                 </SectionCard>
@@ -551,16 +576,23 @@ export default function AssumptionsPage() {
                       suffix="%"
                       type="number"
                     />
-                    <InputField
-                      label="Commission / bonus"
-                      value={assumptions.commissionRate}
-                      onChange={(value) =>
-                        updateNumericField("commissionRate", value)
-                      }
-                      helper={ASSUMPTION_HELPERS.commissionRate}
-                      suffix="%"
-                      type="number"
-                    />
+                    <div className="space-y-2">
+                      <InputField
+                        label="Commission / bonus"
+                        value={assumptions.commissionRate}
+                        onChange={(value) =>
+                          updateNumericField("commissionRate", value)
+                        }
+                        helper={ASSUMPTION_HELPERS.commissionRate}
+                        suffix="%"
+                        type="number"
+                      />
+                      <p className="text-xs leading-relaxed text-neutral-500">
+                        Applied only to new sales ACV. In any month where an
+                        expense uses percent of new sales bookings, that line
+                        replaces this rate so the two do not stack.
+                      </p>
+                    </div>
                   </div>
                 </SectionCard>
 
@@ -679,17 +711,18 @@ export default function AssumptionsPage() {
                       }
                       detail="Estimated month when cash reaches zero."
                     />
-                    <DecisionPoint
-                      title="Suggested raise needed"
-                      value={
-                        derived == null
-                          ? "—"
-                          : derived.suggestedRaise != null
-                            ? formatCurrency(derived.suggestedRaise)
-                            : "On target"
-                      }
-                      detail="Estimated funding required to hit your target runway."
-                    />
+                    {derived?.fundraising ? (
+                      <FundraisingRecommendationCard
+                        recommendation={derived.fundraising}
+                        variant="sidebar"
+                      />
+                    ) : (
+                      <DecisionPoint
+                        title="Fundraising recommendation"
+                        value="—"
+                        detail="Save assumptions to calculate when and how much to raise."
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -731,8 +764,16 @@ export default function AssumptionsPage() {
                         value={formatPercentage(assumptions.fundraisingFees)}
                       />
                       <SummaryRow
+                        label="Minimum cash buffer"
+                        value={formatOptionalCurrency(assumptions.minCashBuffer)}
+                      />
+                      <SummaryRow
                         label="Target runway"
                         value={formatOptionalMonths(assumptions.targetRunwayMonths)}
+                      />
+                      <SummaryRow
+                        label="Fundraising lead time"
+                        value={`${assumptions.fundraisingLeadMonths} months`}
                       />
                     </SummaryGroup>
 

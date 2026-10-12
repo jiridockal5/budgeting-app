@@ -151,7 +151,7 @@ export function CostAssumptionsSnapshot({
           <SnapshotMetric
             label="Commission / Bonus"
             value={formatPercentage(assumptions.commissionRate)}
-            helper="Default variable compensation"
+            helper="Percent of new sales ACV. A bookings-based expense line replaces this rate."
           />
           <SnapshotMetric
             label="Opex Inflation"

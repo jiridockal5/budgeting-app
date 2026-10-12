@@ -11,6 +11,7 @@ import { WaterfallChart } from "@/components/dashboard/WaterfallChart";
 import { StackedExpenseChart } from "@/components/dashboard/StackedExpenseChart";
 import { OnboardingChecklist, type OnboardingStatus } from "@/components/dashboard/OnboardingChecklist";
 import { StartingRunRateStrip } from "@/components/dashboard/StartingRunRateStrip";
+import { FundraisingRecommendationCard } from "@/components/dashboard/FundraisingRecommendationCard";
 import { PeriodTabs } from "@/components/dashboard/PeriodTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
@@ -330,6 +331,13 @@ export default function DashboardPage() {
 
           {forecast?.startingRunRate && (
             <StartingRunRateStrip snapshot={forecast.startingRunRate} />
+          )}
+
+          {forecast?.fundraising && (
+            <FundraisingRecommendationCard
+              recommendation={forecast.fundraising}
+              variant="compact"
+            />
           )}
 
           {/* ── Period Filter ── */}

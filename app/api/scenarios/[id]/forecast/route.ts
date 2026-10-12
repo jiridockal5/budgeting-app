@@ -79,6 +79,7 @@ export async function GET(_request: NextRequest, context: RouteParams) {
             dbAssumptions.targetRunwayMonths == null
               ? null
               : Number(dbAssumptions.targetRunwayMonths),
+          fundraisingLeadMonths: Number(dbAssumptions.fundraisingLeadMonths ?? 6),
           churnRate: toNumber(dbAssumptions.churnRate),
           expansionRate: toNumber(dbAssumptions.expansionRate),
           paymentTimingDays: Number(dbAssumptions.paymentTimingDays ?? 30),

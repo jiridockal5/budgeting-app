@@ -128,6 +128,7 @@ model GlobalAssumptions {
   fundraisingFees    Decimal  @default(0) @db.Decimal(5, 2)  // Estimated funding friction (%)
   minCashBuffer      Decimal? @db.Decimal(14, 2)              // Minimum cash safety buffer in EUR
   targetRunwayMonths Int?                                     // Desired runway threshold in months
+  fundraisingLeadMonths Int @default(6)                       // Months of process before cash must land
 
   // Revenue defaults
   churnRate        Decimal  @db.Decimal(5, 2)               // Monthly churn (e.g., 3.00 = 3%)
