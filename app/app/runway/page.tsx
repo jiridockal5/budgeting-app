@@ -7,7 +7,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { StartingRunRateStrip } from "@/components/dashboard/StartingRunRateStrip";
 import { FundraisingRecommendationCard } from "@/components/dashboard/FundraisingRecommendationCard";
 import { Skeleton, FormSectionSkeleton } from "@/components/ui/Skeleton";
-import { formatCurrency, formatMonth } from "@/lib/assumptions";
+import { formatCurrency } from "@/lib/assumptions";
+import { formatMonthLong } from "@/lib/fundraisingCopy";
 import { formatCompactCurrency, setActiveCurrency } from "@/lib/currency";
 import { exportForecastCSV } from "@/lib/export";
 import { useActiveScenario } from "@/components/scenario/ActiveScenarioProvider";
@@ -177,6 +178,14 @@ export default function RunwayPage() {
                     )}
                   </p>
                 )}
+                {forecast?.fundraising &&
+                  forecast.fundraising.effectiveBuffer > 0 &&
+                  forecast.fundraising.bufferBreachMonth && (
+                    <p className="mt-1 text-sm text-neutral-600">
+                      Below your {formatCompact(forecast.fundraising.effectiveBuffer)} cash
+                      buffer from {formatMonthLong(forecast.fundraising.bufferBreachMonth)}
+                    </p>
+                  )}
                 {isInfinite && (
                   <p className="mt-2 text-sm text-emerald-700">
                     Revenue covers expenses within the forecast period.
@@ -208,9 +217,9 @@ export default function RunwayPage() {
                       {forecast?.fundraising?.status === "planned_round_too_late" &&
                       forecast.fundraising.recommendedCloseMonth ? (
                         <>
-                          Close by {formatMonth(forecast.fundraising.recommendedCloseMonth)}{" "}
-                          instead. The recommendation below sizes the bridge on top of
-                          the planned round.
+                          Have the money in the bank by{" "}
+                          {formatMonthLong(forecast.fundraising.recommendedCloseMonth)}. The
+                          recommendation below is the raise that replaces the planned round.
                         </>
                       ) : (
                         <>
@@ -232,7 +241,10 @@ export default function RunwayPage() {
           </div>
 
           {forecast?.fundraising && (
-            <FundraisingRecommendationCard recommendation={forecast.fundraising} />
+            <FundraisingRecommendationCard
+              recommendation={forecast.fundraising}
+              lastForecastMonth={months[months.length - 1]?.date ?? null}
+            />
           )}
 
           {/* Runway progress bar */}

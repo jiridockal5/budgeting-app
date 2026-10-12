@@ -337,6 +337,7 @@ export default function DashboardPage() {
             <FundraisingRecommendationCard
               recommendation={forecast.fundraising}
               variant="compact"
+              lastForecastMonth={forecast.months[forecast.months.length - 1]?.date ?? null}
             />
           )}
 

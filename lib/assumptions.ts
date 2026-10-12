@@ -96,8 +96,7 @@ export const ASSUMPTION_HELPERS: Record<keyof GlobalAssumptions, string> = {
     "Safety threshold used to evaluate whether the company remains sufficiently funded.",
   targetRunwayMonths:
     "Desired number of months the company should remain funded.",
-  fundraisingLeadMonths:
-    "Months before cash hits the buffer to start a raise. Default is 6.",
+  fundraisingLeadMonths: "Default is 6",
   churnRate:
     "Baseline monthly customer or revenue churn used unless overridden elsewhere.",
   expansionRate:
@@ -165,7 +164,9 @@ export function normalizeAssumptions(
     targetRunwayMonths:
       value?.targetRunwayMonths ?? DEFAULT_ASSUMPTIONS.targetRunwayMonths,
     fundraisingLeadMonths:
-      value?.fundraisingLeadMonths ?? DEFAULT_ASSUMPTIONS.fundraisingLeadMonths,
+      value?.fundraisingLeadMonths == null || !Number.isFinite(value.fundraisingLeadMonths)
+        ? DEFAULT_ASSUMPTIONS.fundraisingLeadMonths
+        : value.fundraisingLeadMonths,
     priceUplift: value?.priceUplift ?? DEFAULT_ASSUMPTIONS.priceUplift,
   };
 }

@@ -65,6 +65,7 @@ interface DerivedOutputs {
   runwayMonths: number;
   cashOutMonth: string | null;
   fundraising: FundraisingRecommendation | null;
+  lastForecastMonth: string | null;
 }
 
 export default function AssumptionsPage() {
@@ -254,6 +255,7 @@ export default function AssumptionsPage() {
           runwayMonths: summary.runwayMonths,
           cashOutMonth: zeroMonth?.date ?? null,
           fundraising,
+          lastForecastMonth: months[months.length - 1]?.date ?? null,
         });
       } catch {
         // Non-critical sidebar data; leave previous values in place.
@@ -490,12 +492,19 @@ export default function AssumptionsPage() {
                     />
                     <InputField
                       label="Fundraising lead time"
-                      value={assumptions.fundraisingLeadMonths}
+                      value={assumptions.fundraisingLeadMonths ?? 6}
                       onChange={(value) => {
+                        if (value.trim() === "") {
+                          setAssumptions((prev) => ({
+                            ...prev,
+                            fundraisingLeadMonths: 6,
+                          }));
+                          return;
+                        }
                         const parsed = Number.parseInt(value, 10);
                         setAssumptions((prev) => ({
                           ...prev,
-                          fundraisingLeadMonths: Number.isFinite(parsed) ? parsed : 0,
+                          fundraisingLeadMonths: Number.isFinite(parsed) ? parsed : 6,
                         }));
                       }}
                       helper={ASSUMPTION_HELPERS.fundraisingLeadMonths}
@@ -715,6 +724,7 @@ export default function AssumptionsPage() {
                       <FundraisingRecommendationCard
                         recommendation={derived.fundraising}
                         variant="sidebar"
+                        lastForecastMonth={derived.lastForecastMonth}
                       />
                     ) : (
                       <DecisionPoint

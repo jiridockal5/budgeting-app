@@ -7,9 +7,11 @@ import {
   computeStartingRunRate,
   getPlgPlans,
   normalizeRevenueConfig,
+  recommendFundraise,
   type RevenueConfig,
   type ExpenseInput,
   type AssumptionsInput,
+  type ForecastMonth,
 } from "../revenueForecast";
 import { DEFAULT_ASSUMPTIONS } from "../assumptions";
 
@@ -1822,4 +1824,167 @@ describe("fundraising recommendation", () => {
     expect(result.fundraising.recommendedStartMonth).toBe("2025-03");
     expect(result.fundraising.recommendedNetAmount).toBeCloseTo(40000, 2);
   });
+
+  it("reports a new round, steady burn, and the lowest cash in the window", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions()
+    );
+    const rec = result.fundraising;
+    expect(rec.roundMode).toBe("new");
+    expect(rec.totalRoundGross).toBe(rec.recommendedGrossAmount);
+    expect(rec.driver).toBe("steady_burn");
+    expect(rec.largeRaiseWarning).toBe(false);
+    expect(rec.fundedMonths).toBeNull();
+    expect(rec.lowestCash?.month).toBe(rec.coversThroughMonth);
+    expect(rec.lowestCash?.amount).toBeLessThan(rec.effectiveBuffer);
+    expect(rec.firstMonthBurn).toBeCloseTo(20000, 2);
+    expect(rec.avgBurn).toBeCloseTo(20000, 2);
+  });
+
+  it("leaves round fields empty when both fundraising inputs are unset", () => {
+    const result = buildForecast(
+      6,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({ minCashBuffer: null, targetRunwayMonths: null, cashOnHand: 10000 })
+    );
+    expect(result.fundraising.roundMode).toBe("new");
+    expect(result.fundraising.totalRoundGross).toBe(0);
+    expect(result.fundraising.fundedMonths).toBeNull();
+    expect(result.fundraising.largeRaiseWarning).toBe(false);
+  });
+
+  it("sets fundedMonths only when a no-raise plan still crosses the buffer inside the forecast", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      emptyExpenses,
+      quietAssumptions({ cashOnHand: 100000, minCashBuffer: 10000, targetRunwayMonths: 18 })
+    );
+    expect(result.fundraising.status).toBe("no_raise_needed");
+    expect(result.fundraising.fundedMonths).toBeNull();
+  });
+
+  it("uses one pre-raise round when the planned round is late", () => {
+    const rec = recommendFundraise(
+      [
+        month("2025-01", 40000, 10000),
+        month("2025-02", 20000, 20000),
+        month("2025-03", 0, 20000),
+        month("2025-04", -20000, 20000),
+        month("2025-05", -40000, 20000),
+        month("2025-06", 140000, 30000, 200000),
+      ],
+      quietAssumptions({
+        cashOnHand: 50000,
+        minCashBuffer: 10000,
+        targetRunwayMonths: 6,
+        plannedRaiseMonth: "2025-06",
+        plannedRaiseAmount: 200000,
+      })
+    );
+    expect(rec.status).toBe("planned_round_too_late");
+    expect(rec.roundMode).toBe("replaces_planned");
+    expect(rec.recommendedGrossAmount).toBe(50000);
+    expect(rec.totalRoundGross).toBe(130000);
+    expect(rec.totalRoundGross).not.toBe(200000 + rec.recommendedGrossAmount);
+    expect(rec.driver).toBe("late_planned_round");
+    expect(rec.largeRaiseWarning).toBe(true);
+    expect(rec.lowestCash?.amount).toBe(-120000);
+  });
+
+  it("adds the planned round and the shortfall into one raise", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({
+        cashOnHand: 50000,
+        minCashBuffer: 10000,
+        targetRunwayMonths: 3,
+        plannedRaiseMonth: "2025-02",
+        plannedRaiseAmount: 15000,
+      })
+    );
+    expect(result.fundraising.status).toBe("additional_capital_needed");
+    expect(result.fundraising.roundMode).toBe("adds_to_planned");
+    expect(result.fundraising.recommendedGrossAmount).toBe(50000);
+    expect(result.fundraising.totalRoundGross).toBe(70000);
+    expect(result.fundraising.driver).toBe("steady_burn");
+  });
+
+  it("keeps a sufficient planned round off the raise amount", () => {
+    const result = buildForecast(
+      12,
+      "2025-01",
+      quietStreams,
+      monthlyBurn(20000),
+      quietAssumptions({
+        cashOnHand: 50000,
+        minCashBuffer: 10000,
+        targetRunwayMonths: 3,
+        plannedRaiseMonth: "2025-02",
+        plannedRaiseAmount: 100000,
+      })
+    );
+    expect(result.fundraising.status).toBe("planned_round_sufficient");
+    expect(result.fundraising.roundMode).toBe("new");
+    expect(result.fundraising.totalRoundGross).toBe(0);
+    expect(result.fundraising.lowestCash).not.toBeNull();
+  });
+
+  it("flags burn growth and a large raise when burn doubles", () => {
+    const rec = recommendFundraise(
+      [
+        month("2025-01", 40000, 10000),
+        month("2025-02", 20000, 15000),
+        month("2025-03", 0, 20000),
+        month("2025-04", -25000, 25000),
+      ],
+      quietAssumptions({ minCashBuffer: 10000, targetRunwayMonths: 3, cashOnHand: 50000 })
+    );
+    expect(rec.status).toBe("raise_recommended");
+    expect(rec.roundMode).toBe("new");
+    expect(rec.driver).toBe("burn_growth");
+    expect(rec.largeRaiseWarning).toBe(true);
+    expect(rec.firstMonthBurn).toBe(10000);
+    expect(rec.lastMonthBurn).toBe(25000);
+  });
+
+  it("flags a large raise when the round is more than three times annual burn", () => {
+    const months = Array.from({ length: 12 }, (_, index) =>
+      month(`2025-${String(index + 1).padStart(2, "0")}`, 100000 - 10000 * (index + 1), 10000)
+    );
+    const rec = recommendFundraise(
+      months,
+      quietAssumptions({
+        cashOnHand: 100000,
+        minCashBuffer: 20000,
+        targetRunwayMonths: 48,
+        plannedRaiseMonth: null,
+        plannedRaiseAmount: null,
+      })
+    );
+    expect(rec.status).toBe("raise_recommended");
+    expect(rec.driver).toBe("steady_burn");
+    expect(rec.totalRoundGross).toBe(480000);
+    expect(rec.largeRaiseWarning).toBe(true);
+    expect(rec.lowestCash).not.toBeNull();
+  });
 });
+
+function month(
+  date: string,
+  cashRemaining: number,
+  netBurn: number,
+  fundraisingCashIn = 0
+): ForecastMonth {
+  return { date, cashRemaining, netBurn, fundraisingCashIn } as ForecastMonth;
+}

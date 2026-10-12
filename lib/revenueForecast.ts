@@ -245,6 +245,15 @@ export interface PlannedRoundSnapshot {
   landsBeforeBreach: boolean;
 }
 
+export type FundraisingRoundMode = "new" | "replaces_planned" | "adds_to_planned";
+
+export type FundraisingDriver = "burn_growth" | "steady_burn" | "late_planned_round";
+
+export interface LowestCashPoint {
+  month: string;
+  amount: number;
+}
+
 export interface FundraisingRecommendation {
   status: FundraisingStatus;
   /** minCashBuffer, or 0 when the buffer is unset. */
@@ -267,6 +276,22 @@ export interface FundraisingRecommendation {
   /** True when the breach or coverage window extends past the forecast. */
   extrapolated: boolean;
   plannedRound: PlannedRoundSnapshot | null;
+  /** Single raise to show. For a late planned round this replaces that round. */
+  totalRoundGross: number;
+  roundMode: FundraisingRoundMode;
+  /** Lowest cash in the window used to size the raise, if a window was sized. */
+  lowestCash: LowestCashPoint | null;
+  firstMonthBurn: number;
+  lastMonthBurn: number;
+  avgBurn: number;
+  driver: FundraisingDriver;
+  largeRaiseWarning: boolean;
+  /**
+   * Months from the forecast start until cash first drops below the buffer
+   * inside the forecast. Set only for no_raise_needed. Null when cash stays
+   * above the buffer for every forecast month.
+   */
+  fundedMonths: number | null;
 }
 
 export interface ForecastResult {
@@ -1307,13 +1332,25 @@ function grossRaiseForNet(net: number, feePercent: number): number {
   if (net <= 0) return 0;
   const fee = Math.min(Math.max(feePercent, 0), 100);
   const exact = fee >= 100 ? net : net / (1 - fee / 100);
-  return Math.ceil(exact / RAISE_GROSS_STEP) * RAISE_GROSS_STEP;
+  return roundUpToStep(exact);
 }
+
+function roundUpToStep(amount: number): number {
+  if (amount <= 0) return 0;
+  return Math.ceil(amount / RAISE_GROSS_STEP) * RAISE_GROSS_STEP;
+}
+
+const RAISE_STATUSES: ReadonlySet<FundraisingStatus> = new Set([
+  "raise_recommended",
+  "additional_capital_needed",
+  "planned_round_too_late",
+]);
 
 /**
  * Fundraising recommendation from a finished cash path.
  * Does not inject cash. A planned round already inside `months` stays there;
- * the amount is only the extra net cash required on top of it.
+ * recommendedNetAmount / recommendedGrossAmount stay the extra cash on top of it.
+ * totalRoundGross is the single raise to show (a late planned round is replaced).
  */
 export function recommendFundraise(
   months: ForecastMonth[],
@@ -1324,6 +1361,12 @@ export function recommendFundraise(
   const targetMissing = assumptions.targetRunwayMonths == null;
   const effectiveBuffer = assumptions.minCashBuffer ?? 0;
   const target = assumptions.targetRunwayMonths;
+  const firstMonthBurn = months[0]?.netBurn ?? 0;
+  const lastMonthBurn = months[months.length - 1]?.netBurn ?? 0;
+  const avgBurn =
+    months.length === 0
+      ? 0
+      : round2(months.reduce((sum, month) => sum + month.netBurn, 0) / months.length);
 
   const base = (
     status: FundraisingStatus,
@@ -1342,11 +1385,65 @@ export function recommendFundraise(
     coversThroughMonth: null,
     extrapolated: false,
     plannedRound: null,
+    totalRoundGross: 0,
+    roundMode: "new",
+    lowestCash: null,
+    firstMonthBurn,
+    lastMonthBurn,
+    avgBurn,
+    driver: "steady_burn",
+    largeRaiseWarning: false,
+    fundedMonths: null,
     ...extra,
   });
 
+  const finish = (
+    rec: FundraisingRecommendation,
+    series: number[] | null,
+    replacementGross = 0
+  ): FundraisingRecommendation => {
+    let roundMode: FundraisingRoundMode = "new";
+    let totalRoundGross = 0;
+    if (rec.status === "raise_recommended") {
+      totalRoundGross = rec.recommendedGrossAmount;
+    } else if (rec.status === "additional_capital_needed") {
+      roundMode = "adds_to_planned";
+      totalRoundGross = roundUpToStep(
+        (rec.plannedRound?.grossAmount ?? 0) + rec.recommendedGrossAmount
+      );
+    } else if (rec.status === "planned_round_too_late") {
+      roundMode = "replaces_planned";
+      totalRoundGross = replacementGross;
+    }
+
+    const driver: FundraisingDriver =
+      rec.status === "planned_round_too_late"
+        ? "late_planned_round"
+        : firstMonthBurn > 0 && lastMonthBurn >= 1.5 * firstMonthBurn
+          ? "burn_growth"
+          : "steady_burn";
+
+    const burnDoubled =
+      firstMonthBurn > 0 && lastMonthBurn > 0 && lastMonthBurn >= 2 * firstMonthBurn;
+    const largeVersusBurn = avgBurn > 0 && totalRoundGross > 3 * avgBurn * 12;
+    const inForecastBreach =
+      series == null
+        ? -1
+        : series.findIndex((cash) => belowCashBuffer(cash, effectiveBuffer));
+
+    return {
+      ...rec,
+      totalRoundGross,
+      roundMode,
+      driver,
+      largeRaiseWarning: RAISE_STATUSES.has(rec.status) && (largeVersusBurn || burnDoubled),
+      fundedMonths:
+        rec.status === "no_raise_needed" && inForecastBreach >= 0 ? inForecastBreach : null,
+    };
+  };
+
   if (months.length === 0 || (bufferMissing && targetMissing)) {
-    return base("inputs_missing");
+    return finish(base("inputs_missing"), null);
   }
 
   const modeled = months.map((month) => month.cashRemaining);
@@ -1388,21 +1485,27 @@ export function recommendFundraise(
     };
   };
 
-  const sized = (closeIndex: number) => {
+  const sized = (closeIndex: number, series: number[]) => {
     if (target == null || target <= 0) {
       return {
         recommendedNetAmount: 0,
         recommendedGrossAmount: 0,
         coversThroughMonth: null as string | null,
         windowExtrapolated: false,
+        lowestCash: null as LowestCashPoint | null,
       };
     }
     let minCash = Infinity;
+    let minIndex = closeIndex;
     let windowExtrapolated = false;
     const end = closeIndex + target - 1;
     for (let t = closeIndex; t <= end; t++) {
-      if (t >= months.length) windowExtrapolated = true;
-      minCash = Math.min(minCash, cashAtIndex(t, modeled, lastNetBurn));
+      if (t >= series.length) windowExtrapolated = true;
+      const cash = cashAtIndex(t, series, lastNetBurn);
+      if (cash < minCash) {
+        minCash = cash;
+        minIndex = t;
+      }
     }
     const net = Math.max(0, round2(effectiveBuffer - minCash));
     return {
@@ -1410,6 +1513,10 @@ export function recommendFundraise(
       recommendedGrossAmount: grossRaiseForNet(net, assumptions.fundraisingFees),
       coversThroughMonth: addMonths(startMonth, end),
       windowExtrapolated,
+      lowestCash: {
+        month: addMonths(startMonth, minIndex),
+        amount: round2(minCash),
+      },
     };
   };
 
@@ -1417,57 +1524,75 @@ export function recommendFundraise(
   if (targetMissing && !bufferMissing) {
     if (!breach) {
       if (plannedRound && preBreach) {
-        return base("planned_round_sufficient", {
-          plannedRound,
-          recommendedCloseMonth: plannedRound.month,
-        });
+        return finish(
+          base("planned_round_sufficient", {
+            plannedRound,
+            recommendedCloseMonth: plannedRound.month,
+          }),
+          modeled
+        );
       }
-      return base("no_raise_needed", { plannedRound });
+      return finish(base("no_raise_needed", { plannedRound }), modeled);
     }
-    return base("raise_recommended", {
-      ...timingFor(breach.index, breach.index),
-      plannedRound,
-      recommendedNetAmount: 0,
-      recommendedGrossAmount: 0,
-    });
+    return finish(
+      base("raise_recommended", {
+        ...timingFor(breach.index, breach.index),
+        plannedRound,
+        recommendedNetAmount: 0,
+        recommendedGrossAmount: 0,
+      }),
+      modeled
+    );
   }
 
-  if (target == null) return base("inputs_missing");
+  if (target == null) return finish(base("inputs_missing"), null);
 
   if (!breach && !preBreach) {
-    return base("no_raise_needed", { plannedRound });
+    return finish(base("no_raise_needed", { plannedRound }), modeled);
   }
 
   if (plannedRound && preBreach && plannedRound.landsBeforeBreach) {
     const plannedIndex = Math.max(0, monthDiff(startMonth, plannedRound.month));
     let minCash = Infinity;
+    let minIndex = plannedIndex;
     let windowExtrapolated = false;
     const end = plannedIndex + target - 1;
     for (let t = plannedIndex; t <= end; t++) {
       if (t >= months.length) windowExtrapolated = true;
-      minCash = Math.min(minCash, cashAtIndex(t, modeled, lastNetBurn));
+      const cash = cashAtIndex(t, modeled, lastNetBurn);
+      if (cash < minCash) {
+        minCash = cash;
+        minIndex = t;
+      }
     }
     const windowHolds = !belowCashBuffer(minCash, effectiveBuffer);
     if (windowHolds) {
-      return base("planned_round_sufficient", {
-        plannedRound,
-        recommendedCloseMonth: plannedRound.month,
-        recommendedStartMonth:
-          plannedIndex - lead < 0
-            ? startMonth
-            : addMonths(startMonth, plannedIndex - lead),
-        overdue: plannedIndex - lead < 0,
-        coversThroughMonth: addMonths(startMonth, end),
-        extrapolated: windowExtrapolated,
-      });
+      return finish(
+        base("planned_round_sufficient", {
+          plannedRound,
+          recommendedCloseMonth: plannedRound.month,
+          recommendedStartMonth:
+            plannedIndex - lead < 0
+              ? startMonth
+              : addMonths(startMonth, plannedIndex - lead),
+          overdue: plannedIndex - lead < 0,
+          coversThroughMonth: addMonths(startMonth, end),
+          extrapolated: windowExtrapolated,
+          lowestCash:
+            minCash === Infinity
+              ? null
+              : { month: addMonths(startMonth, minIndex), amount: round2(minCash) },
+        }),
+        modeled
+      );
     }
   }
 
   if (!breach) {
-    return base("no_raise_needed", { plannedRound });
+    return finish(base("no_raise_needed", { plannedRound }), modeled);
   }
 
-  const amount = sized(breach.index);
+  const amount = sized(breach.index, modeled);
   const timing = timingFor(breach.index, breach.index);
   const status: FundraisingStatus =
     plannedRound && preBreach && !plannedRound.landsBeforeBreach
@@ -1475,15 +1600,22 @@ export function recommendFundraise(
       : plannedRound
         ? "additional_capital_needed"
         : "raise_recommended";
+  const replacement =
+    status === "planned_round_too_late" ? sized(breach.index, preRaise) : null;
 
-  return base(status, {
-    ...timing,
-    extrapolated: timing.extrapolated || amount.windowExtrapolated,
-    plannedRound,
-    recommendedNetAmount: amount.recommendedNetAmount,
-    recommendedGrossAmount: amount.recommendedGrossAmount,
-    coversThroughMonth: amount.coversThroughMonth,
-  });
+  return finish(
+    base(status, {
+      ...timing,
+      extrapolated: timing.extrapolated || amount.windowExtrapolated,
+      plannedRound,
+      recommendedNetAmount: amount.recommendedNetAmount,
+      recommendedGrossAmount: amount.recommendedGrossAmount,
+      coversThroughMonth: amount.coversThroughMonth,
+      lowestCash: (replacement ?? amount).lowestCash,
+    }),
+    modeled,
+    replacement?.recommendedGrossAmount ?? 0
+  );
 }
 
 /**

@@ -1,4 +1,5 @@
-import type { ForecastResult, FundraisingRecommendation } from "./revenueForecast";
+import type { ForecastResult } from "./revenueForecast";
+import { buildFundraisingCopy } from "./fundraisingCopy";
 import { formatCompactCurrency, getActiveCurrency } from "./currency";
 
 function formatCompact(value: number): string {
@@ -100,7 +101,7 @@ export function exportForecastCSV(forecast: ForecastResult) {
     ["Burn Multiple", `${s.burnMultiple.toFixed(1)}x`],
     ["Rule of 40", `${s.ruleOf40.toFixed(1)}%`],
     ["Runway (months)", s.runwayMonths >= 999 ? "∞" : s.runwayMonths.toFixed(0)],
-    ...fundraisingSummaryRows(forecast.fundraising),
+    ...fundraisingSummaryRows(forecast),
   ];
 
   const csv = [
@@ -182,7 +183,7 @@ export function exportSummaryPDF(forecast: ForecastResult) {
 
 <h2>Fundraising</h2>
 <table>
-${fundraisingPdfRows(forecast.fundraising)}
+${fundraisingPdfRows(forecast)}
 </table>
 
 <h2>Cash In (End of Period Month)</h2>
@@ -213,37 +214,35 @@ ${fundraisingPdfRows(forecast.fundraising)}
   }
 }
 
-function fundraisingSummaryRows(rec: FundraisingRecommendation | undefined): string[][] {
-  if (!rec) return [];
-  return [
-    [],
-    ["Fundraising recommendation"],
-    ["Status", rec.status],
-    ["Buffer breach month", rec.bufferBreachMonth ?? ""],
-    ["Recommended start month", rec.recommendedStartMonth ?? ""],
-    ["Recommended close month", rec.recommendedCloseMonth ?? ""],
-    ["Recommended net amount", rec.recommendedNetAmount.toFixed(2)],
-    ["Recommended gross amount", rec.recommendedGrossAmount.toFixed(2)],
-    ["Fundraising lead time (months)", String(rec.fundraisingLeadMonths)],
-    ["Minimum cash buffer", rec.effectiveBuffer.toFixed(2)],
-    ["Target runway (months)", rec.targetRunwayMonths == null ? "" : String(rec.targetRunwayMonths)],
-  ];
+function fundraisingLines(forecast: ForecastResult): [string, string][] {
+  const rec = forecast.fundraising;
+  if (!rec) return [["Fundraising", "Not available"]];
+  const last = forecast.months[forecast.months.length - 1]?.date ?? null;
+  const copy = buildFundraisingCopy(rec, { lastForecastMonth: last });
+  const rows: [string, string][] = [["Headline", copy.headline]];
+  if (copy.why) rows.push(["Why", copy.why]);
+  if (copy.lastsLine) rows.push(["This round", copy.lastsLine]);
+  if (copy.showKeyNumbers) {
+    rows.push(["Raise", copy.raiseAmount]);
+    if (copy.raiseCaption) rows.push(["Raise note", copy.raiseCaption]);
+    rows.push(["Money in the bank by", copy.closeMonthLabel]);
+    rows.push(["Start fundraising", copy.startLabel]);
+  }
+  if (copy.largeRaiseWarningText) rows.push(["Note", copy.largeRaiseWarningText]);
+  for (const line of copy.details) {
+    const splitAt = line.indexOf(": ");
+    if (splitAt === -1) rows.push(["Detail", line]);
+    else rows.push([line.slice(0, splitAt), line.slice(splitAt + 2)]);
+  }
+  return rows;
 }
 
-function fundraisingPdfRows(rec: FundraisingRecommendation | undefined): string {
-  if (!rec) return `<tr><td colspan="2">Not available</td></tr>`;
-  const rows: [string, string][] = [
-    ["Status", rec.status],
-    ["Buffer breach", rec.bufferBreachMonth ?? "—"],
-    ["Start raising", rec.recommendedStartMonth ?? "—"],
-    ["Close round", rec.recommendedCloseMonth ?? "—"],
-    ["Net amount", formatCompact(rec.recommendedNetAmount)],
-    ["Gross amount", formatCompact(rec.recommendedGrossAmount)],
-    ["Lead time", `${rec.fundraisingLeadMonths} months`],
-    ["Cash buffer", formatCompact(rec.effectiveBuffer)],
-    ["Target runway", rec.targetRunwayMonths == null ? "—" : `${rec.targetRunwayMonths} months`],
-  ];
-  return rows
+function fundraisingSummaryRows(forecast: ForecastResult): string[][] {
+  return [[], ["Fundraising recommendation"], ...fundraisingLines(forecast)];
+}
+
+function fundraisingPdfRows(forecast: ForecastResult): string {
+  return fundraisingLines(forecast)
     .map(([label, value]) => `<tr><td>${label}</td><td class="value">${value}</td></tr>`)
     .join("\n");
 }
