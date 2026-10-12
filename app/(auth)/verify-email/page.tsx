@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  authCallbackUrl,
+  CONFIRMATION_EMAIL_HINT,
+} from "@/lib/authEmail";
 import { AuthCard, AuthMessage, AuthButton } from "@/components/auth";
 
 export default function VerifyEmailPage() {
@@ -29,14 +33,16 @@ export default function VerifyEmailPage() {
         type: "signup",
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/app`,
+          emailRedirectTo: authCallbackUrl("/app"),
         },
       });
       if (resendError) {
         setError(resendError.message);
         return;
       }
-      setMessage("Confirmation email sent. Please check your inbox.");
+      setMessage(
+        "Confirmation email sent. Please check your inbox and spam folder.",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -66,6 +72,7 @@ export default function VerifyEmailPage() {
           <div className="space-y-4">
             {message && <AuthMessage type="success" message={message} />}
             {error && <AuthMessage type="error" message={error} />}
+            <p className="text-sm text-neutral-600">{CONFIRMATION_EMAIL_HINT}</p>
 
             <AuthButton
               type="button"

@@ -60,9 +60,9 @@ Finish remaining launch blockers so Burnlytics can be **offered to paying custom
 
 ## Next work (prioritized)
 
-### P0 — Supabase Auth config (manual, ~10 min)
+### P0 — Supabase Auth config (manual)
 
-**Why:** Password reset and email verification links fail without redirect URLs in Supabase dashboard.
+**Why:** Password reset and email verification links fail without redirect URLs in Supabase dashboard. Default Supabase mail is rate-limited and often lands in spam (especially for providers like Seznam) — production needs custom SMTP.
 
 **Steps:**
 1. Supabase Dashboard → project `budgeting-app` (ref: `puiswljpjrodpnflopdp`)
@@ -72,12 +72,24 @@ Finish remaining launch blockers so Burnlytics can be **offered to paying custom
      - `https://burnlytics.com/auth/callback`
      - `http://localhost:3001/auth/callback`
 3. **Authentication → Providers → Email:** ensure **Confirm email** is enabled
+4. **Project Settings → Authentication → SMTP Settings** (or **Authentication → Emails → SMTP**):
+   - Enable **custom SMTP** (Resend, Postmark, Amazon SES, etc.)
+   - Use a verified sender domain (e.g. `noreply@burnlytics.com`)
+   - Free-tier built-in email is limited (~2–4 messages/hour) and unreliable for real signups
+
+**If a confirmation email never arrives:**
+1. Check spam/junk on the signup address
+2. Use **Resend confirmation email** on `/signup` after signup, or on `/login` after an “Email not confirmed” error
+3. In Supabase → **Authentication → Users**, confirm the user row exists and is unconfirmed
+4. In Supabase → **Authentication → Logs** / provider SMTP logs, confirm the send attempt
+5. Configure custom SMTP if still missing (built-in mail is the usual root cause)
 
 **Acceptance criteria:**
 - New signup receives confirmation email; link lands on `/app` after callback
 - Forgot password email → `/reset-password` works end-to-end on production
+- Resend works from signup success and from login when email is unconfirmed
 
-**Code touchpoints:** `app/auth/callback/route.ts`, `middleware.ts`, `app/(auth)/*`
+**Code touchpoints:** `app/auth/callback/route.ts`, `middleware.ts`, `app/(auth)/*`, `lib/authEmail.ts`
 
 ---
 

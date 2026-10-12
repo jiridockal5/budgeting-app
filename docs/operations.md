@@ -7,8 +7,17 @@ Short reference for running this app in production. Adjust names (Supabase, Verc
 - **Never commit** `.env`, API keys, or database URLs. Use the host’s secret store (Vercel Environment Variables, GitHub Actions secrets, Doppler, etc.).
 - **Required for the database:** `POSTGRES_PRISMA_URL` (preferred) or `DATABASE_URL`, as used by `lib/prisma.ts` and `prisma/schema.prisma`.
 - **Auth:** Supabase (or your provider) URL and anon/service keys only where each is required; restrict service role to server-only contexts.
+- **Auth email delivery:** Configure **custom SMTP** in the Supabase dashboard before relying on signup/reset emails in production. Built-in Supabase mail is rate-limited and frequently filtered as spam.
 - **Rotate** any key that was pasted into chat, email, or a ticket.
 - **Document** which env vars exist: duplicate this list in your password manager or internal wiki, not in the repo.
+
+## Auth confirmation emails not arriving
+
+1. Ask the user to check spam/junk and to use **Resend confirmation email** on `/signup` or `/login`.
+2. Supabase Dashboard → **Authentication → Users**: find the email; note whether `email_confirmed_at` is set.
+3. Confirm redirect URLs include `https://burnlytics.com/auth/callback` (Site URL `https://burnlytics.com`).
+4. Confirm custom SMTP is enabled with a verified from-domain; built-in mail is not enough for reliable delivery.
+5. Retry resend after SMTP is configured; if the user is stuck unconfirmed, you can manually confirm them in the Users table as a temporary unlock, then ask them to sign in.
 
 ## Database backups and migrations
 
