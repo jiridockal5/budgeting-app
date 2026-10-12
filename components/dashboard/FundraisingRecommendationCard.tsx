@@ -2,9 +2,13 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
 import posthog, { isPostHogConfigured } from "@/instrumentation-client";
-import { buildFundraisingCopy, type FundraisingTone } from "@/lib/fundraisingCopy";
+import {
+  buildFundraisingCopy,
+  type DerivationStep,
+  type FundraisingTone,
+} from "@/lib/fundraisingCopy";
 import type { FundraisingRecommendation } from "@/lib/revenueForecast";
 
 const HEADLINE_COLOR: Record<FundraisingTone, string> = {
@@ -20,6 +24,48 @@ const CARD_BORDER: Record<FundraisingTone, string> = {
   red: "border-rose-200",
   grey: "border-neutral-200",
 };
+
+function Derivation({ step }: { step: DerivationStep }) {
+  return (
+    <li className="border-t border-neutral-200 pt-3 first:border-t-0 first:pt-0">
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="font-medium text-neutral-800">
+          <span className="mr-1.5 tabular-nums text-neutral-500">{step.number}.</span>
+          {step.title}
+        </p>
+        <p
+          className="shrink-0 text-right text-sm font-semibold tabular-nums text-neutral-900"
+          title={step.resultExact ?? undefined}
+        >
+          {step.result}
+        </p>
+      </div>
+      {step.rows.length > 0 && (
+        <dl className="mt-2 space-y-1">
+          {step.rows.map((row) => (
+            <div key={row.label} className="flex items-baseline justify-between gap-4">
+              <dt className="text-neutral-600">{row.label}</dt>
+              <dd
+                className={`text-right tabular-nums ${
+                  row.negative ? "font-medium text-rose-700" : "text-neutral-800"
+                }`}
+                title={row.exact ?? undefined}
+              >
+                {row.value}
+                {row.exact ? (
+                  <span className="mt-0.5 block text-[11px] font-normal text-neutral-600">
+                    {row.exact}
+                  </span>
+                ) : null}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <p className="mt-2 text-neutral-600">{step.equation}</p>
+    </li>
+  );
+}
 
 function KeyNumber({
   label,
@@ -97,16 +143,29 @@ export function FundraisingRecommendationCard({
       )}
       {copy.why ? <p className="mt-4 text-sm text-neutral-700">{copy.why}</p> : null}
       {copy.lastsLine ? <p className="mt-2 text-sm text-neutral-700">{copy.lastsLine}</p> : null}
-      {copy.details.length > 0 && (
+      {copy.derivation && (
         <details className="mt-4">
-          <summary className="cursor-pointer text-sm font-medium text-neutral-600">
+          <summary className="cursor-pointer rounded-sm text-sm font-medium text-neutral-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-turquoise-600">
             How we calculated this
           </summary>
-          <ul className="mt-2 space-y-1 text-sm text-neutral-600">
-            {copy.details.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
+          <div className="mt-3 text-[13px] leading-relaxed">
+            <ol>
+              {copy.derivation.steps.map((step) => (
+                <Derivation key={step.number} step={step} />
+              ))}
+            </ol>
+            {copy.derivation.plannedNote ? (
+              <p className="mt-3 border-t border-neutral-200 pt-3 text-neutral-600">
+                {copy.derivation.plannedNote}
+              </p>
+            ) : null}
+            {copy.derivation.footnote ? (
+              <p className="mt-3 flex items-start gap-1.5 border-t border-neutral-200 pt-3 text-neutral-600">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{copy.derivation.footnote}</span>
+              </p>
+            ) : null}
+          </div>
         </details>
       )}
       {copy.largeRaiseWarningText ? (

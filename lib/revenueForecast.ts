@@ -275,6 +275,8 @@ export interface FundraisingRecommendation {
   coversThroughMonth: string | null;
   /** True when the breach or coverage window extends past the forecast. */
   extrapolated: boolean;
+  /** Fee percent already used to gross up the raise. Exposed so the breakdown can show rounding. */
+  fundraisingFeePercent: number;
   plannedRound: PlannedRoundSnapshot | null;
   /** Single raise to show. For a late planned round this replaces that round. */
   totalRoundGross: number;
@@ -1328,11 +1330,19 @@ function cashAtIndex(
   return cashByMonth[lastIndex] - netBurn * (index - lastIndex);
 }
 
-function grossRaiseForNet(net: number, feePercent: number): number {
-  if (net <= 0) return 0;
+/** Unrounded fee gross-up and the same amount rounded up to 10,000. */
+export function raiseAmountBreakdown(
+  net: number,
+  feePercent: number
+): { exact: number; rounded: number } {
+  if (net <= 0) return { exact: 0, rounded: 0 };
   const fee = Math.min(Math.max(feePercent, 0), 100);
   const exact = fee >= 100 ? net : net / (1 - fee / 100);
-  return roundUpToStep(exact);
+  return { exact, rounded: roundUpToStep(exact) };
+}
+
+function grossRaiseForNet(net: number, feePercent: number): number {
+  return raiseAmountBreakdown(net, feePercent).rounded;
 }
 
 function roundUpToStep(amount: number): number {
@@ -1384,6 +1394,7 @@ export function recommendFundraise(
     recommendedGrossAmount: 0,
     coversThroughMonth: null,
     extrapolated: false,
+    fundraisingFeePercent: Math.min(Math.max(assumptions.fundraisingFees ?? 0, 0), 100),
     plannedRound: null,
     totalRoundGross: 0,
     roundMode: "new",

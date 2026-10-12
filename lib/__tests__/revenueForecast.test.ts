@@ -1672,6 +1672,7 @@ describe("fundraising recommendation", () => {
     );
     expect(result.fundraising.recommendedNetAmount).toBeCloseTo(110000, 2);
     expect(result.fundraising.recommendedGrossAmount).toBe(130000);
+    expect(result.fundraising.fundraisingFeePercent).toBe(10);
   });
 
   it("starts the process one lead time before a later breach", () => {

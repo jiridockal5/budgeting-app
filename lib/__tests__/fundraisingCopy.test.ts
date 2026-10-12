@@ -27,13 +27,14 @@ function rec(
     plannedRound: null,
     totalRoundGross: 1200000,
     roundMode: "new",
-    lowestCash: { month: "2026-11", amount: 12450 },
+    lowestCash: { month: "2026-11", amount: -1100000 },
     firstMonthBurn: 80000,
     lastMonthBurn: 80000,
     avgBurn: 80000,
     driver: "steady_burn",
     largeRaiseWarning: false,
     fundedMonths: null,
+    fundraisingFeePercent: 0,
     ...overrides,
   };
 }
@@ -72,8 +73,20 @@ describe("fundraising copy", () => {
     expect(copy.dashboardLine).toBe(
       "Start fundraising in March 2026. · Raise $1.2M by September 2026"
     );
-    expect(copy.details).toContain("Lead time used: 6 months");
-    expect(copy.details).toContain("Lowest money in the bank: $12,450 in November 2026");
+    expect(copy.derivation?.steps.map((step) => step.title)).toEqual([
+      "When cash runs low",
+      "How much cash is missing",
+      "From shortfall to raise",
+    ]);
+    expect(copy.derivation?.steps[0].equation).toBe(
+      "Buffer crossed September 2026 − 6 months lead time = start March 2026."
+    );
+    expect(copy.derivation?.steps[1].equation).toBe(
+      "Cash buffer $100,000 − lowest balance −$1,100,000 = $1,200,000 missing."
+    );
+    expect(copy.derivation?.steps[1].rows[0].negative).toBe(true);
+    expect(copy.derivation?.steps[2].result).toBe("$1.2M");
+    expect(copy.derivation?.steps[2].equation).toContain("already a multiple of $10,000");
     expect(mainText(copy)).not.toMatch(BANNED);
   });
 
@@ -194,6 +207,7 @@ describe("fundraising copy", () => {
         coversThroughMonth: "2025-08",
         targetRunwayMonths: 6,
         effectiveBuffer: 10000,
+        lowestCash: { month: "2025-08", amount: -170000 },
         plannedRound: {
           month: "2025-06",
           grossAmount: 200000,
@@ -209,7 +223,12 @@ describe("fundraising copy", () => {
     expect(copy.why).toBe(
       "Your planned round in June 2025 arrives after cash drops below your cash buffer."
     );
-    expect(copy.details.some((line) => line.startsWith("Single raise:"))).toBe(true);
+    expect(copy.derivation?.plannedNote).toBe(
+      "Replaces the planned round: June 2025, $200,000 before fees, $200,000 after fees."
+    );
+    expect(copy.derivation?.steps[2].equation).toContain("$180,000");
+    expect(copy.derivation?.steps[2].equation).not.toContain("$60,000");
+    expect(copy.derivation?.plannedNote).not.toMatch(/already included/i);
     expect(mainText(copy)).not.toMatch(BANNED);
   });
 
@@ -270,6 +289,7 @@ describe("fundraising copy", () => {
     expect(copy.showKeyNumbers).toBe(false);
     expect(copy.why).toBeNull();
     expect(copy.details).toEqual([]);
+    expect(copy.derivation).toBeNull();
     expect(copy.dashboardLine).toBe(copy.headline);
   });
 
@@ -289,9 +309,99 @@ describe("fundraising copy", () => {
     expect(copy.largeRaiseWarningText).toBe(
       "This is a large raise driven by cost growth. Review your hiring plan and expenses."
     );
-    expect(copy.details).toContain(
+    expect(copy.derivation?.footnote).toBe(
       "The forecast ends in December 2026; months after that assume your last month's burn of $95,000."
     );
     expect(mainText(copy)).not.toMatch(BANNED);
+  });
+
+  it("says the computed start month is already past when fundraising is overdue", () => {
+    setActiveCurrency("USD");
+    const copy = buildFundraisingCopy(
+      rec("raise_recommended", {
+        overdue: true,
+        bufferBreachMonth: "2025-04",
+        recommendedStartMonth: "2025-01",
+        fundraisingLeadMonths: 6,
+      })
+    );
+    expect(copy.derivation?.steps[0].result).toBe("Now");
+    expect(copy.derivation?.steps[0].equation).toBe(
+      "Buffer crossed April 2025 − 6 months lead time = October 2024, already past. Start now."
+    );
+  });
+
+  it("adds the planned round into the raise and keeps it out of the replacement path", () => {
+    setActiveCurrency("USD");
+    const adds = buildFundraisingCopy(
+      rec("additional_capital_needed", {
+        roundMode: "adds_to_planned",
+        overdue: true,
+        effectiveBuffer: 10000,
+        recommendedNetAmount: 45000,
+        recommendedGrossAmount: 50000,
+        totalRoundGross: 70000,
+        lowestCash: { month: "2025-05", amount: -35000 },
+        bufferBreachMonth: "2025-03",
+        recommendedStartMonth: "2025-01",
+        fundraisingLeadMonths: 6,
+        plannedRound: {
+          month: "2025-02",
+          grossAmount: 15000,
+          netAmount: 15000,
+          landsBeforeBreach: true,
+        },
+      })
+    );
+    expect(adds.derivation?.steps[2].equation).toContain(
+      "Plus the planned $15,000 = $65,000, rounded up to $70,000."
+    );
+    expect(adds.derivation?.steps[2].result).toBe("$70K");
+    expect(adds.derivation?.plannedNote).toMatch(/^Already in this plan:/);
+
+    const replaced = buildFundraisingCopy(
+      rec("planned_round_too_late", {
+        roundMode: "replaces_planned",
+        effectiveBuffer: 10000,
+        recommendedNetAmount: 50000,
+        recommendedGrossAmount: 50000,
+        totalRoundGross: 130000,
+        lowestCash: { month: "2025-08", amount: -120000 },
+        bufferBreachMonth: "2025-03",
+        recommendedCloseMonth: "2025-03",
+        recommendedStartMonth: "2025-01",
+        fundraisingLeadMonths: 2,
+        overdue: false,
+        plannedRound: {
+          month: "2025-06",
+          grossAmount: 200000,
+          netAmount: 200000,
+          landsBeforeBreach: false,
+        },
+      })
+    );
+    expect(replaced.derivation?.steps[1].equation).toBe(
+      "Cash buffer $10,000 − lowest balance −$120,000 = $130,000 missing."
+    );
+    expect(replaced.derivation?.steps[2].result).toBe("$130K");
+    expect(replaced.derivation?.steps[2].equation).not.toContain("$50,000");
+    expect(replaced.derivation?.plannedNote).toMatch(/^Replaces the planned round:/);
+  });
+
+  it("shows the fee gross-up before the 10,000 rounding", () => {
+    setActiveCurrency("USD");
+    const copy = buildFundraisingCopy(
+      rec("raise_recommended", {
+        effectiveBuffer: 30000,
+        recommendedNetAmount: 110000,
+        recommendedGrossAmount: 130000,
+        totalRoundGross: 130000,
+        fundraisingFeePercent: 10,
+        lowestCash: { month: "2025-04", amount: -80000 },
+      })
+    );
+    expect(copy.derivation?.steps[2].equation).toBe(
+      "$110,000 missing. Fees of 10% bring it to $122,222 before rounding, then up to $130,000."
+    );
   });
 });
